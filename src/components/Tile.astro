@@ -1,0 +1,16 @@
+---
+/** A compact visual destination: a preview area above a short label. */
+interface Props { title?: string; description?: string; href?: string }
+const { title, description, href } = Astro.props;
+const Tag = href ? 'a' : 'div';
+---
+<Tag class="tile" href={href}>
+  {/* `plus-lattice` is the shared texture — see components.css. */}
+  <div class="tile-preview plus-lattice"><div class="tile-preview-inner"><slot name="icon" /><slot /></div></div>
+  {(title || description) && (
+    <div class="tile-text">
+      {title && <p class="tile-title">{title}</p>}
+      {description && <p class="tile-description">{description}</p>}
+    </div>
+  )}
+</Tag>

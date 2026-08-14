@@ -1,0 +1,17 @@
+---
+/**
+ * The only script that has to stay inline: it resolves the visitor's colour
+ * mode before the first paint, so the page never flashes the wrong theme.
+ * Everything else lives in src/scripts and is bundled.
+ *
+ * Kept in its own component because both the docs layout and the 404 page need
+ * it, and a second copy is a second chance to get the `system` case wrong.
+ */
+import { site } from '../docs.config';
+---
+<script is:inline define:vars={{ key: site.themeStorageKey }}>
+  const pref = localStorage.getItem(key) || 'system';
+  const dark = pref === 'dark' || (pref === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.documentElement.dataset.themePref = pref;
+</script>

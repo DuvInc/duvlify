@@ -1,0 +1,139 @@
+---
+/**
+ * Everything inside <head>, for every page type.
+ *
+ * Both the docs layout and the 404 page render this, so metadata, fonts, theme
+ * tokens and the pre-paint theme script can't drift between them.
+ *
+ * The tags fall into three groups, serving two audiences:
+ *
+ *   Search   canonical, robots directives, structured data. One indexable HTML
+ *            page per topic, described well enough to earn a rich result.
+ *   Social   Open Graph and Twitter, with a generated card per page.
+ *   Agents   a link to this page's Markdown twin, and to the site's llms.txt.
+ *
+ * A page supplies only its title and description; everything else is derived.
+ */
+import { Font } from 'astro:assets';
+import { agents, seo, site, theme, withBase } from '../docs.config';
+import { markdownUrl } from '../lib/markdown-url';
+import { hasOpenApiSpec, OPENAPI_PATH } from '../lib/openapi-spec';
+import ThemeBootstrap from './ThemeBootstrap.astro';
+import WebMcpBridge from './WebMcpBridge.astro';
+import ThemeTokens from './ThemeTokens.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Omitted on pages that should not be indexed, like 404. */
+  canonical?: string;
+  /** Keeps the page reachable but out of results. */
+  noindex?: boolean;
+  /** Share card. Defaults to the generated card for this page. */
+  image?: string;
+  imageAlt?: string;
+  published?: Date;
+  modified?: Date;
+  /** The JSON-LD graph from lib/structured-data.ts. Omitted on 404. */
+  structuredData?: Record<string, unknown>;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  noindex = false,
+  image,
+  imageAlt,
+  published,
+  modified,
+  structuredData,
+} = Astro.props;
+
+const fullTitle = `${title} — ${site.titleSuffix}`;
+const indexable = Boolean(canonical) && !noindex;
+
+const cardUrl = new URL(image ?? seo.defaultImage, Astro.site ?? Astro.url).href;
+
+/**
+ * `max-snippet:-1` and `max-image-preview:large` opt into full-length snippets
+ * and large thumbnails. Without them Google applies conservative defaults, and
+ * a truncated snippet is a worse answer — which matters twice over now that the
+ * same snippets feed AI overviews.
+ */
+const robots = indexable
+  ? 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
+  : 'noindex, follow';
+---
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{fullTitle}</title>
+<meta name="description" content={description} />
+<meta name="robots" content={robots} />
+{canonical && <link rel="canonical" href={canonical} />}
+
+<link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+<meta name="theme-color" content={theme.accent.base} />
+<meta name="color-scheme" content="light dark" />
+
+{/* Open Graph. `summary_large_image` needs a real raster; see lib/og-card.ts. */}
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content={site.name} />
+<meta property="og:locale" content={seo.locale} />
+<meta property="og:title" content={fullTitle} />
+<meta property="og:description" content={description} />
+{canonical && <meta property="og:url" content={canonical} />}
+<meta property="og:image" content={cardUrl} />
+<meta property="og:image:width" content={String(seo.imageWidth)} />
+<meta property="og:image:height" content={String(seo.imageHeight)} />
+<meta property="og:image:alt" content={imageAlt ?? `${title} — ${site.name} documentation`} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={fullTitle} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={cardUrl} />
+<meta name="twitter:image:alt" content={imageAlt ?? `${title} — ${site.name} documentation`} />
+{seo.twitterHandle && <meta name="twitter:site" content={`@${seo.twitterHandle}`} />}
+
+{published && <meta property="article:published_time" content={published.toISOString()} />}
+{modified && <meta property="article:modified_time" content={modified.toISOString()} />}
+<meta property="article:publisher" content={seo.organization.url} />
+
+{/* Where the machine-readable copies live. `rel="alternate"` on the Markdown
+    twin is the standard way to declare it; llms.txt maps the whole corpus. */}
+{canonical && (
+  <link rel="alternate" type="text/markdown" href={markdownUrl(canonical)} title="Markdown source" />
+)}
+<link rel="alternate" type="text/plain" href={withBase('/llms.txt')} title="llms.txt" />
+<link rel="sitemap" type="application/xml" href={withBase('/sitemap.xml')} />
+{/* `service-desc` is the registered relation for a service's own machine-readable
+    description (RFC 8631) — the standard answer to "where is the OpenAPI file". */}
+{hasOpenApiSpec && (
+  <link rel="service-desc" type="application/openapi+json" href={withBase(OPENAPI_PATH)} title="OpenAPI description" />
+)}
+{/*
+  * `api-catalog` is RFC 9727's own relation, pointing at the catalog of every
+  * API this origin has — the one document that distinguishes the documented
+  * product's API from this documentation's own.
+  *
+  * Advertised only on a root deployment. `/.well-known/` is defined relative to
+  * the origin, so under a subpath the Worker's route never sees the request and
+  * the link would name a 404 — see /guides/deployment.
+  */}
+{agents.enabled && !site.basePath && (
+  <link rel="api-catalog" type="application/linkset+json" href="/.well-known/api-catalog" title="API catalog" />
+)}
+<link rel="alternate" type="application/atom+xml" href={withBase('/updates.xml')} title="Recently updated" />
+
+{seo.verification.google && <meta name="google-site-verification" content={seo.verification.google} />}
+{seo.verification.bing && <meta name="msvalidate.01" content={seo.verification.bing} />}
+
+{structuredData && (
+  <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+)}
+
+<Font cssVariable={theme.font.sansVariable} preload />
+<ThemeTokens />
+<ThemeBootstrap />
+{agents.enabled && agents.webmcpBridge === 'on' && <WebMcpBridge />}

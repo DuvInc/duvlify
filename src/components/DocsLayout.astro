@@ -1,0 +1,345 @@
+---
+/**
+ * The shell every documentation page renders into: navbar, category bar,
+ * sidebar, article, table of contents, footer.
+ *
+ * All behaviour lives in src/scripts, bundled into one cached file — nothing on
+ * this page is a script the reader downloads again on the next page. The search
+ * index is not here either: it is one static JSON file fetched on first use, so
+ * this markup stays the same size whether the site has twenty pages or a
+ * thousand.
+ */
+import Icon from './Icon.astro';
+import ApiReferencePanel from './ApiReferencePanel.astro';
+import DocumentHead from './DocumentHead.astro';
+import Endpoint from './Endpoint.astro';
+import PageActions from './PageActions.astro';
+import PageFooter from './PageFooter.astro';
+import Brand from './Brand.astro';
+import SidebarNavigation from './SidebarNavigation.astro';
+import AgentAccess from './AgentAccess.astro';
+import GlobalBanner from './GlobalBanner.astro';
+import { agents, navigationLayout, site } from '../docs.config';
+import { renderSpecMarkdown } from '../lib/spec-markdown';
+import type { ApiReference } from '../lib/openapi-reference';
+import type { ResolvedPage, ResolvedTab, ResolvedGroup } from '../lib/navigation';
+
+/** Everything DocumentHead needs, assembled by the page (see [...slug].astro). */
+export interface PageSeo {
+  canonical: string;
+  noindex?: boolean;
+  image?: string;
+  imageAlt?: string;
+  published?: Date;
+  modified?: Date;
+  structuredData?: Record<string, unknown>;
+}
+
+interface Props {
+  title: string;
+  description: string;
+  headings: { id: string; label: string; depth: 2 | 3 }[];
+  api?: ApiReference;
+  rightRail?: 'toc' | 'custom';
+  seo: PageSeo;
+  context: {
+    tabs: ResolvedTab[];
+    activeTab: ResolvedTab;
+    activeGroup?: ResolvedGroup;
+    activePage?: ResolvedPage;
+    eyebrow?: string;
+    breadcrumb: string;
+    previous?: ResolvedPage;
+    next?: ResolvedPage;
+  };
+}
+const { title, description, headings, api, rightRail = 'toc', seo, context } = Astro.props;
+
+/*
+ * A page that puts its own components in the right rail borrows the endpoint
+ * layout wholesale: the wider three-track frame, the sticky scrolling panel, and
+ * the page actions on their own right-aligned row. Both pages are the same shape
+ * — prose in the middle, examples alongside — so the alternative was a second
+ * set of widths and a second place for "Copy page" that had to be kept in step
+ * with this one by hand.
+ *
+ * `api &&` comes first everywhere below: an endpoint page already has a rail of
+ * its own, and its own is the one that wins.
+ */
+const customRail = !api && rightRail === 'custom';
+
+const apiSummary = await renderSpecMarkdown(api?.description);
+const { tabs, activeTab, activePage, eyebrow, breadcrumb, previous, next } = context;
+const currentPath = Astro.url.pathname;
+---
+<!doctype html>
+{/* The banner flag lives on the root element rather than <body> because
+    `scroll-padding-top` is set on <html> and has to see --banner-h too. */}
+<html lang="en" data-has-global-banner={site.banner ? '' : undefined}>
+  <head>
+    <DocumentHead title={title} description={description} {...seo} />
+    <script>
+      import '../scripts/docs';
+    </script>
+  </head>
+  <body data-navigation-mode={navigationLayout.mode} data-right-rail={rightRail}>
+    <a class="skip-link" href="#article">Skip to content</a>
+    {site.banner && <GlobalBanner {...site.banner} />}
+    <header class="topbar">
+      <Brand />
+      {/* One grid cell, two controls. The topbar is a three-column grid — brand,
+          centre, actions — so a fourth child here would land in a column that
+          does not exist and wrap the whole action group onto a second row. */}
+      <div class="navbar-center">
+        <button class="search-trigger navbar-search" data-search-open aria-label="Search documentation">
+          <Icon name="search" size={15} /><span>Search</span><span class="shortcut">⌘K</span>
+        </button>
+        {agents.enabled && (
+          /* Beside search rather than in the page menu: this is about the whole
+             documentation, not the page being read. */
+          <button
+            class="icon-button navbar-agent"
+            data-agent-open
+            aria-label="Use these docs with your AI tools"
+            title="Use these docs with your AI tools"
+          >
+            <Icon name="plug" size={17} />
+          </button>
+        )}
+      </div>
+      <div class="header-actions">
+        <a class="header-secondary" href={site.header.secondary.href}>{site.header.secondary.label}</a>
+        <a class="header-primary" href={site.header.primary.href}>
+          {site.header.primary.label} <Icon name="arrow" size={14} />
+        </a>
+        <div class="theme-menu">
+          <button class="icon-button" data-theme-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Change color theme">
+            <Icon name="monitor" size={17} class="theme-icon" data-theme-icon="system" />
+            <Icon name="sun" size={17} class="theme-icon" data-theme-icon="light" />
+            <Icon name="moon" size={17} class="theme-icon" data-theme-icon="dark" />
+          </button>
+          <div class="theme-menu-panel" data-theme-menu hidden role="menu">
+            <button type="button" data-theme-option="system" role="menuitem">
+              <span><Icon name="monitor" size={15} />System</span>
+              <Icon name="check" size={14} class="theme-check" />
+            </button>
+            <button type="button" data-theme-option="light" role="menuitem">
+              <span><Icon name="sun" size={15} />Light</span>
+              <Icon name="check" size={14} class="theme-check" />
+            </button>
+            <button type="button" data-theme-option="dark" role="menuitem">
+              <span><Icon name="moon" size={15} />Dark</span>
+              <Icon name="check" size={14} class="theme-check" />
+            </button>
+          </div>
+        </div>
+        <button class="icon-button mobile-only" data-menu-toggle aria-label="Open navigation"><Icon name="menu" size={19} /></button>
+      </div>
+    </header>
+
+    {navigationLayout.mode === 'category-tabs' && <nav class="categorybar" aria-label="Documentation categories">
+      <div class="categorybar-inner">
+        {tabs.map(tab => (
+          <a
+            class:list={[activeTab.id === tab.id && 'active']}
+            href={tab.href}
+            aria-current={activeTab.id === tab.id ? 'page' : undefined}
+          >
+            <Icon name={tab.icon} size={17} /><span>{tab.label}</span>
+          </a>
+        ))}
+      </div>
+    </nav>}
+
+    <div class="mobile-pagebar">
+      <button data-menu-toggle aria-label="Open navigation"><Icon name="menu" size={20} /></button>
+      <span>{breadcrumb}</span>
+      <Icon name="chevronRight" size={15} />
+      <strong>{activePage?.label || title}</strong>
+    </div>
+
+    <div class:list={['docs-grid', (api || customRail) && 'api-reference-grid']}>
+      <aside class="sidebar" data-sidebar>
+        <div class="sidebar-viewport" data-sidebar-viewport>
+          <div class="mobile-drawer-head">
+            <Brand />
+            <button class="icon-button" data-menu-close aria-label="Close navigation"><Icon name="x" size={20} /></button>
+          </div>
+          <SidebarNavigation
+            tabs={tabs}
+            activeTab={activeTab}
+            currentPath={currentPath}
+            mode={navigationLayout.mode}
+          />
+          {/* The topbar links the drawer replaces. Below the navigation, because
+              the reader opened this to go somewhere in the documentation; these
+              leave it. Secondary first so the filled primary reads as the last,
+              strongest step. Hidden above the drawer's breakpoint, where the
+              same two links are in the topbar itself. */}
+          <div class="drawer-actions">
+            <a class="header-secondary" href={site.header.secondary.href}>{site.header.secondary.label}</a>
+            <a class="header-primary" href={site.header.primary.href}>
+              {site.header.primary.label} <Icon name="arrow" size={14} />
+            </a>
+          </div>
+        </div>
+        <div class="sidebar-scrollbar" data-sidebar-scrollbar aria-hidden="true">
+          <div class="sidebar-scrollbar-thumb" data-sidebar-thumb></div>
+        </div>
+      </aside>
+
+      <main class:list={['article', (api || customRail) && 'api-article']} id="article">
+        <div class="article-heading">
+          {(api?.tag || eyebrow) && <div class="eyebrow">{api?.tag || eyebrow}</div>}
+          <h1>{title}</h1>
+          {/* An endpoint page's summary is the operation's own description, which
+              OpenAPI defines as CommonMark — so it is rendered, not printed. The
+              `<meta name="description">` in DocumentHead keeps using the
+              frontmatter string, which stays plain text on purpose. */}
+          {apiSummary
+            ? <div class="article-summary" set:html={apiSummary} />
+            : <p>{api?.description || description}</p>}
+          {!api && !customRail && <PageActions currentPath={currentPath} className="inline-page-actions" />}
+        </div>
+        {(api || customRail) && <PageActions currentPath={currentPath} className="api-page-actions" />}
+        {api && <Endpoint method={api.method} path={api.path} />}
+        {api && <div class="api-inline-panel"><ApiReferencePanel api={api} /></div>}
+        <slot />
+        {!api && !customRail && <PageFooter previous={previous} next={next} />}
+      </main>
+
+      {api ? <ApiReferencePanel api={api} /> : customRail ? (
+        /* The endpoint panel's own chrome, filled by scripts/rich-components.ts
+           rather than by OpenAPI. Below 1280px the same rule that hides the
+           endpoint rail hides this one, and the script has already put the
+           components back in the article. */
+        <aside class="api-reference-panel" aria-label="Page examples">
+          <div class="api-panel-scroll">
+            {/* Also `mdx-content`, because that is the scope every prose rule in
+                shell.css is written against — inline code, bold, lists, tables.
+                A <Panel> moved here is still article prose, and without the
+                class it silently lost its inline-code chip and fell back to the
+                browser's bold. */}
+            <div class="right-rail-content mdx-content" data-right-rail-slot></div>
+          </div>
+        </aside>
+      ) : (
+      <aside class="toc" aria-label={headings.length > 0 ? 'On this page' : 'Page actions'}>
+        <PageActions currentPath={currentPath} />
+        {/* A page whose body is all prose, or one built entirely from cards, has
+            no subheadings to list. Rendering the label over an empty rail reads
+            as something that failed to load, so both go together. The aside
+            stays either way — it still carries the page actions above. */}
+        {headings.length > 0 && (
+          <>
+            <h2 class="toc-title"><Icon name="align-left" size={16} /> <span>On this page</span></h2>
+            {/* Only the link list scrolls, so the actions popover above it can
+                still overflow the rail instead of being clipped. */}
+            <div class="toc-list">
+              <div class="toc-marker" aria-hidden="true"></div>
+              {headings.map(heading => (
+                <a href={`#${heading.id}`} data-depth={heading.depth}>{heading.label}</a>
+              ))}
+            </div>
+          </>
+        )}
+      </aside>
+      )}
+      {(api || customRail) && (
+        <div class="api-page-footer">
+          <PageFooter previous={previous} next={next} />
+        </div>
+      )}
+    </div>
+
+    {agents.enabled && <AgentAccess />}
+
+    <dialog class="search-dialog" data-search-dialog>
+      <div class="search-box">
+        <Icon name="search" size={17} />
+        <input data-search-input placeholder="Search documentation…" aria-label="Search documentation" />
+      </div>
+      {/* Filled in by scripts/search.ts from the fetched index. */}
+      <div class="search-content" data-search-results></div>
+      <footer>
+        <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+        <span><kbd>↵</kbd> Open</span>
+        <span><kbd>esc</kbd> Close</span>
+      </footer>
+    </dialog>
+
+    {/* Cloned by the scripts rather than duplicated in them, so every icon on
+        the page still comes from Icon.astro and no module hand-writes SVG. */}
+    <template data-search-row>
+      <a data-search-item>
+        <span class="search-result-icon" aria-hidden="true">
+          <Icon name="fileText" size={16} data-search-icon="page" />
+          <Icon name="terminal" size={16} data-search-icon="endpoint" />
+          <Icon name="hash" size={16} data-search-icon="heading" />
+        </span>
+        <span class="search-result-body">
+          <strong><span class="api-nav-method search-api-method" data-search-method hidden></span><span data-search-title></span></strong>
+          <small></small>
+        </span>
+        <Icon name="enter" size={13} />
+      </a>
+    </template>
+    <template data-copy-button-template>
+      <button class="copy-button" type="button" aria-label="Copy code">
+        <span class="copy-button-idle"><Icon name="copy" size={14} /></span>
+        <span class="copy-button-done"><Icon name="check" size={15} /></span>
+      </button>
+    </template>
+    {/* The two glyphs a client-built selector needs, so the one scripts/dropdown.ts
+        assembles is drawn from the same icon set as the server-rendered ones
+        rather than from CSS borders. */}
+    <template data-select-glyphs-template>
+      <span data-select-glyph="chevron"><Icon name="chevronDown" size={13} /></span>
+      <span data-select-glyph="check"><Icon name="check" size={14} /></span>
+    </template>
+    {/* A Markdown list inside <Tree> is rewritten into rows by
+        scripts/rich-components.ts. Cloning from here is what lets those rows
+        carry the same icons <TreeFile> and <TreeFolder> render, instead of a
+        second, CSS-drawn icon language for the same component. */}
+    <template data-tree-icons-template>
+      <span data-tree-icon="file"><Icon name="file" size={15} /></span>
+      <span data-tree-icon="folder"><Icon name="folderOpen" size={15} /></span>
+    </template>
+    <template data-mermaid-controls-template>
+      <div class="diagram-controls" data-mermaid-controls>
+        <button type="button" data-mermaid-action="fullscreen" aria-label="Open diagram fullscreen"><Icon name="maximize" size={16} /></button>
+        <button type="button" data-mermaid-action="up" aria-label="Pan diagram up"><Icon name="chevronUp" size={17} /></button>
+        <button type="button" data-mermaid-action="zoom-in" aria-label="Zoom in"><Icon name="zoomIn" size={16} /></button>
+        <button type="button" data-mermaid-action="left" aria-label="Pan diagram left"><Icon name="chevronLeft" size={17} /></button>
+        <button type="button" data-mermaid-action="reset" aria-label="Reset diagram view"><Icon name="reset" size={16} /></button>
+        <button type="button" data-mermaid-action="right" aria-label="Pan diagram right"><Icon name="chevronRight" size={17} /></button>
+        <span aria-hidden="true"></span>
+        <button type="button" data-mermaid-action="down" aria-label="Pan diagram down"><Icon name="chevronDown" size={17} /></button>
+        <button type="button" data-mermaid-action="zoom-out" aria-label="Zoom out"><Icon name="zoomOut" size={16} /></button>
+      </div>
+    </template>
+    <template data-mermaid-dialog-template>
+      <dialog class="diagram-dialog" data-mermaid-dialog aria-label="Interactive diagram viewer">
+        <div class="diagram-dialog-shell">
+          <div class="diagram-dialog-toolbar" aria-label="Diagram zoom controls">
+            <button type="button" data-mermaid-dialog-action="zoom-out" aria-label="Zoom out"><Icon name="zoomOut" size={16} /></button>
+            <output data-mermaid-zoom>100%</output>
+            <button type="button" data-mermaid-dialog-action="zoom-in" aria-label="Zoom in"><Icon name="zoomIn" size={16} /></button>
+            <button type="button" data-mermaid-dialog-action="reset" aria-label="Reset diagram view"><Icon name="reset" size={16} /></button>
+          </div>
+          <button class="diagram-dialog-close" type="button" data-mermaid-dialog-close aria-label="Close diagram viewer"><Icon name="x" size={18} /></button>
+          <div class="diagram-dialog-canvas" data-mermaid-dialog-canvas tabindex="0" role="application" aria-label="Diagram. Drag to pan, scroll to zoom, and use arrow keys to move.">
+            <div class="diagram-dialog-stage" data-mermaid-dialog-stage></div>
+          </div>
+          <p class="diagram-dialog-hint">Drag to move · Scroll to zoom · Press 0 to reset</p>
+        </div>
+      </dialog>
+    </template>
+
+    <div class="mobile-overlay" data-mobile-overlay></div>
+
+    <dialog class="lightbox" data-lightbox aria-label="Zoomed image">
+      <img data-lightbox-image alt="" />
+    </dialog>
+  </body>
+</html>

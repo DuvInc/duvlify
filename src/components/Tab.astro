@@ -1,0 +1,10 @@
+---
+/** One panel of a <Tabs> group. `title` becomes its tab label. */
+import Icon from './Icon.astro';
+interface Props { title?: string; id?: string; icon?: string }
+const { title = 'Tab', id, icon } = Astro.props;
+---
+<section class="tab-panel" data-tab-title={title} data-tab-id={id}>
+  {icon && <span hidden data-tab-icon-template><Icon name={icon} size={14} /></span>}
+  <slot />
+</section>

@@ -1,0 +1,7 @@
+---
+/** A term with an explanation on hover or focus. */
+interface Props { tip?: string; description?: string; label?: string }
+const { tip, description, label } = Astro.props;
+const text = tip || description || label || 'More information';
+---
+<span class="tooltip" data-tooltip={text} tabindex="0" role="button" aria-label={text}><slot /></span>

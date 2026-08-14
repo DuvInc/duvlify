@@ -1,0 +1,52 @@
+---
+/**
+ * A titled block that optionally links somewhere. Given `href` it renders as an
+ * anchor and grows an arrow; given `cta` the arrow becomes a labelled call to
+ * action instead.
+ */
+import Icon from './Icon.astro';
+import { cssColor } from '../lib/css-value';
+
+interface Props {
+  title?: string;
+  description?: string;
+  href?: string;
+  /** Side-by-side icon and text instead of stacked. */
+  horizontal?: boolean;
+  /** Header image, flush to the top edge. */
+  img?: string;
+  /** Call-to-action label shown under the body copy. */
+  cta?: string;
+  /**
+   * Icon name, resolved by Icon.astro. The `icon` slot is the richer option
+   * and still wins where both are given; this prop exists so migrated
+   * content that sets an icon by name keeps working unedited.
+   */
+  icon?: string;
+  /** Any CSS colour, applied to the icon. */
+  color?: string;
+  /** Explicitly show or hide the arrow. Defaults to showing it for linked cards without a CTA. */
+  arrow?: boolean;
+}
+const { title, description, href, horizontal, img, cta, icon, arrow } = Astro.props;
+const color = cssColor(Astro.props.color);
+const Tag = href ? 'a' : 'div';
+const showArrow = arrow ?? Boolean(href && !cta);
+---
+<Tag class:list={['card', horizontal && 'horizontal']} href={href}>
+  {img && <img class="card-image" src={img} alt="" loading="lazy" decoding="async" />}
+  <div class="card-body">
+    <div class="card-icon" style={color ? `color:${color}` : undefined}>
+      <slot name="icon">{icon && <Icon name={icon} size={20} />}</slot>
+    </div>
+    <div class="card-text">
+      {title && <h3 class="card-title">{title}</h3>}
+      <div class="card-content">
+        {description && <p>{description}</p>}
+        <slot />
+      </div>
+      {cta && <span class="card-cta">{cta} <Icon name="arrow" size={15} /></span>}
+    </div>
+  </div>
+  {showArrow && <span class="card-arrow" aria-hidden="true"><Icon name="arrowUpRight" size={16} /></span>}
+</Tag>

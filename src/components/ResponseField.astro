@@ -1,0 +1,8 @@
+---
+/** A field in a response body. */
+import Field from './Field.astro';
+import type { FieldProps } from '../lib/field-props';
+
+type Props = FieldProps;
+---
+<Field {...Astro.props}><slot /></Field>

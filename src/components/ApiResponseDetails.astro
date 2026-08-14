@@ -1,0 +1,72 @@
+---
+/** Switchable response documentation in the central reading column. */
+import HeadingAnchor from './HeadingAnchor.astro';
+import Icon from './Icon.astro';
+import ApiSchemaField from './ApiSchemaField.astro';
+import { getApiReference } from '../lib/openapi-reference';
+import { renderSpecMarkdown } from '../lib/spec-markdown';
+
+interface Props { method: string; path: string }
+const { method, path } = Astro.props;
+const api = getApiReference({ apiMethod: method, apiPath: path, description: '' });
+const first = api?.responses[0];
+
+/* CommonMark, like every description in the specification — see lib/spec-markdown.ts. */
+const descriptions = new Map(
+  await Promise.all(
+    (api?.responses ?? []).map(
+      async response => [response.status, await renderSpecMarkdown(response.description)] as const,
+    ),
+  ),
+);
+---
+{api && first && (
+  <section class="api-response-details" data-api-response-details>
+    <header class="api-response-title-row">
+      <HeadingAnchor level={2} id="response">Response</HeadingAnchor>
+      <div class="api-response-meta">
+        <div class="api-select" data-api-response-select>
+          <button
+            type="button"
+            class="api-select-trigger"
+            data-api-response-select-toggle
+            aria-haspopup="menu"
+            aria-expanded="false"
+            aria-label="Select response status"
+          >
+            <span data-api-response-select-label>{first.status}</span>
+            <Icon name="chevronDown" size={13} />
+          </button>
+          <div class="api-select-menu api-response-select-menu" data-api-response-select-menu role="menu" hidden>
+            {api.responses.map(response => (
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={response.status === first.status ? 'true' : 'false'}
+                data-api-central-response-option={response.status}
+              >
+                <span>{response.status}</span>
+                <Icon name="check" size={14} class="api-select-check" />
+              </button>
+            ))}
+          </div>
+        </div>
+        <code data-api-central-content-type>{first.contentType}</code>
+      </div>
+    </header>
+
+    {api.responses.map(response => (
+      <div
+        class="api-central-response-panel"
+        data-api-central-response-panel={response.status}
+        data-content-type={response.contentType}
+        hidden={response.status !== first.status}
+      >
+        {descriptions.get(response.status) && (
+          <div class="api-central-response-description" set:html={descriptions.get(response.status)} />
+        )}
+        {response.fields.map(field => <ApiSchemaField field={field} />)}
+      </div>
+    ))}
+  </section>
+)}

@@ -1,0 +1,23 @@
+name: Feature request
+description: Something that cannot be expressed today.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The goal, not the proposed API. There may already be a way.
+    validations: { required: true }
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do instead today
+      description: >
+        If the answer is "edit a component, a stylesheet or the Worker", say so:
+        that makes it a gap in the configuration surface rather than a new feature.
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+      description: Optional.

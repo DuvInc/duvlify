@@ -1,0 +1,8 @@
+---
+interface Props {
+  method?: string;
+  path: string;
+}
+const { method = 'GET', path } = Astro.props;
+---
+<p class="endpoint-row" data-component="endpoint"><span class="api-method">{method}</span><code class="endpoint">{path}</code></p>

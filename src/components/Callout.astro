@@ -1,0 +1,39 @@
+---
+/**
+ * The one bordered, tinted aside. `tone` selects both the tint (components.css)
+ * and the icon; Note, Tip, Info, Check, Warning and Danger are one-line
+ * wrappers that pick a tone, so a page never has to name a colour.
+ */
+import Icon from './Icon.astro';
+import { cssColor } from '../lib/css-value';
+
+export type Tone = 'info' | 'note' | 'success' | 'tip' | 'check' | 'warning' | 'danger';
+
+interface Props {
+  tone?: Tone;
+  title?: string;
+  /** Overrides the tone's icon. Any name Icon.astro resolves. */
+  icon?: string;
+  /** Tints the callout with one colour instead of a tone. Reach for a tone first. */
+  color?: string;
+}
+const { tone = 'info', title, icon } = Astro.props;
+const color = cssColor(Astro.props.color);
+
+const icons: Record<Tone, string> = {
+  info: 'info',
+  note: 'info',
+  success: 'tip',
+  tip: 'tip',
+  check: 'checkCircle',
+  warning: 'warning',
+  danger: 'danger',
+};
+---
+<aside class:list={['callout', tone, color && 'custom']} style={color ? `--callout-color:${color}` : undefined}>
+  <span class="callout-icon" aria-hidden="true"><Icon name={icon || icons[tone] || 'info'} size={16} /></span>
+  <div class="callout-body">
+    {title && <strong class="callout-title">{title}</strong>}
+    <slot />
+  </div>
+</aside>

@@ -1,0 +1,18 @@
+---
+/** Progressive disclosure for content that is not needed on first read. */
+import Icon from './Icon.astro';
+
+interface Props { title?: string; description?: string; defaultOpen?: boolean; icon?: string }
+const { title, description, defaultOpen, icon } = Astro.props;
+---
+<details class="accordion-item" open={defaultOpen}>
+  <summary>
+    <span class="disclosure-caret" aria-hidden="true"><Icon name="chevronRight" size={13} /></span>
+    {icon && <span class="accordion-icon" aria-hidden="true"><Icon name={icon} size={15} /></span>}
+    <span class="accordion-label">
+      <span>{title}</span>
+      {description && <small>{description}</small>}
+    </span>
+  </summary>
+  <div class="accordion-body"><slot /></div>
+</details>

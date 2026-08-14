@@ -1,0 +1,59 @@
+---
+/** Copy/export/assistant actions shared by article and API layouts. */
+import Icon from './Icon.astro';
+import BrandIcon from './BrandIcon.astro';
+import { agents, site } from '../docs.config';
+import { markdownUrl } from '../lib/markdown-url';
+
+interface Props { currentPath: string; className?: string }
+const { currentPath, className } = Astro.props;
+---
+<div class:list={['toc-actions', className]} data-page-actions>
+  <div class="action-menu">
+    <div class="page-actions-pill">
+      <button data-copy-page aria-label="Copy page" class="copy-swap">
+        <span class="copy-swap-idle"><Icon name="copy" size={15} /><span>Copy page</span></span>
+        <span class="copy-swap-done"><Icon name="check" size={15} /><span>Copied</span></span>
+      </button>
+      <button data-page-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="More page actions">
+        <Icon name="chevronDown" size={14} />
+      </button>
+    </div>
+    <div class="action-menu-panel" data-page-menu hidden role="menu">
+      <button type="button" data-copy-page role="menuitem">
+        <Icon name="copy" size={15} />Copy page
+      </button>
+      <a href={markdownUrl(currentPath)} target="_blank" rel="noreferrer" role="menuitem">
+        <BrandIcon name="markdown" size={15} />View as Markdown
+        <Icon name="arrowUpRight" size={12} class="menu-external-icon" />
+      </a>
+      {site.assistants.map(assistant => (
+        <a data-assistant={assistant.url} href={assistant.url} target="_blank" rel="noreferrer" role="menuitem">
+          <BrandIcon name={assistant.icon} size={15} />{assistant.label}
+          <Icon name="arrowUpRight" size={12} class="menu-external-icon" />
+        </a>
+      ))}
+      {/* Last, behind a rule: everything above acts on *this page*, these two
+          open the same dialog about the documentation as a whole. Both are
+          listed rather than one combined entry, because a reader arrives
+          already knowing which of the two words they came for.
+
+          Both say "docs" out loud. A site documenting a product that has its
+          own MCP server would otherwise offer a "Connect via MCP" that reads as
+          the product's rather than the documentation's. */}
+      {agents.enabled && (
+        <>
+          <hr class="action-menu-rule" />
+          <button type="button" data-agent-open role="menuitem">
+            <Icon name="plug" size={15} />Connect docs via MCP
+          </button>
+          {agents.http && (
+            <button type="button" data-agent-open role="menuitem">
+              <Icon name="terminal" size={15} />Query the docs API
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  </div>
+</div>

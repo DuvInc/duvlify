@@ -1,0 +1,37 @@
+---
+/**
+ * One entry on a changelog timeline. `label` is the date on the rail, and also
+ * the entry's permalink — a reader linking to "the March release" is linking to
+ * this row, so the label has to survive becoming a fragment identifier.
+ *
+ * It goes through the same slug algorithm as every heading on the site, which
+ * is what lets a label be written the way it should read — `August 3, 2026` —
+ * rather than the way a URL needs.
+ */
+import Badge from './Badge.astro';
+import { slugify } from '../lib/slug';
+
+interface Props {
+  label?: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+}
+const { label, title, description, tags = [] } = Astro.props;
+const anchor = label ? slugify(label) : undefined;
+---
+<div class="update">
+  <div class="update-rail">
+    {label && (anchor
+      ? <a class="update-label" id={anchor} href={`#${anchor}`}>{label}</a>
+      : <span class="update-label">{label}</span>)}
+  </div>
+  <div class="update-content">
+    {title && <h3>{title}</h3>}
+    {description && <p class="update-description">{description}</p>}
+    {tags.length > 0 && (
+      <div class="update-tags">{tags.map(tag => <Badge size="sm">{tag}</Badge>)}</div>
+    )}
+    <slot />
+  </div>
+</div>

@@ -1,0 +1,101 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "duvlify-docs",
+  "compatibility_date": "2026-07-05",
+
+  /**
+   * Required by the MCP SDK, which uses `node:async_hooks` to carry request
+   * context through the protocol layer. Without it the Worker fails to
+   * validate at upload time rather than at runtime, so the cost is visible
+   * immediately — but it does pull the Node compatibility layer into the
+   * bundle, which is the real price of using the official SDK over a
+   * hand-rolled handler.
+   */
+  "compatibility_flags": ["nodejs_compat"],
+
+  /**
+   * The edge Worker in front of the build — see worker/index.ts for what it
+   * adds and why. Deleting `main` here, along with `binding` and
+   * `run_worker_first` below, reverts this project to pure static hosting: the
+   * site serves identically to a human visitor, and loses only the discovery
+   * headers and `Accept: text/markdown` negotiation.
+   */
+  "main": "./worker/index.ts",
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+
+    /**
+     * Documents only. Every request matched here costs a Worker invocation, so
+     * the fingerprinted bundle, the fonts, the share cards and the icons are
+     * excluded and keep being served straight off the asset path — they are the
+     * overwhelming majority of requests and none of them has a Markdown twin to
+     * announce. Negative patterns take precedence over positive ones.
+     */
+    "run_worker_first": [
+      "/*",
+      "!/_astro/*",
+      "!/og/*",
+      "!/icons/*",
+      "!/favicon.svg",
+      "!/frame-demo.svg",
+      "!/sitemap.xsl",
+      "!/og.png",
+      "!/og-home.png",
+      "!/screenshots/*",
+      "!/search-index.json"
+    ],
+
+    /**
+     * Must agree with `trailingSlash: 'never'` in astro.config.ts. Cloudflare's
+     * default, "auto-trailing-slash", treats /page/ as canonical for a
+     * directory-format build and 301s /page to it — which is every internal
+     * link on the site, since Astro writes them all without a trailing slash.
+     */
+    "html_handling": "drop-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  /**
+   * The rate limiting bindings, one per tool family because the tools do not
+   * cost the same: `search` reaches retrieval, the read tools serve assets, and
+   * the write tool leaves the network.
+   *
+   * This is a damper, not a quota, and the constraints are worth knowing before
+   * trusting it. The binding accepts a `period` of 10 or 60 seconds and nothing
+   * else, so an hourly cap cannot be expressed here at all; and counters are
+   * per Cloudflare datacenter rather than global, so a distributed client gets
+   * a multiple of these numbers. Cloudflare documents it as permissive and
+   * eventually consistent by design.
+   *
+   * The real ceiling belongs in a WAF rate limiting rule on the zone, which can
+   * count over an hour, counts globally, and blocks before the Worker starts —
+   * see README.md. This binding is what protects a deployment that has no zone
+   * yet, which is exactly the period when nobody is watching.
+   */
+  "ratelimits": [
+    { "name": "RL_SEARCH", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_READ", "namespace_id": "1002", "simple": { "limit": 90, "period": 60 } },
+    { "name": "RL_WRITE", "namespace_id": "1003", "simple": { "limit": 2, "period": 60 } }
+  ],
+
+  /**
+   * Semantic retrieval, on for this deployment.
+   *
+   * The instance name has to match `agents.aiSearchInstance` in
+   * src/docs.config.ts exactly: the Worker queries through this binding, while
+   * scripts/index-sync.mjs reads the name out of that config to build its REST
+   * URL. content/agents/retrieval.mdx walks through the instance's own settings.
+   *
+   * `remote: true` is not optional. There is no local AI Search emulator, so
+   * without it `wrangler dev` queries nothing and every search comes back empty
+   * — which reads exactly like a broken retriever rather than a missing one.
+   */
+  "ai_search": [
+    { "binding": "AI_SEARCH", "instance_name": "duvlify-docs", "remote": true }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}

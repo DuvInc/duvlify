@@ -1,0 +1,39 @@
+# Dependency versions in package.json are pinned exactly, which is what makes a
+# clone build the same way tomorrow as it does today. The cost of pinning is that
+# nothing moves on its own, including a security patch — so something has to open
+# those bumps, and this is it.
+#
+# Grouped rather than one pull request per package: the build is a single unit
+# that either passes `npm test` or does not, and reviewing sixteen separate bumps
+# that each rerun the same suite is worse than reviewing one.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Astro, TypeScript and Wrangler majors change behaviour that this repository
+    # builds on — asset handling, type checking, the Worker runtime. They are
+    # worth doing deliberately, with the release notes open, rather than as a
+    # pull request that happens to be green.
+    ignore:
+      - dependency-name: astro
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+      - dependency-name: wrangler
+        update-types: [version-update:semver-major]
+    groups:
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  # The workflow pins actions to major tags (actions/checkout@v5), so this only
+  # moves when a new major lands. Rare, and worth seeing when it does.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -1,0 +1,16 @@
+/* The one stylesheet the layout imports. Order is significant. */
+
+/* Element defaults, replacing Tailwind's preflight. */
+@import "./reset.css";
+
+/* Derived design tokens. Brand tokens come from docs.config.ts. */
+@import "./tokens.css";
+
+/* Page shell: navbar, sidebar, table of contents, article typography. */
+@import "./shell.css";
+
+/* Documentation content components. Imported last so component rules win. */
+@import "./components.css";
+
+/* Endpoint pages intentionally override both shell and component chrome. */
+@import "./api-reference.css";

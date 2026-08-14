@@ -1,0 +1,16 @@
+---
+import Icon from './Icon.astro';
+interface Props { name?: string; defaultOpen?: boolean; openable?: boolean; highlight?: boolean }
+const { name, defaultOpen = true, openable = true, highlight } = Astro.props;
+---
+{openable ? (
+  <details class:list={['tree-folder', highlight && 'highlight']} open={defaultOpen} role="treeitem">
+    <summary class="tree-row"><Icon name="folderOpen" size={15} /><span>{name}</span></summary>
+    <div class="tree-branch" role="group"><slot /></div>
+  </details>
+) : (
+  <div class:list={['tree-folder', 'tree-folder-static', highlight && 'highlight']} role="treeitem" aria-expanded="true">
+    <div class="tree-row"><Icon name="folderOpen" size={15} /><span>{name}</span></div>
+    <div class="tree-branch" role="group"><slot /></div>
+  </div>
+)}

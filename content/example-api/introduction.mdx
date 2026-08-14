@@ -1,0 +1,73 @@
+---
+title: Example API
+sidebarTitle: Introduction
+description: A fictional API included to show what Duvlify renders from an OpenAPI document. It does not exist, and every page in this tab is an example.
+icon: code
+---
+
+<Banner title="This API is not real" tone="warning">
+  Duvlify documents a framework, not a service, so it has no API of its own.
+  These pages describe a fictional API on `api.example.com`. They exist to show
+  what the API reference layout renders. Do not send requests to it.
+</Banner>
+
+Every page in this tab is generated from one file:
+[`src/openapi.config.ts`](https://github.com/DuvInc/duvlify/blob/main/src/openapi.config.ts).
+The pages carry only the method and path of one operation. The build reads
+everything else from the spec: the parameters, the request body, the response
+shapes, the response tabs, and the request samples on the right.
+
+To document your own API, replace that file and rewrite these pages. See
+[API reference pages](/guides/api-reference) for the procedure.
+
+## What this example shows
+
+<CardGroup cols={2}>
+  <Card title="Query parameters and pagination" href="/example-api/list-widgets">
+    <Icon slot="icon" name="listTree" size={22} />
+    An enum, an integer with bounds and a default, and a cursor.
+  </Card>
+  <Card title="A request body" href="/example-api/create-widget">
+    <Icon slot="icon" name="upload" size={22} />
+    Required and optional fields, with lengths and defaults.
+  </Card>
+  <Card title="A path parameter" href="/example-api/get-widget">
+    <Icon slot="icon" name="hash" size={22} />
+    The simplest shape, plus a 404 response.
+  </Card>
+  <Card title="The published spec" href="/openapi.json">
+    <Icon slot="icon" name="file" size={22} />
+    The same document, served whole for anything writing code.
+  </Card>
+</CardGroup>
+
+## Authentication
+
+The spec declares one security scheme, and the build shows it on every endpoint
+page. This example uses a bearer token:
+
+```bash
+curl https://api.example.com/v1/widgets \
+  -H "Authorization: Bearer sk_example_..."
+```
+
+## Errors
+
+Every error in this example returns the same shape. The `code` is stable, so a
+caller branches on it. The `message` is one sentence for a person, and its
+wording can change.
+
+```json
+{
+  "error": {
+    "code": "widget_not_found",
+    "message": "No widget with this id exists."
+  }
+}
+```
+
+| Status | Meaning |
+| --- | --- |
+| `401` | The API key is missing, malformed or revoked. |
+| `404` | No widget with this id exists. |
+| `422` | A field failed validation. `error.field` names it. |

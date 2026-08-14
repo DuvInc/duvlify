@@ -1,0 +1,28 @@
+---
+/**
+ * A code group framed as request/response examples. RequestExample and
+ * ResponseExample both resolve here (see mdx-components.ts).
+ *
+ * At the top level of a page whose frontmatter sets `rightRail: custom`, this
+ * moves into the sticky right rail on a wide screen — see scripts/rich-components.ts.
+ */
+interface Props {
+  /** A dropdown instead of a strip, for a group with many languages. */
+  dropdown?: boolean;
+  /** Opt out of synchronising with other groups offering the same languages. */
+  sync?: boolean;
+}
+const { dropdown, sync = true } = Astro.props;
+---
+<div
+  class:list={['tabs', 'code-tabs', 'examples', dropdown && 'code-tabs-dropdown']}
+  data-tabs
+  data-code-dropdown={dropdown || undefined}
+  data-tab-sync={String(sync)}
+  data-right-rail-content="examples"
+>
+  <div class="tab-bar">
+    <div class="tab-list" data-tab-list role="tablist" aria-label="Examples"></div>
+  </div>
+  <slot />
+</div>

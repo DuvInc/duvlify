@@ -1,0 +1,34 @@
+---
+title: List widgets
+description: Returns widgets, newest first, with cursor-based pagination that stays correct while widgets are created.
+pageType: api-endpoint
+apiMethod: GET
+apiPath: /widgets
+apiOperationId: listWidgets
+apiTag: Widgets
+---
+
+<Callout title="Example API" tone="warning">
+  This API is fictional. See [the introduction](/example-api/introduction).
+</Callout>
+
+## Paging through every widget
+
+Read `has_more` to decide whether to continue, and pass `next_cursor` back as
+`cursor` without changing it. Do not build the cursor yourself. Its format is
+not part of the contract and it can change.
+
+```bash
+cursor=""
+while :; do
+  page=$(curl -s "https://api.example.com/v1/widgets?limit=100&cursor=$cursor" \
+    -H "Authorization: Bearer $API_KEY")
+  echo "$page" | jq -r '.data[].id'
+  [ "$(echo "$page" | jq -r '.has_more')" = "true" ] || break
+  cursor=$(echo "$page" | jq -r '.next_cursor')
+done
+```
+
+Offsets are deliberately not supported. A widget created while you page would
+shift every offset after it, so a loop would repeat one record or skip another.
+A cursor names a position in the result set instead, which stays correct.

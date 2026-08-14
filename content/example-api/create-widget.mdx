@@ -1,0 +1,37 @@
+---
+title: Create a widget
+description: Creates one widget. Send an idempotency key so a retried request returns the original widget instead of creating a second one.
+pageType: api-endpoint
+apiMethod: POST
+apiPath: /widgets
+apiOperationId: createWidget
+apiTag: Widgets
+---
+
+<Callout title="Example API" tone="warning">
+  This API is fictional. See [the introduction](/example-api/introduction).
+</Callout>
+
+## Retry safely
+
+Send an `Idempotency-Key` header with a value that is unique for each logical
+operation. If the request times out and you retry it with the same key, this
+example API returns the widget it already created. Without a key, a retry
+creates a second widget.
+
+```bash
+curl -X POST https://api.example.com/v1/widgets \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Idempotency-Key: 8f14e45f-ea0b-4e1b-9b8a-2f7c1d3e5a90" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Checkout banner","status":"active","tags":["marketing"]}'
+```
+
+Generate the key from the operation, not from the attempt. A new key on each
+retry defeats the mechanism, because the API cannot tell the two requests apart.
+
+## After it is created
+
+A widget starts as a `draft` unless you set `status` to `active`. Only an
+`active` widget is served to callers, so a draft is safe to create early and
+finish later.

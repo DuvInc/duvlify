@@ -1,0 +1,156 @@
+---
+/**
+ * A block that asks the reader to do one thing.
+ *
+ * The shape is a headline and its supporting line on one side, the action on the
+ * other. `row` is the default because that is the version that belongs mid-page:
+ * it reads as a single line of intent and costs about the height of a paragraph.
+ * `stack` centres everything for the end of a page, where the reader has
+ * finished and the block is the next step rather than an aside.
+ *
+ * Distinct from the components it sits near, and worth stating because the
+ * overlap is real:
+ *
+ *   <Banner>  states a fact about the page. No action, three fixed tones.
+ *   <Card>    is one of several destinations, in a grid. Equal weight.
+ *   <CTA>     is the one thing to do next, at full width, with a button.
+ *
+ * The title is a `<p>`, not a heading, on purpose. A heading would put "Ready to
+ * deploy?" in the document outline that a screen-reader user navigates by, and a
+ * promotional block is not a section of the document. Cards use a heading
+ * because a card title labels a destination; this labels an invitation.
+ */
+import Icon from './Icon.astro';
+import Button from './Button.astro';
+import { cssColor } from '../lib/css-value';
+
+interface Props {
+  /** Small label above the title. */
+  eyebrow?: string;
+  title?: string;
+  /** The supporting line. Use the default slot instead for anything richer. */
+  description?: string;
+  /** Together with `label`, the shortcut for a single action. */
+  href?: string;
+  label?: string;
+  /**
+   * `surface` is the sunken panel that matches the rest of the theme.
+   * `accent` fills with the brand colour, for the one CTA on a landing page.
+   * `outline` is a hairline and nothing else, for a quiet nudge in a long page.
+   */
+  variant?: 'surface' | 'accent' | 'outline';
+  layout?: 'row' | 'stack';
+  /** Image URL. Sits beside the text, and above it once the block wraps. */
+  img?: string;
+  /** Alt text. Empty by default: a decorative image should not be announced. */
+  imgAlt?: string;
+  imgPlacement?: 'start' | 'end';
+  /** Icon name, as an alternative to an image. The `icon` slot wins over this. */
+  icon?: string;
+  /**
+   * Any CSS colour, for a block that has to match something outside the theme.
+   *
+   * Pass `foreground` with it. Nothing here derives a readable text colour from
+   * an arbitrary background — CSS cannot do it portably, and guessing would give
+   * a block that is legible on the palette it was tested against and not on the
+   * next one. Unset, the text stays the theme's, which is right for a tint and
+   * wrong for a saturated fill; the failure is visible immediately rather than
+   * on someone else's screen.
+   */
+  background?: string;
+  foreground?: string;
+  /**
+   * The action's own colours, on a filled block only.
+   *
+   * Unset, the button is the topbar's secondary button — `--surface` behind
+   * `--text` — which inverts with the colour mode and so stays readable in both.
+   * Override both together or neither: passing one leaves the other paired with
+   * a colour it was not chosen against.
+   */
+  actionBackground?: string;
+  actionForeground?: string;
+  /**
+   * How wide the action goes once the block has stacked, on a phone or in
+   * `stack`. `full` takes the width, which is the obvious tap target at the end
+   * of a page; `auto` keeps the button at its natural size, which stays visibly
+   * secondary in a block that is an aside rather than the point.
+   */
+  actionWidth?: 'full' | 'auto';
+}
+const {
+  eyebrow,
+  title,
+  description,
+  href,
+  label,
+  variant = 'surface',
+  layout = 'row',
+  img,
+  imgAlt = '',
+  imgPlacement = 'end',
+  icon,
+  actionWidth = 'full',
+} = Astro.props;
+
+const background = cssColor(Astro.props.background);
+const foreground = cssColor(Astro.props.foreground);
+const actionBackground = cssColor(Astro.props.actionBackground);
+const actionForeground = cssColor(Astro.props.actionForeground);
+
+/*
+ * Whether the block sits on a colour of its own rather than on the page.
+ *
+ * Buttons and borders inside a filled block cannot use the theme's surface
+ * colours — a `--surface` secondary button on an accent fill is a grey hole. The
+ * flag lets one CSS rule redraw them from `currentColor` instead, so they stay
+ * correct on the accent and on any custom colour without either knowing about
+ * the other.
+ */
+const filled = variant === 'accent' || Boolean(background);
+
+const style = [
+  background && `--cta-background:${background}`,
+  foreground && `--cta-foreground:${foreground}`,
+  actionBackground && `--cta-action-bg:${actionBackground}`,
+  actionForeground && `--cta-action-fg:${actionForeground}`,
+].filter(Boolean).join(';') || undefined;
+
+/* `href` + `label` is the common case; the slot is for two actions or a custom
+   one. Both can be present, and the shortcut renders first. */
+const hasActions = Boolean(href && label) || Astro.slots.has('actions');
+const hasMedia = Boolean(img) || Boolean(icon) || Astro.slots.has('icon');
+---
+<aside
+  class:list={[
+    'cta',
+    `cta-${variant}`,
+    `cta-${layout}`,
+    filled && 'cta-filled',
+    actionWidth === 'auto' && 'cta-action-auto',
+    hasMedia && `cta-media-${imgPlacement}`,
+  ]}
+  style={style}
+  data-cta
+>
+  {hasMedia && (
+    <div class="cta-media">
+      {img
+        ? <img src={img} alt={imgAlt} loading="lazy" decoding="async" />
+        : <span class="cta-icon"><slot name="icon">{icon && <Icon name={icon} size={24} />}</slot></span>}
+    </div>
+  )}
+
+  <div class="cta-text">
+    {eyebrow && <p class="cta-eyebrow">{eyebrow}</p>}
+    {title && <p class="cta-title">{title}</p>}
+    {description && <p class="cta-description">{description}</p>}
+    <slot />
+  </div>
+
+  {hasActions && (
+    <div class="cta-actions">
+      {href && label && <Button href={href}>{label}</Button>}
+      <slot name="actions" />
+    </div>
+  )}
+</aside>

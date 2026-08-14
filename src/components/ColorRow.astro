@@ -1,0 +1,9 @@
+---
+/** A labelled row inside `<Color variant="table">`. */
+interface Props { title?: string }
+const { title } = Astro.props;
+---
+<div class="color-table-row">
+  {title && <strong class="color-row-title">{title}</strong>}
+  <div class="color-row"><slot /></div>
+</div>

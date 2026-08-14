@@ -1,0 +1,132 @@
+---
+/**
+ * The one place a *human* is told this documentation is machine-readable.
+ *
+ * Agents already discover the endpoints on their own: `Link` headers on every
+ * page, the `## Optional` block in llms.txt, the server cards. None of that is
+ * visible to the person who has to paste a URL into Claude or Cursor, and that
+ * person is the one who does it. A `/mcp` nobody adds is dead code, so this is
+ * the human-facing half of the same feature.
+ *
+ * A dialog rather than a page, because it is reference material consulted once
+ * during setup: it should appear over what you were reading and leave without
+ * costing a navigation. Reached from the topbar (next to search, where the
+ * other whole-site tools live) and from the page menu (where a reader is
+ * already thinking about taking this page somewhere).
+ *
+ * Every heading says "these docs" on purpose. This site documents a product
+ * that has an MCP server of its own, and a reader who skims headings would
+ * otherwise read "Connect via MCP" as the product's, not the documentation's.
+ *
+ * The prose is deliberately plain: short sentences, common words, no dashes
+ * standing in for punctuation. It is read by people mid-setup, and some of them
+ * are not reading in their first language.
+ *
+ * Gated on the same config the Worker reads, never on a flag of its own. If the
+ * endpoints are off, this cannot advertise them; if the HTTP surface is off,
+ * its section is absent rather than wrong. A fork that never enables `agents`
+ * ships no dead affordance.
+ */
+import Icon from './Icon.astro';
+import { agents, site } from '../docs.config';
+
+/* Absolute, because the whole point is a string that works pasted into another
+   application. `Astro.url` is the fallback for a build with no `site` set:
+   wrong, but wrong in a way the reader can see and correct, unlike a relative
+   path that would look fine and resolve to nothing. */
+const origin = (Astro.site ?? Astro.url).origin;
+/* Where this documentation answers: the origin plus `basePath`. Under a subpath
+   deployment the endpoints move with the pages, because the Worker's route only
+   covers the prefix. */
+const base = `${origin}${site.basePath}`;
+const mcpUrl = `${base}/mcp`;
+const searchExample = `${base}/api/docs/search?query=custom+domain`;
+
+/** Named here rather than fetched: the dialog is static and these never change at runtime. */
+const tools = [
+  { name: 'search', what: 'Find the passages that answer a question.' },
+  { name: 'fetch', what: 'Read one page in full, as Markdown.' },
+  { name: 'list_pages', what: 'See every page in this documentation.' },
+  ...(agents.feedback.webhook
+    ? [{ name: 'report_issue', what: 'Report a page that is wrong or unclear.' }]
+    : []),
+];
+---
+
+<dialog class="agent-dialog" data-agent-dialog aria-labelledby="agent-dialog-title">
+  <header class="agent-dialog-head">
+    <div>
+      <h2 id="agent-dialog-title">Use these docs with your AI tools</h2>
+      <p>
+        An AI agent can read this documentation directly. You do not need an account or an API key.
+        Everything here is public and read-only.
+      </p>
+    </div>
+    <button type="button" class="icon-button" data-agent-close aria-label="Close">
+      <Icon name="x" size={17} />
+    </button>
+  </header>
+
+  <div class="agent-dialog-body">
+    <section class="agent-section">
+      <div class="agent-section-head">
+        <h3><Icon name="plug" size={16} />Query these docs via MCP</h3>
+        <span class="agent-tag">Recommended</span>
+      </div>
+      <p>
+        Add this server to Claude, Claude Code, Cursor, Mistral, or any tool that supports MCP. Your
+        agent can then search {site.name} documentation and read it in full, instead of answering
+        from memory.
+      </p>
+      <div class="agent-copy">
+        <code>{mcpUrl}</code>
+        <button type="button" class="copy-button" data-agent-copy={mcpUrl} aria-label="Copy the MCP server URL">
+          <span class="copy-button-idle"><Icon name="copy" size={15} /></span>
+          <span class="copy-button-done"><Icon name="check" size={16} /></span>
+        </button>
+      </div>
+      <ul class="agent-tools">
+        {tools.map(tool => (
+          <li><code>{tool.name}</code><span>{tool.what}</span></li>
+        ))}
+      </ul>
+    </section>
+
+    {agents.http && (
+      <section class="agent-section">
+        <div class="agent-section-head">
+          <h3><Icon name="terminal" size={16} />Query these docs over HTTP</h3>
+        </div>
+        <p>
+          The same tools also work as plain web requests. Use this for scripts, or for any tool that
+          does not support MCP. There is one endpoint per tool. Arguments go in the query string, and
+          the answer comes back as JSON.
+        </p>
+        <div class="agent-copy">
+          <code>{searchExample}</code>
+          <button type="button" class="copy-button" data-agent-copy={searchExample} aria-label="Copy the example request">
+            <span class="copy-button-idle"><Icon name="copy" size={15} /></span>
+            <span class="copy-button-done"><Icon name="check" size={16} /></span>
+          </button>
+        </div>
+        <p>
+          Read the <a href={`${base}/api/docs/openapi.json`} target="_blank" rel="noreferrer">OpenAPI description<Icon name="arrowUpRight" size={12} /></a>. It is built from the same
+          definitions as the tools, so it always matches what the endpoints do.
+        </p>
+      </section>
+    )}
+
+    <section class="agent-section">
+      <div class="agent-section-head">
+        <h3><Icon name="fileText" size={16} />Read these docs as Markdown</h3>
+      </div>
+      <p>
+        Add <code>.md</code> to any page URL to get its Markdown source. You can also send the header
+        <code>Accept: text/markdown</code> to the page URL itself.
+      </p>
+      <p>
+        To read the whole documentation in one file, open <a href={`${site.basePath}/llms-full.txt`} target="_blank" rel="noreferrer">llms-full.txt<Icon name="arrowUpRight" size={12} /></a>. For a short index of every page, open <a href={`${site.basePath}/llms.txt`} target="_blank" rel="noreferrer">llms.txt<Icon name="arrowUpRight" size={12} /></a>.
+      </p>
+    </section>
+  </div>
+</dialog>

@@ -1,0 +1,175 @@
+---
+title: Documentation you own end to end
+description: Duvlify is an open-source Astro framework for documentation sites. Write Markdown, get a fast static site with search, an API reference, and an MCP server for AI agents.
+# The homepage only. Every other page keeps the card the build generates from its
+# own title, which no single static image can do. See /reference/configuration.
+image: /og-home.png
+imageAlt: A documentation site built with Duvlify, showing an API reference page with request samples and the search palette.
+---
+
+Duvlify is an open-source framework for documentation sites. You write your
+pages in Markdown. Duvlify builds a fast, static website from them, with
+search, an API reference, and a server that lets AI agents read your docs.
+
+{/* Written as JSX rather than `![…]()` for the two attributes: this is the one
+    image on the site that is above the fold, so it is the page's likely Largest
+    Contentful Paint and must not wait for a lazy load. rehype-images fills in the
+    intrinsic dimensions from the file either way. */}
+{/* No caption: the shot is the page's opening image, not a figure the prose
+    refers to, and the alt text already carries what it shows. */}
+<Frame>
+  <img
+    src="/screenshots/duvlify.webp"
+    alt="An API reference page built with Duvlify, showing an endpoint's parameters and response beside a request sample with the language picker open, and the search palette over it"
+    loading="eager"
+    fetchpriority="high"
+  />
+</Frame>
+
+No hosted service sits between you and your site. No per-seat fee. No app
+framework loads in the visitor's browser. The output is plain HTML files, and
+you own every one of them.
+
+<CardGroup cols={2}>
+  <Card title="Get started" href="/getting-started">
+    <Icon slot="icon" name="rocket" size={22} />
+    Clone it, run one command, and see your site.
+  </Card>
+  <Card title="Write a page" href="/guides/authoring">
+    <Icon slot="icon" name="file" size={22} />
+    Add frontmatter to a Markdown file. Its path becomes its URL.
+  </Card>
+  <Card title="Serve AI agents" href="/agents/overview">
+    <Icon slot="icon" name="bot" size={22} />
+    One endpoint turns your docs into tools an agent can call.
+  </Card>
+  <Card title="Deploy it" href="/guides/deployment">
+    <Icon slot="icon" name="globe" size={22} />
+    Ship it on Cloudflare, or on any static host you already use.
+  </Card>
+</CardGroup>
+
+## Why teams pick Duvlify
+
+<CardGroup cols={3}>
+  <Card title="You own the output">
+    <Icon slot="icon" name="package" size={20} />
+    Plain HTML files. Move them to any host at any time.
+  </Card>
+  <Card title="No watermark">
+    <Icon slot="icon" name="eye-off" size={20} />
+    Nothing on your pages says who built them. Nothing to pay to remove.
+  </Card>
+  <Card title="Nothing to pay per seat">
+    <Icon slot="icon" name="key" size={20} />
+    Free and open source, under the MIT licence.
+  </Card>
+  <Card title="Yours down to the layout">
+    <Icon slot="icon" name="panels-top-left" size={20} />
+    The components and styles are in your repository. Edit any of them.
+  </Card>
+  <Card title="Built to be checked">
+    <Icon slot="icon" name="shield" size={20} />
+    A broken link or a bad field stops the build and names the file.
+  </Card>
+  <Card title="No service in the middle">
+    <Icon slot="icon" name="git-branch" size={20} />
+    Nothing is fetched at build time. It works offline, and it keeps working.
+  </Card>
+</CardGroup>
+
+See the full list of reasons, and the use cases Duvlify fits, on the
+[Why Duvlify](/why) page.
+
+## Start in one command
+
+<CodeGroup>
+```bash title="npm"
+git clone https://github.com/DuvInc/duvlify.git && cd duvlify
+npm install && npm run dev
+```
+```bash title="pnpm"
+git clone https://github.com/DuvInc/duvlify.git && cd duvlify
+pnpm install && pnpm dev
+```
+</CodeGroup>
+
+A fresh clone runs with no setup. Search works. The agent tools answer. The
+build passes. Every optional service starts switched off, so you do not need
+an account to see your first page.
+
+## One file controls the site
+
+A page states what it is: its title, its description, its icon. The file
+`src/docs.config.ts` states where that page sits in the navigation. Duvlify
+joins the two at build time. The sidebar, the tabs, the search index, and the
+agent tools all read that one result.
+
+```ts title="src/docs.config.ts"
+export const navigation: NavTab[] = [
+  {
+    id: 'guides',
+    label: 'Guides',
+    icon: 'rocket',
+    groups: [
+      { label: 'Start here', icon: 'zap', pages: ['getting-started', 'why'] },
+    ],
+  },
+];
+```
+
+Nothing here repeats a page's own frontmatter. If a listed page does not exist,
+or a page exists in no group, the build stops and tells you which one.
+
+<Callout title="This site is the demo" tone="info">
+  duvlify.dev runs on Duvlify. Its pages live in the `content/` folder of the
+  same repository you would clone. Every component on this site is one you can
+  use. The search box, the Markdown copies of each page, and the MCP server are
+  the same ones your site would get.
+</Callout>
+
+## Built for people and for AI agents
+
+A person reads a web page. A search engine wants one clear page per topic. An
+AI agent wants plain Markdown, a map of your docs, and permission to read them.
+
+Duvlify serves all three from one build. Add `.md` to any page URL to get that
+page as plain text, or ask for it with the header `Accept: text/markdown`.
+
+<CodeGroup>
+```bash title="Markdown copy of a page"
+curl https://duvlify.dev/guides/authoring.md
+```
+```bash title="Ask for Markdown instead of HTML"
+curl -H "Accept: text/markdown" https://duvlify.dev/guides/authoring
+```
+```bash title="A map of every page"
+curl https://duvlify.dev/llms.txt
+```
+</CodeGroup>
+
+## Open source, MIT licence
+
+Fork it. Use it in a paid product. Keep your changes private if you want. The
+MIT licence asks only that you keep the copyright notice.
+
+<CardGroup cols={2}>
+  <Card title="Read the source" href="https://github.com/DuvInc/duvlify">
+    <Icon slot="icon" name="git" size={22} />
+    Issues, discussions, and the licence text.
+  </Card>
+  <Card title="See how it is built" href="/reference/architecture">
+    <Icon slot="icon" name="layers" size={22} />
+    What the build outputs, and why each part exists.
+  </Card>
+</CardGroup>
+
+<CTA
+  layout="stack"
+  variant="accent"
+  eyebrow="Get started"
+  title="A working site before you finish this page"
+  description="Clone it, run one command, and read your own pages in a browser. Nothing to sign up for, and no account behind any feature you just read about."
+  href="/getting-started"
+  label="Start in one command"
+/>

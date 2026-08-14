@@ -1,0 +1,51 @@
+---
+/** A small inline pill: a status, a version, a label. */
+import Icon from './Icon.astro';
+
+export type BadgeColor =
+  | 'gray' | 'blue' | 'green' | 'yellow' | 'orange' | 'red' | 'purple'
+  /* Chrome rather than hue: an outlined chip on the page, and one on a raised
+     surface, each with a destructive variant. See components.css. */
+  | 'white' | 'surface' | 'white-destructive' | 'surface-destructive';
+
+interface Props {
+  color?: BadgeColor;
+  /** Older semantic alias for `color`, kept so existing pages render unchanged. */
+  tone?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  shape?: 'rounded' | 'pill';
+  /** Any name Icon.astro resolves. */
+  icon?: string;
+  /** Outlined instead of filled. */
+  stroke?: boolean;
+  disabled?: boolean;
+  class?: string;
+}
+const {
+  color,
+  tone,
+  size = 'md',
+  shape = 'rounded',
+  icon,
+  stroke,
+  disabled,
+  class: className,
+} = Astro.props;
+const palette = color || tone || 'gray';
+const iconSize = size === 'lg' ? 15 : size === 'xs' ? 11 : 13;
+---
+<span
+  class:list={[
+    'badge',
+    palette,
+    `badge-${size}`,
+    `badge-${shape}`,
+    stroke && 'badge-stroke',
+    disabled && 'disabled',
+    className,
+  ]}
+  aria-disabled={disabled || undefined}
+>
+  {icon && <Icon name={icon} size={iconSize} />}
+  <slot />
+</span>
