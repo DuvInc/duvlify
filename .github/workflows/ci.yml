@@ -36,7 +36,7 @@ jobs:
     env:
       SITE_URL: ${{ vars.SITE_URL || 'https://duvlify.dev' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # `npm test` asserts the updates feed, whose dates come from each
           # file's last commit. A shallow clone has no history to read them from.
