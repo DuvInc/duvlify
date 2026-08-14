@@ -1,0 +1,509 @@
+/* API endpoint pages: resource-aware navigation, focused reference content,
+ * and a sticky request/response rail derived from OpenAPI. */
+
+.docs-grid.api-reference-grid {
+  --api-shell-inset: 28px;
+  --api-frame-offset: max(0px, calc((100vw - 1472px) / 2));
+  width: 100%;
+  max-width: 1472px;
+  margin-inline: auto;
+  grid-template-columns:
+    clamp(240px, 18vw, var(--sidebar))
+    minmax(0, 590px)
+    clamp(360px, 30vw, 448px);
+  column-gap: clamp(28px, 2.75vw, 44px);
+  /* An API reference shell reads best in a bounded, centred frame. Fluid tracks
+     use every intermediate width without pushing the reference rail against the
+     viewport edge or introducing a second desktop-size jump. */
+  justify-content: center;
+  /* The API frame is wider than the regular docs frame. Keep its first track
+     on the regular shell's left axis while the central and right tracks retain
+     the fluid, bounded layout above. On very wide screens the frame itself is
+     centred, so subtract that frame offset from the local inset. */
+  padding-left: max(0px, calc(var(--api-shell-inset) - var(--api-frame-offset)));
+  padding-right: clamp(28px, 4vw, 56px);
+  align-items: start;
+}
+
+@media (min-width: 1400px) {
+  .docs-grid.api-reference-grid {
+    /* 262px sidebar + 228px TOC + 2 × 54px gaps, matching .docs-grid. */
+    --api-shell-inset: max(28px, calc((100vw - (var(--content) + 598px)) / 2));
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1399px) {
+  .docs-grid.api-reference-grid {
+    /* 248px sidebar + 200px TOC + 2 × 40px gaps, matching .docs-grid. */
+    --api-shell-inset: max(28px, calc((100vw - (var(--content) + 528px)) / 2));
+  }
+}
+
+.api-article {
+  padding-top: 56px;
+  padding-bottom: 26px;
+}
+.api-article .article-heading {
+  padding-bottom: 0;
+  margin-bottom: 20px;
+  border-bottom: 0;
+}
+.api-article .article-heading > p {
+  max-width: 54ch;
+}
+.api-page-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 40px;
+}
+.api-article .endpoint-row {
+  width: 100%;
+  /* `.article > p` intentionally caps prose at 680px. Endpoint happens to be
+     a paragraph for MDX compatibility, but it is a full-width UI component;
+     without this reset it became 27px narrower than the 707/712px inline API
+     panels at constrained desktop widths. */
+  max-width: none;
+  min-height: 48px;
+  margin: 0 0 36px;
+  padding: 6px 7px 6px 10px;
+  gap: 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-sunken);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .03);
+}
+.api-article .endpoint-row > .copy-button {
+  flex: none;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(2px);
+  transition: opacity .15s ease, transform .15s ease, background .15s ease, color .15s ease;
+}
+.api-article .endpoint-row:hover > .copy-button,
+.api-article .endpoint-row:focus-within > .copy-button {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+.api-article .endpoint {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.api-article .api-method {
+  flex: none;
+  min-width: 42px;
+  justify-content: center;
+  padding: 4px 8px;
+}
+.api-article .mdx-content > .endpoint-row:first-child {
+  display: none;
+}
+.api-inline-panel {
+  display: none;
+}
+.api-article .mdx-content > .anchored-heading:first-of-type {
+  margin-top: 0;
+}
+.api-article .field {
+  padding-block: 15px;
+}
+
+.api-reference-panel {
+  position: sticky;
+  align-self: start;
+  top: var(--shell-top);
+  height: calc(100vh - var(--shell-top));
+  min-width: 0;
+}
+.api-panel-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 56px 4px 48px 0;
+  scrollbar-width: thin;
+}
+.api-code-card {
+  margin: 0 0 18px;
+  border-color: color-mix(in srgb, var(--c-border) 82%, transparent);
+  background: color-mix(in srgb, var(--c-sunken) 88%, var(--surface));
+  /* Cards in the docs system use borders for separation. A broad shadow was
+     clipped by the scrolling rail at its left edge and looked like a blur. */
+  box-shadow: none;
+}
+.api-request-card {
+  /* The language menu deliberately overlaps the response card below. The base
+     code-block clips its contents for rounded code wells, which also clipped
+     this absolutely-positioned menu at the Request card's bottom edge. */
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+.api-response-card {
+  position: relative;
+  z-index: 1;
+}
+.api-code-card .code-block-header {
+  min-height: 42px;
+  padding-left: 14px;
+}
+.api-code-card .code-block-header strong {
+  color: var(--c-title);
+  font-size: 12px;
+  font-weight: 600;
+}
+/* The language/content-type control already owns the header's auto margin.
+   The injected Copy button must sit immediately after it; giving both controls
+   an auto margin divided the free space and pushed the first one to centre. */
+.api-code-card .code-block-header > .copy-button {
+  margin-left: 0;
+}
+.api-language-select,
+.api-select {
+  position: relative;
+}
+.api-language-select {
+  margin-left: auto;
+}
+.api-language-trigger,
+.api-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--c-mute);
+  font-size: 12px;
+  font-weight: 550;
+  cursor: pointer;
+}
+.api-language-trigger:hover,
+.api-language-trigger[aria-expanded='true'],
+.api-select-trigger:hover,
+.api-select-trigger[aria-expanded='true'] {
+  border-color: var(--c-border);
+  background: var(--surface);
+  color: var(--c-title);
+}
+.api-language-icon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  background-color: currentColor;
+  -webkit-mask-image: var(--api-language-icon);
+  mask-image: var(--api-language-icon);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.api-language-trigger > svg,
+.api-select-trigger > svg {
+  transition: transform .15s ease;
+}
+.api-language-trigger[aria-expanded='true'] > svg,
+.api-select-trigger[aria-expanded='true'] > svg {
+  transform: rotate(180deg);
+}
+.api-select-menu {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 176px;
+  padding: 6px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: 0 14px 34px rgb(0 0 0 / .10);
+}
+.api-select-menu[hidden] {
+  display: none;
+}
+.api-select-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--c-mute);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.api-select-menu button:hover {
+  background: var(--c-sunken-strong);
+  color: var(--c-title);
+}
+.api-select-menu button[aria-checked='true'] {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+.api-select-check {
+  margin-left: auto;
+  opacity: 0;
+}
+.api-select-menu button[aria-checked='true'] .api-select-check {
+  opacity: 1;
+}
+.api-request-panel[hidden] {
+  display: none;
+}
+.api-content-type {
+  margin-left: auto;
+  color: var(--c-mute);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.api-code-card .copy-button + .api-content-type {
+  margin-left: 0;
+}
+.api-code-card .code-block-body {
+  background: color-mix(in srgb, var(--surface) 92%, var(--c-sunken));
+}
+.api-code-card pre {
+  max-height: 430px;
+  padding: 16px 18px 18px;
+  white-space: pre;
+}
+.api-code-card pre,
+.api-code-card code {
+  font-size: 12px;
+  line-height: 1.65;
+}
+.api-response-header {
+  gap: 10px;
+}
+.api-status-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 2px;
+}
+.api-status-tabs button {
+  position: relative;
+  min-width: 42px;
+  padding: 0 7px;
+  border: 0;
+  background: transparent;
+  color: var(--c-mute);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+.api-status-tabs button::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: -4px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0;
+}
+.api-status-tabs button[aria-selected='true'] {
+  color: var(--accent-strong);
+}
+.api-status-tabs button[aria-selected='true']::after {
+  opacity: 1;
+}
+.api-response-panel[hidden] {
+  display: none;
+}
+
+/* The status selector belongs to the response documentation as well as the
+ * example rail. Both controls are synchronised by api-reference.ts. */
+.api-response-details {
+  margin-top: 3rem;
+}
+.api-response-title-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--c-border-soft);
+}
+/*
+ * Not scoped to `.api-article`: the status selector and the content type sit on
+ * the same row as the heading, and that only lines up once the heading's own
+ * margins are gone. `<ApiResponseDetails>` can be placed on an ordinary page —
+ * the component gallery does — where `.article h2`'s 55px top margin made the
+ * flex row centre the controls against a box three times the height of the word
+ * "Response", leaving them floating well above it.
+ */
+.api-response-title-row .anchored-heading {
+  flex: 1;
+  margin: 0;
+}
+.api-response-meta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: var(--c-mute);
+}
+.api-response-meta > code {
+  min-width: 108px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-mute);
+  font-size: 12px;
+}
+.api-response-select-menu {
+  left: 50%;
+  right: auto;
+  width: 112px;
+  transform: translateX(-50%);
+}
+.api-central-response-panel[hidden] {
+  display: none;
+}
+.api-central-response-description {
+  margin: 20px 0 24px;
+  color: var(--c-mute);
+  font-size: 15px;
+}
+.api-schema-field {
+  margin-top: 0;
+}
+.api-schema-children {
+  margin-bottom: 0;
+}
+.api-schema-child-field:last-child {
+  border-bottom: 0;
+  padding-bottom: 4px;
+}
+
+.api-page-footer {
+  grid-column: 2;
+  min-width: 0;
+  padding-bottom: 48px;
+}
+.api-page-footer .page-footer {
+  margin-top: 0;
+}
+
+/* Endpoint identity in the left rail. Fixed-width method chips let labels line
+ * up while colors make a long resource group scannable at a glance. */
+.api-nav-method {
+  flex: 0 0 34px;
+  width: 34px;
+  padding: 2px 3px;
+  border-radius: 5px;
+  background: var(--c-sunken-strong);
+  color: var(--c-mute);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  letter-spacing: -.02em;
+}
+.api-nav-method[data-method='GET'] { background: #ecfdf3; color: #18794e }
+.api-nav-method[data-method='POST'] { background: #eef4ff; color: #2a52c9 }
+.api-nav-method[data-method='PUT'],
+.api-nav-method[data-method='PATCH'] { background: #fff8e6; color: #946200 }
+.api-nav-method[data-method='DELETE'] { background: #fff0f0; color: #c23131 }
+[data-theme='dark'] .api-nav-method[data-method='GET'] { background: rgb(24 121 78 / .18); color: #77d5a7 }
+[data-theme='dark'] .api-nav-method[data-method='POST'] { background: rgb(56 106 245 / .18); color: #9bb4ff }
+[data-theme='dark'] .api-nav-method:is([data-method='PUT'],[data-method='PATCH']) { background: rgb(148 98 0 / .2); color: #f2c45e }
+[data-theme='dark'] .api-nav-method[data-method='DELETE'] { background: rgb(194 49 49 / .2); color: #ff9b9b }
+.api-nav-group .nav-children {
+  padding-left: 5px;
+  margin-left: 7px;
+}
+.api-nav-group .nav-children a {
+  gap: 7px;
+  padding-left: 6px;
+}
+.api-nav-group .nav-children a > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1279px) and (min-width: 761px) {
+  .docs-grid.api-reference-grid {
+    grid-template-columns: 240px minmax(0, 712px);
+    gap: 38px;
+    justify-content: center;
+    padding-inline: 28px;
+  }
+  .api-reference-grid > .api-reference-panel {
+    display: none;
+  }
+  .api-inline-panel {
+    display: block;
+    margin-bottom: 38px;
+  }
+  .api-inline-panel .api-reference-panel {
+    position: static;
+    height: auto;
+  }
+  .api-panel-scroll {
+    height: auto;
+    overflow: visible;
+    padding: 0 0 18px;
+  }
+  .api-page-footer {
+    grid-column: 2;
+  }
+}
+
+@media (hover: none) {
+  .api-article .endpoint-row > .copy-button {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .api-article {
+    padding-top: 36px;
+  }
+  .api-reference-grid > .api-reference-panel {
+    display: none;
+  }
+  .api-inline-panel {
+    display: block;
+    margin-bottom: 32px;
+  }
+  .api-inline-panel .api-reference-panel {
+    position: static;
+    height: auto;
+  }
+  .api-panel-scroll {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+  }
+  .api-code-card pre {
+    max-height: 360px;
+  }
+  .api-page-footer {
+    padding-bottom: 28px;
+  }
+  .api-response-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+  .api-response-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

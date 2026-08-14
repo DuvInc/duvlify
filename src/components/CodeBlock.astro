@@ -1,0 +1,27 @@
+---
+/**
+ * Chrome for a code sample: a filename header and a copy button.
+ *
+ * Prefer a plain fenced code block — ```bash title="Terminal" — which gets this
+ * same chrome from lib/rehype-code-chrome.ts *and* Shiki highlighting. This
+ * component exists for the rare cases a fence cannot express; content passed
+ * to it is not highlighted.
+ *
+ * The copy button is injected by scripts/code.ts rather than rendered here, so
+ * a fence and this component always end up with the identical button.
+ */
+interface Props {
+  /** Filename shown in the header, and the label used as a tab in a CodeGroup. */
+  label?: string;
+  /** Alias for `label`, matching the fence's `title=` attribute. */
+  title?: string;
+}
+const { label, title } = Astro.props;
+const filename = label || title || 'Example';
+---
+<div class="code-block" data-tab-title={filename}>
+  <header class="code-block-header">
+    <span class="code-block-filename">{filename}</span>
+  </header>
+  <div class="code-block-body"><pre tabindex="0"><code><slot /></code></pre></div>
+</div>

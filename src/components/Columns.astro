@@ -1,0 +1,8 @@
+---
+/** Side-by-side content. Collapses to one column on narrow screens. */
+import { cssCount } from '../lib/css-value';
+
+interface Props { cols?: number }
+const cols = cssCount(Astro.props.cols, 2, 4);
+---
+<div class="columns" style={`--columns:${cols}`}><slot /></div>

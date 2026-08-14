@@ -1,0 +1,55 @@
+{
+  "name": "duvlify-repo",
+  "private": true,
+  "type": "module",
+  "description": "A self-hosted documentation framework built on Astro: Markdown in, static site with search, an API reference and an MCP server out.",
+  "license": "MIT",
+  "homepage": "https://duvlify.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DuvInc/duvlify.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "deploy": "npm run build && npm run check:origin && npm run index:sync && wrangler deploy",
+    "deploy:fast": "npm run build && npm run check:origin && wrangler deploy",
+    "check:origin": "node scripts/check-origin.mjs",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "index:sync": "node scripts/index-sync.mjs",
+    "index:dry": "node scripts/index-sync.mjs --dry-run",
+    "manual:snapshot": "npm run build && node scripts/snapshot-manual.mjs",
+    "manual:check": "node scripts/snapshot-manual.mjs --check",
+    "images:optimize": "node scripts/optimize-images.mjs",
+    "images:check": "node scripts/optimize-images.mjs --check"
+  },
+  "dependencies": {
+    "@astrojs/check": "0.9.9",
+    "@astrojs/markdown-remark": "7.2.2",
+    "@astrojs/mdx": "7.0.5",
+    "@iconify-json/fa6-brands": "1.2.6",
+    "@iconify-json/fa6-solid": "1.2.4",
+    "@iconify-json/lucide": "1.2.121",
+    "@iconify/utils": "3.1.4",
+    "@lucide/astro": "1.23.0",
+    "agents": "0.20.1",
+    "astro": "7.2.1",
+    "mermaid": "11.16.1",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
+    "remark-stringify": "11.0.0",
+    "sharp": "0.35.3",
+    "typescript": "6.0.3",
+    "unified": "11.0.5",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "wrangler": "4.123.0"
+  }
+}

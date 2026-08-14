@@ -1,0 +1,21 @@
+---
+/**
+ * A bordered surface for a screenshot or an embed. `hint` sits above it,
+ * `caption` below. Images inside open in a lightbox (scripts/copy.ts).
+ */
+interface Props {
+  caption?: string;
+  /** Backwards-compatible alias for `caption`. */
+  label?: string;
+  hint?: string;
+}
+const { caption, label, hint } = Astro.props;
+const text = caption || label;
+---
+<div class="frame-wrap">
+  {hint && <p class="frame-hint">{hint}</p>}
+  <figure class="frame">
+    <div class="frame-content"><slot /></div>
+    {text && <figcaption class="frame-caption">{text}</figcaption>}
+  </figure>
+</div>

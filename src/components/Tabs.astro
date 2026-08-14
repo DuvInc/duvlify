@@ -1,0 +1,14 @@
+---
+/** Alternative instructions or views of the same idea, one visible at a time. */
+interface Props { label?: string; defaultTabIndex?: number; sync?: boolean; borderBottom?: boolean }
+const { label = 'Content tabs', defaultTabIndex = 0, sync = true, borderBottom } = Astro.props;
+---
+<div class:list={['tabs', borderBottom && 'tabs-border-bottom']} data-tabs data-default-tab-index={defaultTabIndex} data-tab-sync={String(sync)}>
+  {/* The strip is a bar containing the tablist plus, for a code group, the
+      copy button. `role="tablist"` may only contain tabs, so the button sits
+      beside the list rather than inside it. */}
+  <div class="tab-bar">
+    <div class="tab-list" data-tab-list role="tablist" aria-label={label}></div>
+  </div>
+  <slot />
+</div>

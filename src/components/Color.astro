@@ -1,0 +1,6 @@
+---
+/** A compact palette or a table of labelled colour rows. */
+interface Props { variant?: 'compact' | 'table' }
+const { variant = 'compact' } = Astro.props;
+---
+<div class:list={['color-palette', `color-${variant}`]}><slot /></div>

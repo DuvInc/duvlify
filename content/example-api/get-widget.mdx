@@ -1,0 +1,30 @@
+---
+title: Retrieve a widget
+description: Returns one widget by its id, or a 404 when no widget with that id exists.
+pageType: api-endpoint
+apiMethod: GET
+apiPath: /widgets/{widget_id}
+apiOperationId: getWidget
+apiTag: Widgets
+---
+
+<Callout title="Example API" tone="warning">
+  This API is fictional. See [the introduction](/example-api/introduction).
+</Callout>
+
+## Handling a missing widget
+
+A `404` is a normal answer, not a failure of the request. Treat it as a value:
+the widget is not there. It does not mean the API key is wrong, which is a `401`.
+
+```bash
+status=$(curl -s -o body.json -w '%{http_code}' \
+  "https://api.example.com/v1/widgets/$WIDGET_ID" \
+  -H "Authorization: Bearer $API_KEY")
+
+case "$status" in
+  200) jq -r '.name' body.json ;;
+  404) echo "gone" ;;
+  *)   jq -r '.error.code' body.json; exit 1 ;;
+esac
+```

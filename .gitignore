@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.DS_Store
+
+# Real values for .env.example. Holds an API token that can write to the
+# account's search index, so it must never be committed.
+.env
+.env.*
+!.env.example

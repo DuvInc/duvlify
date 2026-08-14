@@ -1,0 +1,23 @@
+---
+/** One step of a <Steps> sequence. */
+import Icon from './Icon.astro';
+import { cssCounter } from '../lib/css-value';
+
+interface Props {
+  title?: string;
+  /** Replaces the number in the marker. Any name Icon.astro resolves. */
+  icon?: string;
+  /** Overrides the automatic counter, for a sequence that continues another. */
+  stepNumber?: number;
+  /** Set on <Steps> to apply to the whole sequence; here for a single step. */
+  titleSize?: 'p' | 'h2' | 'h3';
+}
+const { title, icon, stepNumber, titleSize } = Astro.props;
+const Heading = titleSize === 'h2' ? 'h2' : titleSize === 'h3' ? 'h3' : 'p';
+const number = cssCounter(stepNumber);
+---
+<div class:list={['step', icon && 'step-with-icon']} style={number ? `--step-number:${number}` : undefined}>
+  {icon && <span class="step-icon" aria-hidden="true"><Icon name={icon} size={14} /></span>}
+  <Heading class="step-title" data-step-title>{title}</Heading>
+  <div class="step-content"><slot /></div>
+</div>

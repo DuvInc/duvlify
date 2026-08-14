@@ -1,0 +1,6 @@
+---
+/** A numbered sequence. The numbers come from CSS, so reordering is free. */
+interface Props { titleSize?: 'p' | 'h2' | 'h3' }
+const { titleSize = 'p' } = Astro.props;
+---
+<div class="steps" data-title-size={titleSize}><slot /></div>

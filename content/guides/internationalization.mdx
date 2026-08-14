@@ -1,0 +1,1057 @@
+---
+title: Publishing in several languages
+description: The URL shape, the two modes for an untranslated page, how translations are kept honest, and what every output surface owes a multilingual build.
+sidebarTitle: Languages
+icon: language
+---
+
+<Callout title="This framework ships monolingual" tone="warning">
+  Nothing in `src/` reads the settings on this page: Duvlify serves one
+  language, and that is the right default for most documentation. What follows
+  is a specification rather than a feature tour, so that the day you do add
+  languages, by hand or by asking an agent to, the result is the one described
+  here rather than one of the dozen shapes the problem invites. Every section
+  names the file that changes.
+</Callout>
+
+This is not a sketch. It has been built twice on forks of this repository: once
+to three configured languages, once all the way to six across 198 pages. A
+number of the rules below are here because the first version of them was wrong
+in a way only a real build showed. Those places say so, and say what the symptom
+looked like, because that is the part that is hard to recognise from the cause.
+
+The routing half is already done, and it was free.
+
+A page's URL is its path under `content/`, resolved in exactly one place
+([`hrefFor`](/reference/architecture) in `src/lib/navigation.ts`). So
+`content/fr/guides/authoring.mdx` is served at `/fr/guides/authoring` without a
+line of new code, and the same is true of its Markdown twin, its share card and
+its entry in the sitemap. There is no router to teach about locales.
+
+What has to be built is everything around the route: a sidebar that knows which
+tree it is in, a canonical tag that does not publish the same English page six
+times, a freshness signal that makes translation debt visible, and a set of
+machine outputs that do not hand a French reader English answers.
+
+## The settings
+
+One object, added to `src/docs.config.ts`. It is present there already, as a
+commented block, so that this page and that file cannot drift apart.
+
+```ts title="src/docs.config.ts"
+export interface I18nLocale {
+  /** Shown in the language picker. */
+  name: string;
+  /** Two or three letters, for the picker's collapsed state. */
+  short: string;
+  /** `lang` attribute and JSON-LD `inLanguage`. */
+  language: string;
+  /** BCP 47 with region, for `og:locale`. */
+  locale: string;
+  /** Only for Arabic, Hebrew, Persian and Urdu. */
+  dir?: 'ltr' | 'rtl';
+}
+
+export interface I18nConfig {
+  /** Key order sets the language picker's order. */
+  locales: Record<string, I18nLocale>;
+  /** Served unprefixed. Must be a key of `locales`. */
+  defaultLocale: string;
+  /** What a locale does with a page it has not translated. */
+  missing: 'fallback' | 'hide';
+  /** What a locale does with a translation older than its source. */
+  stale: 'warn' | 'fallback';
+  /**
+   * Group and tab labels, per locale. These are the only strings the sidebar
+   * cannot get from a page's own frontmatter, because they live in the config.
+   */
+  navigationLabels: Record<string, Record<string, string>>;
+}
+
+export const i18n: I18nConfig = {
+  locales: {
+    en: { name: 'English', short: 'EN', language: 'en', locale: 'en_US' },
+    fr: { name: 'Français', short: 'FR', language: 'fr', locale: 'fr_FR' },
+    de: { name: 'Deutsch', short: 'DE', language: 'de', locale: 'de_DE' },
+  },
+  defaultLocale: 'en',
+  missing: 'fallback',
+  stale: 'warn',
+  navigationLabels: {
+    fr: { 'Start here': 'Commencer', 'Writing content': 'Rédaction' },
+    de: { 'Start here': 'Erste Schritte', 'Writing content': 'Inhalte' },
+  },
+};
+```
+
+One record keyed by locale, rather than a list of codes plus three parallel maps
+of labels. The parallel-map version is the one this problem keeps producing, and
+it drifts: a locale added to the list and forgotten in one of the maps is a
+missing label at runtime, not a build failure.
+
+`seo.locale` and `seo.language` become this object's default entry. Delete them
+from `seo` when you add it, rather than leaving two places that answer "what
+language is this site".
+
+`language` and `locale` are separate fields because the region is a decision, not
+a formality. `pt` is not a language: it is a choice between `pt-BR` and `pt-PT`,
+and the two differ in vocabulary a reader notices immediately. If the product
+being documented has its own language catalogue, match it. Documentation that
+disagrees with the product about what "Portuguese" means is worse than either
+answer.
+
+## The file tree
+
+Translations mirror the default tree, one directory per non-default locale.
+
+<Tree>
+  <TreeFolder name="content">
+    <TreeFile name="getting-started.mdx" />
+    <TreeFolder name="guides">
+      <TreeFile name="authoring.mdx" />
+      <TreeFile name="deployment.mdx" />
+    </TreeFolder>
+    <TreeFolder name="fr">
+      <TreeFile name="getting-started.mdx" />
+      <TreeFolder name="guides">
+        <TreeFile name="authoring.mdx" />
+      </TreeFolder>
+    </TreeFolder>
+    <TreeFolder name="de">
+      <TreeFile name="getting-started.mdx" />
+    </TreeFolder>
+  </TreeFolder>
+</Tree>
+
+Under `missing: 'fallback'`, that tree produces exactly these routes: nine, not
+six, because a locale answers for every page whether or not it has translated it:
+
+```text
+/getting-started              /guides/authoring        /guides/deployment
+/fr/getting-started           /fr/guides/authoring     /fr/guides/deployment   ← English body
+/de/getting-started           /de/guides/authoring     /de/guides/deployment   ← English body
+                                    ↑ English body
+```
+
+Under `missing: 'hide'` there are five, and the other four are 404s. Nothing
+else about the two modes differs.
+
+Two rules, and the second is the load-bearing one.
+
+**The default locale is not prefixed.** `/getting-started` stays where it is;
+French is at `/fr/getting-started`. This is what makes adopting languages later
+a non-event: no existing URL moves, so there is nothing to redirect. Prefixing
+every locale, including the default, is defensible on a new site and only there.
+
+**The path after the locale segment is the translation key.** `fr/guides/authoring`
+is the French `guides/authoring` because the paths match, and for no other
+reason. There is no mapping file.
+
+That second rule is worth defending, because the temptation to break it is real:
+a localized slug, `fr/guides/redaction`, reads better and does marginally
+better in search. The cost is that "which page is this a translation of" stops
+being a string operation. A mapping table appears, and the language picker, the
+`hreflang` set, the freshness check and the coverage report all start reading
+from it. Every one of them is then one stale row away from being wrong. Identical
+paths keep all four as pure path arithmetic. Take the slugs only if you are
+prepared to own the table.
+
+### The one-line change to make before any of this
+
+Astro's glob loader slugifies each path segment and then strips a trailing
+`/index`, which is right for one language and fatal with locale directories:
+
+```js
+// astro/dist/content/utils.js
+const slug = rawSlugSegments.map(githubSlug).join('/').replace(/\/index$/, '');
+```
+
+`content/fr/index.mdx` therefore gets the id `fr`, indistinguishable from the
+locale directory itself. Stripping the locale prefix leaves an empty source id,
+so the translated homepage is reported as a stray file whose source does not
+exist, and the build stops on a message that points nowhere near the cause:
+
+```text
+These translated files do not match any page in docs.config.ts navigation:
+  content/fr.mdx (no source at content/.mdx)
+```
+
+The trap is the timing. Nothing is wrong until a locale translates its
+*homepage*, so a fork can configure three languages, pass a hundred tests, and
+meet this on the day it ships its first complete locale.
+
+Override `generateId` in `src/content.config.ts` to keep the literal path, and
+keep the slugification, or the first file named `Getting Started.mdx` is the next
+bug:
+
+```ts title="src/content.config.ts"
+loader: glob({
+  base: './content',
+  pattern: '**/*.{md,mdx}',
+  generateId: ({ entry }) =>
+    entry.replace(/\.[^./]+$/, '').split('/').map(githubSlug).join('/'),
+}),
+```
+
+No URL changes: `hrefFor` already maps a homepage id to its locale root, so
+`fr/index` still serves at `/fr`.
+
+Keeping the per-segment slugification is the part that makes this correct rather
+than nearly correct. Drop it and the first file named `Getting Started.mdx`
+publishes a URL with a capital and a space. That is also why this is documented
+here rather than shipped in the engine: the override needs a slugifier, and a
+monolingual site would be carrying a dependency to defend against a bug it cannot
+have. A subtly wrong version in the engine would be worse than none, because it
+would look load-bearing.
+
+## A locale exists from its first translated file
+
+The rule to get right before any other, and the one the first implementation of
+this specification got wrong.
+
+**`missing` decides what a locale does about the pages it has not translated. It
+does not decide whether a locale nobody has started is a locale.** Naming `de` in
+the config buys the machinery; writing `content/de/anything.mdx` is what
+publishes it. Until then German has no routes, no sitemap, no corpus file, no
+entry in the language picker, and the build's output is byte-for-byte what it was
+before the config changed.
+
+Without that rule, `missing: 'fallback'` reads the config, finds German, and
+dutifully publishes the entire site in German: every page, in English, at URLs
+nothing links to and the picker does not offer, all of them crawlable. On a
+33-page site that measured 67 ghost pages, from adding one line to a config file.
+
+With it, both modes agree, and a fork can name every language it intends to
+support without publishing a word.
+
+## A page that is not translated
+
+Within a locale that exists, this is the decision that shapes everything else,
+and it has exactly two honest answers.
+
+| | `missing: 'fallback'` | `missing: 'hide'` |
+| --- | --- | --- |
+| `/de/guides/authoring` | exists, serves the English body | 404 |
+| Sidebar in German | listed, marked untranslated | absent |
+| Canonical | `/guides/authoring` | n/a |
+| `hreflang` for `de` | not advertised | not advertised |
+| German sitemap | absent | absent |
+| German search index | absent | absent |
+| Language picker on that page | switches, shows a notice | points into German elsewhere |
+
+**Start on `hide`, move to `fallback`.** The two are right at different sizes, and
+the switch is one word.
+
+`hide` is right while a locale is thin. At three translated pages, `fallback`
+publishes thirty English duplicates for every real translation: each one
+canonicalised and excluded from the sitemap, so not harmful, but not useful to
+anybody either.
+
+`fallback` is right once a locale is substantial, and it is the correct long-run
+setting. A documentation set is permanently half-translated (that is the steady
+state, not a transitional one), and a reader arriving from a search result or a
+colleague's link should not meet a 404 for a page that exists. It is also what
+[Starlight](https://starlight.astro.build/guides/i18n/) does, so it is the
+behaviour readers of Astro documentation already expect.
+
+Stay on `hide` when a locale is a deliberate subset: a translated quick-start for
+a market you are testing, or content whose partial translation would be a legal
+problem rather than an inconvenience.
+
+<Callout title="A fallback page must not be indexed as itself" tone="warning">
+  `/de/guides/authoring` serving English text is a duplicate of
+  `/guides/authoring`. Published without a canonical pointing home, and with a
+  self-referencing `hreflang`, you have told search engines the same page exists
+  at three URLs in three languages: rankings split, and the wrong URL wins. So a
+  fallback page canonicalises to the default locale, and is never named as an
+  alternate for the locale it is standing in for.
+</Callout>
+
+## The sidebar is derived, never duplicated
+
+The scalability of the whole approach rests here.
+
+`navigation` in `src/docs.config.ts` stays a single tree. A locale's sidebar is
+that same tree with its page ids prefixed, and nothing else:
+
+```ts
+const localizedId = (locale: string, id: string) =>
+  locale === i18n.defaultLocale ? id : `${locale}/${id}`;
+```
+
+Labels need no translation, because they never lived in the config: the sidebar
+reads `sidebarTitle`, `title`, `icon` and `badge` from each page's own
+frontmatter, so a translated file carries its own translated label. The
+exceptions are group and tab labels, which the config does own: hence
+`navigationLabels`, and nothing more.
+
+Adding a fourth language is therefore one directory plus a handful of group
+labels. It is never a second sidebar to keep in step, which is the failure this
+shape exists to prevent.
+
+Three things in `src/lib/navigation.ts` need adjusting:
+
+- **`getNavigation()` takes a locale**, caches per locale, and resolves each
+  locale's tree separately, dropping ids with no file under `hide`, reusing the
+  logic that already drops drafts.
+- The **orphan check** currently fails the build for any published page the
+  config does not name. Every translated file is such a page, so it has to skip
+  them.
+- Which opens a hole, and closing it is the part that is easy to miss. That check
+  existed to catch a file nothing references. A translation is never named in
+  `navigation`, so once it is skipped, `content/fr/guides/authorng.mdx` (with the
+  typo) is a file nothing serves, nothing lists and nothing reports. It sits in
+  the repository looking like work that shipped. **Translations need their own
+  version of the same rule:** every locale-prefixed file must have a source at
+  its path that the config knows about, and the error should name the source it
+  should have matched.
+
+One more consequence, in the route files rather than here: on a fallback page the
+**id and the entry come apart**. `/fr/guides/authoring` is rendered from
+`content/guides/authoring.mdx`, so "where it is served" and "what renders it" are
+two different values. Three routes need that pairing (the page, its Markdown twin
+and its share card), and each one deriving it separately is three chances to
+derive it differently. Resolve it once, in a function that returns both.
+
+## Links inside a translated page
+
+This is the defect that actually reaches readers, and the one nothing else
+catches. The page renders. The link works. It is simply in the wrong language.
+
+A translated page carries its source's links verbatim, and that is correct: a
+translator handed `/api/errors` has no business inventing a path. But rendered
+inside `/fr/…`, every one of those links drops the reader out of French
+mid-sentence, and lands them at the *top* of a page they were partway through. At
+six languages this measured 75 links across 40 of 165 translated pages.
+
+The fix belongs in the build, not in the content. Rewriting the files would have
+to be redone after every future translation, and it would freeze an answer that
+changes over time: whether the target is translated *yet*.
+
+The rule is two lines:
+
+| The target has a translation in this locale | Point at it |
+| --- | --- |
+| It does not | Leave the link alone |
+
+The second case is not a fallback-as-failure. An untranslated page in English
+beats a localized URL that 404s, and it is self-correcting: translate the target
+later and the link starts resolving to it, with no edit to the page holding it.
+
+<Callout title="Two node shapes carry a link, and the second is the one that gets missed" tone="warning">
+  A Markdown link becomes an ordinary `<a>` element. A `<Card href="…">` stays an
+  MDX JSX node whose props live in an `attributes` array, a different shape
+  entirely, in the same tree.
+
+  A first pass that handled only `<a>` fixed 25 links of 75. Because the landing
+  page and every section index are `Card` grids, the result was worse than
+  obviously broken: the sentences were localized while every navigation tile
+  still pointed at English. On a component-heavy theme the JSX form is the
+  majority.
+</Callout>
+
+```ts
+if (node.type === 'element' && node.tagName === 'a') {
+  // node.properties.href
+}
+if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
+  // node.attributes.find(attribute => attribute.name === 'href').value
+}
+```
+
+Split the fragment off before rewriting, and put it back after.
+`/api/errors#insufficient_scope` losing its anchor is the least visible way to
+break a link: it still resolves, it just stops landing where it promised.
+
+This belongs in `astro.config.ts` as a rehype plugin, beside the ones that already
+rewrite images and tables: it needs the tree, and it needs to run for every page
+in every locale without an author thinking about it.
+
+Here it is whole, since a description of this one is longer than the code. It is
+running in production on a six-language site:
+
+```ts title="src/lib/rehype-localize-links.ts"
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import type { Element, Root } from 'hast';
+import type { VFile } from 'vfile';
+import { basePath } from '../docs.config';
+import { defaultLocale, locales } from './i18n';
+
+const CONTENT = path.resolve(process.cwd(), 'content');
+
+function localeOfFile(file: VFile): string {
+  const filePath = file.history?.[0] ?? file.path;
+  if (!filePath) return defaultLocale;
+  const relative = path.relative(CONTENT, path.resolve(filePath));
+  if (relative.startsWith('..')) return defaultLocale;
+  const first = relative.split(path.sep)[0];
+  return locales.includes(first) && first !== defaultLocale ? first : defaultLocale;
+}
+
+const isTranslated = (locale: string, id: string) =>
+  ['.mdx', '.md'].some(extension => existsSync(path.join(CONTENT, locale, `${id}${extension}`)));
+
+export function rehypeLocalizeLinks() {
+  return (tree: Root, file: VFile) => {
+    const locale = localeOfFile(file);
+    if (locale === defaultLocale) return;
+
+    const prefix = basePath ? `${basePath}/` : '/';
+
+    const localized = (href: unknown): string | null => {
+      if (typeof href !== 'string' || !href.startsWith(prefix)) return null;
+
+      /* Split the fragment off first: losing an anchor is the least visible way
+         to break a link. It still works. It just stops landing where it said. */
+      const [pathname, ...rest] = href.split('#');
+      const hash = rest.length ? `#${rest.join('#')}` : '';
+      const id = pathname.slice(prefix.length).replace(/\/$/, '');
+      if (!id) return null;
+
+      /* An id already starting with a locale was written deliberately: the
+         language picker links across languages on purpose. */
+      if (locales.includes(id.split('/')[0])) return null;
+
+      /* Anything that is not a page (/openapi.json, /llms.txt) has no
+         translation to point at, and this says so without a list of exceptions
+         to maintain. */
+      return isTranslated(locale, id) ? `${basePath}/${locale}/${id}${hash}` : null;
+    };
+
+    const visit = (node: { children?: unknown[] }) => {
+      if (!Array.isArray(node.children)) return;
+      for (const child of node.children as Element[]) {
+        if (child.type === 'element' && child.tagName === 'a') {
+          const next = localized(child.properties?.href);
+          if (next) child.properties!.href = next;
+        }
+
+        const jsx = child as unknown as {
+          type?: string;
+          attributes?: Array<{ type?: string; name?: string; value?: unknown }>;
+        };
+        if (
+          (jsx.type === 'mdxJsxFlowElement' || jsx.type === 'mdxJsxTextElement') &&
+          Array.isArray(jsx.attributes)
+        ) {
+          for (const attribute of jsx.attributes) {
+            if (attribute?.type !== 'mdxJsxAttribute' || attribute.name !== 'href') continue;
+            const next = localized(attribute.value);
+            if (next) attribute.value = next;
+          }
+        }
+
+        visit(child as { children?: unknown[] });
+      }
+    };
+
+    visit(tree);
+  };
+}
+```
+
+## Canonical, hreflang, and the picker
+
+In `src/components/DocumentHead.astro`, for every page:
+
+```html
+<link rel="alternate" hreflang="en" href="https://docs.example.com/getting-started">
+<link rel="alternate" hreflang="fr" href="https://docs.example.com/fr/getting-started">
+<link rel="alternate" hreflang="x-default" href="https://docs.example.com/getting-started">
+```
+
+Four rules that are easy to get wrong and cheap to assert at build time:
+
+1. **Only translated locales are listed.** An alternate pointing at a fallback
+   page is a lie about that page's language.
+2. **`x-default` names the default locale.** It is what a reader whose language
+   you do not serve should be sent to.
+3. **Alternates are reciprocal.** If the French page lists English, the English
+   page must list French. Google discards non-reciprocal sets silently, which is
+   the worst possible failure mode: no error, no effect.
+4. **The set includes the page itself.** A self-referencing alternate is
+   required, and its absence is the second most common mistake after
+   reciprocity.
+
+Put them in the `<head>` and not in the sitemap. Both locations are valid and
+Google treats them as equivalent, so doing both means maintaining the same matrix
+twice for nothing.
+
+The language picker has two rules that both came out of getting it wrong, and no
+prescribed component or markup. This is the one part of this page with no code
+to copy, because where it lives is a design decision this framework leaves to
+you.
+
+**It lists locales that have any content, not locales that have this page.** The
+per-page rule sounds tighter and is worse: under `hide` it hides the picker on
+every untranslated page (most of them, early on), so a reader who lands on the
+English page has no way to discover that a French section exists at all.
+
+**For a page a locale lacks, it links to that locale's landing page, and that is
+not `/fr`.** `/fr` exists only once `content/fr/index.mdx` does. Using it as the
+fallback is how the picker becomes a menu of 404s, which is exactly what happened:
+a locale with one translated page and no homepage offered every other page a link
+straight into nothing. Link to the locale's homepage if it has one, otherwise to
+the first page in its sidebar.
+
+Two places to put it, both defensible:
+
+- **The topbar, beside the theme toggle.** Above the fold on every page, which is
+  right when several locales are genuinely live and switching is something a
+  reader does often.
+- **The footer, beside the colour theme switch.** `src/components/PageFooter.astro`
+  already has exactly that slot: a `theme-switch` row inside `footer-bottom`,
+  next to the brand and the copyright:
+
+  ```astro title="src/components/PageFooter.astro"
+  <div class="theme-switch" data-theme-switch role="radiogroup" aria-label="Color theme">
+    <button type="button" data-theme-option="system" aria-label="Use system theme"><Icon name="monitor" size={14} /></button>
+    <button type="button" data-theme-option="light" aria-label="Use light theme"><Icon name="sun" size={14} /></button>
+    <button type="button" data-theme-option="dark" aria-label="Use dark theme"><Icon name="moon" size={14} /></button>
+  </div>
+  ```
+
+  A language picker is the same shape: a small set of mutually exclusive choices
+  that a reader sets once and rarely revisits. So it reads naturally beside this
+  rather than in the topbar's row of per-page actions. It also costs no space
+  above the fold, which matters more on a site with many locales than on one with
+  two.
+
+Prefer the footer once the picker is a list rather than a toggle: past three or
+four locales, a topbar button wide enough to hold "Français" competes with
+search and the theme toggle for room that does not exist. Two locales read fine
+either way.
+
+<Callout title="Do not redirect on Accept-Language" tone="note">
+  Sending a German browser from `/getting-started` to `/de/getting-started`
+  costs you two things: a reader who wanted the English page (the common case
+  for technical documentation, where the English term is the one they searched
+  for), and clean crawling, since a crawler sees a single language and often
+  gives up on the rest. A dismissible one-line suggestion, "This page is
+  available in German", gets the benefit without either cost.
+</Callout>
+
+## Keeping translations honest
+
+An untracked translation set does not stay half-translated. It rots, quietly,
+because nothing in the build has an opinion about a French page whose English
+source moved on six months ago.
+
+Duvlify already reads git for a page's real modification date
+(`src/lib/last-modified.ts`), which makes the rule almost free:
+
+> A translation is **stale** when its last content commit is older than its
+> source's.
+
+This is how [Lunaria](https://lunaria.dev/guides/tracking/), the tracker behind
+Astro's own documentation, decides the same question, so it is a shape worth
+matching. Lunaria itself is the sensible upgrade once you want a dashboard and a
+GitHub Action rather than a build-time list.
+
+The two modes:
+
+- **`stale: 'warn'`** prints the list at the end of the build and serves the
+  translation with a notice on the page. Translation debt stays visible without
+  blocking a deploy.
+- **`stale: 'fallback'`** treats stale as untranslated: the page reverts to the
+  source language, and the locale stops advertising it. Correct when a wrong
+  translation is worse than an English one: pricing, limits, security
+  procedures.
+
+A `npm run i18n:status` script prints coverage per locale and exits non-zero
+when a threshold is missed, which is what makes it usable in CI.
+
+<Callout title="Freshness reads git, and only git" tone="check">
+  Never let the check read `updated:` from frontmatter. That field exists so an
+  author can correct an overstated commit date, and a translator who sets it,
+  reasonably, in good faith, would silently mark a stale translation fresh. The
+  one signal that cannot be edited from inside the file is the one to trust.
+</Callout>
+
+### The case git cannot see
+
+Commit dates answer "was the translation touched after the source". That is the
+right question in the usual order of work, and the wrong one in exactly one
+sequence, which is a common sequence:
+
+1. Export the English pages for translation.
+2. Correct the English while the translation is out.
+3. Import the translation.
+
+Every timestamp now says fresh. The translated file's commit is the newest thing
+in the repository, and its content was never shown the correction. On a real site
+this reported **100 % coverage, nothing stale, across five languages**, while all
+five published an API header that had been renamed during step 2. A developer
+following the French page would have written code that silently logged nothing.
+
+The fix is not to abandon git. `updated:` is still worse, for the reason above.
+It is to record **what the translation was made against**, which only the export
+knows. A `sourceHash` written into the translated file's frontmatter, or a
+sidecar the importer writes, turns "is this file newer" into "was this translated
+against *this* text". The two answer different questions and a serious workflow
+wants both: git catches the source edited afterwards, the hash catches the source
+edited underneath.
+
+Until a distribution adds that, say so out loud rather than trusting the number.
+`i18n:status` cannot see a translation exported before a source change and
+imported after it.
+
+## What each output surface owes
+
+Seventeen surfaces. This table is the checklist: work down it and you are done.
+
+One rule covers most of the mistakes in it: **a per-locale output must take the
+locale as an argument all the way down.** Wherever the chain stops and a function
+reaches for a module-level constant instead, that constant holds the *default*
+locale's value, so the bug is invisible in the default locale, which is the one
+the author is testing. It reached production once as a `/fr/llms.txt` whose
+"Documentation home" link was built from the configured site root and sent every
+agent that followed it back to English.
+
+| Surface | What changes | Where |
+| --- | --- | --- |
+| Routes | Nothing. `content/fr/x` already serves `/fr/x`. | n/a |
+| Sidebar, tabs, prev/next | Ids prefixed; group labels from `navigationLabels` | `src/lib/navigation.ts` |
+| Internal links in prose | Retargeted to the locale when the target is translated | `astro.config.ts` rehype plugin |
+| Language picker | New component, topbar or footer; locales with content, never a link into nothing | `src/components/`, or `PageFooter.astro`'s `theme-switch` row |
+| `<html lang>` and `dir` | Per locale, from `i18n.locales` | `src/components/DocsLayout.astro` |
+| Canonical | Fallback pages point at the default locale | `src/pages/[...slug].astro` |
+| `hreflang` + `x-default` | Translated locales only, reciprocal | `src/components/DocumentHead.astro` |
+| `og:locale`, JSON-LD `inLanguage` | Per locale instead of one constant | `DocumentHead.astro`, `src/lib/structured-data.ts` |
+| Sitemaps | Flat while monolingual, an index plus one per locale from the second language on | `src/pages/sitemap.xml.ts` |
+| `robots.txt` | `Sitemap:` names the index only | `src/pages/robots.txt.ts` |
+| `llms.txt`, `llms-full.txt` | One pair per locale; the root pair lists them | `src/pages/llms.txt.ts`, `src/pages/llms-full.txt.ts` |
+| Search index | One per locale; each page names its own for the shared bundle to read | `src/pages/search-index.json.ts`, `src/scripts/search.ts` |
+| Share cards | `/og/fr/…` for translated pages; fallbacks share the source's | `src/pages/og/[...slug].png.ts`, `astro.config.ts` |
+| Updates feed | Default locale only, unless the changelog is translated | `src/pages/updates.xml.ts` |
+| Agent manifest | A real per-page locale, not `seo.language` | `src/lib/agent-manifest.ts` |
+| MCP `search`, `list_pages` | A `locale` parameter, strictly applied | `worker/agent/tools.ts`, `worker/agent/retrieval.ts` |
+| 404 | A German URL gets the German 404 | `worker/index.ts`, `src/pages/404.astro` |
+
+### Sitemaps
+
+One sitemap per locale, and a sitemap index at `/sitemap.xml` listing them,
+**from the second language on**. While the site serves one, `/sitemap.xml` stays
+the flat `<urlset>` it is today, because `/sitemap-en.xml` under an index would be
+a second URL for one list and a reviewer wondering which one Search Console is
+reading. The switch follows the content, so nothing has to be remembered.
+
+Not because the limits demand it (an index is only required past 50,000 URLs or
+50 MB, which a documentation site does not reach) but because Search Console
+reports coverage **per submitted sitemap**. One file per language is what tells
+you German is indexed at 40 %. In a single combined sitemap that fact does not
+exist.
+
+Every sitemap must be on the same host, and `robots.txt` should name
+`/sitemap.xml` alone, index or not; the children are discovered through it.
+
+One rule worth asserting rather than trusting: **a sitemap must not submit a URL
+that canonicalises somewhere else.** Under `fallback` that is the difference
+between a locale's sitemap listing what it has translated and asking Google to
+index thirty copies of the English site. It is two lines in a test and it is the
+kind of mistake that produces no visible symptom at all.
+
+### llms.txt and the corpus
+
+One pair per locale: `/llms.txt` and `/llms-full.txt` for the default, then
+`/fr/llms.txt` and `/fr/llms-full.txt`. The root `llms.txt` links to the others,
+since nothing else would make them discoverable.
+
+Not one combined file, for the same reason the search index is split:
+`llms-full.txt` is already the largest thing the build emits, and concatenating
+six languages produces a file six times the size whose only use is to fill a
+context window with five languages the reader did not ask for.
+
+What splitting them does not fix: the header of `/fr/llms.txt` (the site
+description and `seo.agentInstructions`) is still English, because both are
+single strings in `seo` rather than per-locale. The page list under it is French.
+Worth making those two fields per-locale before a language ships in full;
+worth knowing about either way, because it looks like a bug in the split.
+
+### The search contract for agents
+
+Half of this is already in place, which is easy to miss. `locale` is uploaded as
+a metadata field on every item (`scripts/index-sync.mjs`) and is a field of the
+agent manifest (`src/lib/agent-manifest.ts`). What is missing is that it comes
+from `seo.language`, a single site-wide value, so today every item carries the
+same locale, and that nothing reads it: the `search` tool takes `query` and
+`limit`, and `aiSearch()` passes no filter.
+
+The contract to implement is deliberately blunt:
+
+- **No `locale` argument: the default locale only.** Never a mixed result set.
+  An agent that receives French and English passages for one query will quote
+  across both in a single answer.
+- **A `locale` argument: that locale only.** Not "that locale, then the default":
+  a filter that widens on its own cannot be reasoned about from the outside.
+- **An unknown locale is an error**, not a quiet fall back to the default. An
+  agent sending `fr-FR` where `fr` was configured needs to be told.
+- **`list_pages` takes `locale` too**, so an agent can observe coverage instead
+  of inferring it from failures.
+- `fetch` needs nothing: a translated page's id is already `fr/guides/authoring`.
+
+Strictness has one consequence that must be handled rather than accepted. Under
+`missing: 'fallback'`, a French search for an untranslated topic matches
+nothing, even though the answer exists in English. The fix is not to widen the
+filter and not to index the English text again under `fr`: that duplicates
+every fallback page's chunks, which costs money and reintroduces exactly the
+mixing the rule prevents. The fix is for the empty result to say so:
+
+> No passages in `fr` matched. This documentation is partially translated:
+> retry with `locale: "en"`, or call `list_pages` with `locale: "fr"` to see
+> what is available.
+
+The `search` tool already treats an empty result as the moment an agent is most
+likely to answer from memory, and already spends its response steering it
+somewhere useful. This is the same move, one step further.
+
+The filter itself is a metadata comparison the index already supports:
+`{ key: 'locale', type: 'eq', value: locale }` on the field `index-sync.mjs`
+uploads, so it belongs at the index and not after it. A post-filter would ask for
+ten passages, discard the seven in another language, and hand back three, which
+makes `limit` mean nothing.
+
+Then check it **again** on the way out, against the manifest. Not because the
+index filter is expected to fail, but because the two retrieval backends filter by
+different mechanisms: a metadata filter for the semantic pass, a separate index
+file for the lexical one. A contract this strict should not depend on both
+being right. The manifest is the one place a page's language is stated as a fact,
+so it gets the last word.
+
+Budget for the index: items are `pages × locales`, and items are billed.
+
+## UI strings
+
+The chrome has its own English in it: "On this page", "Copy page", the search
+placeholder, the previous/next labels, the notices this page introduces. That
+needs a flat, typed dictionary:
+
+```ts title="src/i18n/ui.ts"
+const en = {
+  onThisPage: 'On this page',
+  copyPage: 'Copy page',
+} as const;
+
+/* The keys of `en`, with plain `string` values. */
+export type UiStrings = { [K in keyof typeof en]: string };
+
+export const ui: Record<string, UiStrings> = {
+  en,
+  fr: { onThisPage: 'Sur cette page', copyPage: 'Copier la page' },
+};
+```
+
+Type it so a missing key fails `astro check` rather than rendering `undefined` in
+a topbar.
+
+The mapped type is not decoration, and the obvious version does not work.
+`as const` on the English block narrows every value to its own literal type, so
+under `typeof en` the only valid `onThisPage` is the string `'On this page'`, and
+every translated line is a type error. The keys are what must match; the words are
+the entire point of the file.
+
+Add a runtime check beside it: a locale configured in `i18n.locales` with no entry
+here should throw at import time, not render an English topbar to French readers.
+
+This is the only genuinely new code a multilingual fork owns; the rest is
+adjustments to files that already exist.
+
+## Getting the translations written
+
+The mechanical part is worth scripting rather than doing by hand: an
+`i18n:export` that writes one CSV row per page (id, target path, whole source
+file, empty target column) and an `i18n:import` that reads the translated CSV
+back into `content/<locale>/`. Whole files, not fields: a title translated apart
+from the prose it heads is how a page ends up with two voices.
+
+Two things that sound optional and are not. **Write a real RFC 4180 parser**, or
+rather about forty lines of one: every cell is quoted because page bodies contain
+commas, newlines and quotation marks, and a split on `,` corrupts every row. And
+**sandbox the `path` column to `content/`** before writing it. A CSV is an outside
+input: it has been through a spreadsheet and possibly a third-party service, and
+one that can name any path on disk is a way to overwrite `src/docs.config.ts` from
+a translation sheet.
+
+Better still, do not read the destination from the sheet at all. Derive it from
+the locale and the page id, which you already have. Validating an untrusted path
+is good; not having one is better, and the two cost the same to write.
+
+CSV because it is what translation tooling accepts natively, whoever does the
+work: a spreadsheet for a colleague translating by hand, a translation memory, or
+a machine translation service. None of them needs a conversion step, and the
+format outlives whichever one you pick.
+
+At the volume where this stops being a manual job (a few hundred pages across
+several locales, re-run every time the English changes),
+[AI Glot](https://ai-glot.com) is built for this shape of file and this shape of
+loop. The export and import scripts above are the whole integration; nothing in
+the framework needs to know which side of them does the translating.
+
+### Compile every translated file before importing it
+
+The risk is not the one you would guess, and this page used to guess wrong. It
+warned that a machine translating an API reference would eventually translate an
+identifier. Measured over two rounds and 210 translated files, that did not
+happen once in 1,155 token comparisons: prose, tables, frontmatter and fenced
+code all came back intact.
+
+What broke, twice, was **component markup**: the `>` dropped from a closing
+`</div>` inside a JSX block. Different languages, different rounds, same failure.
+The risk is not "will it translate an identifier" but "will it re-emit
+surrounding markup faithfully", and a broken MDX tag fails the build with a
+parser error against a file nobody wrote.
+
+So make it a step rather than a warning. Twenty lines, and it names the file and
+the line:
+
+```js
+import { compile } from '@mdx-js/mdx';
+
+for (const file of translatedFiles) {
+  try {
+    await compile(readFileSync(file, 'utf8'));
+  } catch (error) {
+    console.error('FAIL', file, error.place?.line, error.message.split('\n')[0]);
+  }
+}
+```
+
+Review the diff before merging either way. The check catches syntax, not
+judgement.
+
+## Acceptance criteria
+
+Written as assertions, because that is what they should become. `npm test`
+already builds the site and reads its outputs (`test/publication.test.mjs`), so
+there is somewhere for each of these to live.
+
+With `locales: ['en', 'fr']`, `defaultLocale: 'en'`, and a `guides/authoring`
+page translated into French while `guides/deployment` is not:
+
+1. `/guides/authoring` and `/fr/guides/authoring` both exist. No URL gained an
+   `/en` prefix.
+2. `/fr/guides/deployment` exists under `fallback` and 404s under `hide`.
+3. That page's canonical is `/guides/deployment` under `fallback`.
+4. It is not listed as an `hreflang="fr"` alternate anywhere.
+5. `/guides/authoring` lists `fr`, `/fr/guides/authoring` lists `en`, and both
+   list themselves and an `x-default`.
+6. `/sitemap.xml` is an index naming `/sitemap-en.xml` and `/sitemap-fr.xml`.
+   No fallback URL appears in the French one.
+7. `robots.txt` names `/sitemap.xml` and nothing else.
+8. `/fr/llms.txt` exists, lists French pages only, and `/llms.txt` links to it.
+9. `/fr/search-index.json` contains no English page.
+10. `search` with no `locale` returns `en` passages only; with `locale: 'fr'`,
+    `fr` passages only; with `locale: 'fr-FR'`, an error.
+11. Every French page's manifest entry reports `locale: 'fr'`.
+12. A French file whose last commit predates its source's appears in the build's
+    stale list, and only that file.
+13. `draft: true` on `guides/authoring` removes `/fr/guides/authoring` too.
+14. Every asset every localized page references exists in `dist/`: the check
+    that already catches the `base`/`basePath` mismatch.
+
+And with `de` configured but **not a single German file**, in either mode:
+
+15. No route, sitemap, corpus file, search index or share card exists for `de`,
+    and the whole build is byte-identical to the monolingual one.
+
+One more, and it is mechanical enough to belong in `i18n:check` rather than in a
+test file:
+
+16. No page under `/fr/` links to a URL outside `/fr/` that has a French
+    translation. Nothing else catches cross-locale link leakage: the page
+    renders and the link resolves, so it survives review, CI and a read-through.
+    It was found by grepping built HTML.
+
+That last one is worth writing even before the rest, because it needs nothing
+from an i18n implementation: it reads the config for a locale list, finds none on
+a monolingual site, and exits clean.
+
+Two decisions inside it are the whole point. It runs over `dist/` rather than
+`content/`, because a link reaches the page from a Markdown link *or* from a
+component prop and only built HTML has both in one shape: a source grep for
+`](/…)` found 15 of 75. And it reports a leak **only when the locale actually has
+the page**: a link to something untranslated is correct behaviour, and flagging
+it would make the check unusable on a partially translated site, which is every
+site.
+
+```js title="scripts/i18n-links.mjs"
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import path from 'node:path';
+
+const ROOT = path.resolve(import.meta.dirname, '..');
+const DIST = path.join(ROOT, 'dist');
+const config = readFileSync(path.join(ROOT, 'src/docs.config.ts'), 'utf8');
+const block = config.match(/locales:\s*{([\s\S]*?)\n  },/)?.[1] ?? '';
+const LOCALES = [...block.matchAll(/^\s{4}(\w+):\s*{/gm)].map(match => match[1]);
+const DEFAULT = config.match(/defaultLocale:\s*'([^']+)'/)?.[1] ?? 'en';
+const BASE = config.match(/^export const basePath = '([^']*)'/m)?.[1] ?? '';
+const TARGETS = LOCALES.filter(locale => locale !== DEFAULT);
+
+if (!TARGETS.length) {
+  console.log('link-check: one language configured, nothing to check.');
+  process.exit(0);
+}
+
+const walk = dir =>
+  readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const full = path.join(dir, entry.name);
+    return entry.isDirectory() ? walk(full) : entry.name === 'index.html' ? [full] : [];
+  });
+
+const leaks = [];
+for (const locale of TARGETS) {
+  const dir = path.join(DIST, locale);
+  if (!existsSync(dir)) continue;
+
+  for (const file of walk(dir)) {
+    const html = readFileSync(file, 'utf8');
+    const start = html.indexOf('id="article"');
+    if (start === -1) continue;
+    /* Article bodies only: the language picker links across locales by
+       definition, and the sidebar comes from the locale-aware resolver. */
+    const body = html.slice(start, html.indexOf('</main>', start));
+
+    for (const href of new Set([...body.matchAll(/href="([^"]+)"/g)].map(match => match[1]))) {
+      if (!href.startsWith(`${BASE}/`)) continue;
+      const id = href.split('#')[0].replace(/\/$/, '').slice(BASE.length + 1);
+      if (!id || LOCALES.includes(id.split('/')[0])) continue;
+      if (/\.(json|txt|xml|png|svg|ico)$/.test(id)) continue;
+      if (existsSync(path.join(DIST, locale, id, 'index.html'))) {
+        leaks.push(`${path.relative(DIST, file)} → ${href}`);
+      }
+    }
+  }
+}
+
+if (leaks.length) {
+  console.error(`link-check: ${leaks.length} link(s) leave their language:\n  ${leaks.slice(0, 30).join('\n  ')}`);
+  if (leaks.length > 30) console.error(`  … and ${leaks.length - 30} more`);
+  process.exit(1);
+}
+console.log(`link-check: no cross-language leaks in ${TARGETS.length} locale(s).`);
+```
+
+### Tests written before i18n will pass, then fail on the first translation
+
+Expect this, and do not treat it as a regression. A suite that asserts, for every
+page in `content/`, that its id appears in `dist/sitemap.xml`, `dist/llms.txt`
+and `dist/search-index.json` breaks the moment a translation exists. Correctly,
+because a translated page belongs to *its own* locale's outputs. `sitemap.xml`
+also stops being a list of pages and becomes an index as soon as a second locale
+has content, so even the default locale's URLs move into `sitemap-en.xml`.
+
+The tempting repair is to make the test's file walk skip locale directories. That
+is the wrong one: it removes coverage from the newest and least-exercised code on
+the site. Resolve each page against its own locale's artifacts instead.
+
+Three further traps in the same suites, all of which read like product bugs and
+are not:
+
+- **A locale's homepage is its root.** `startsWith('/fr/')` excludes `/fr`, which
+  is the one page that proves the locale is live.
+- **`list_pages` answers for one locale while the manifest carries every
+  language.** Comparing their counts directly fails by exactly the number of
+  translations.
+- **Byte length is not character length.** A shell `${#var}` over a `description:`
+  counts bytes, so every accented language over-reports; Zod's `.max(170)` counts
+  characters. One sweep "fixed" 31 files before noticing 11 were never over the
+  limit.
+16. `/sitemap.xml` is still a flat `<urlset>`, not an index.
+17. No page advertises an alternate at all: a lone self-reference is not a set.
+18. The language picker is not rendered.
+
+Four more that hold whatever the state, and are the ones worth writing first
+because they keep holding as content arrives:
+
+19. Every `hreflang` set is reciprocal and includes its own page.
+20. Every canonical, every alternate, every sitemap `<loc>` and every picker link
+    resolves to a file the build produced.
+21. No sitemap lists a URL whose page canonicalises elsewhere.
+22. Every manifest entry's `locale` matches the locale in its own id.
+
+Written this way they iterate over an empty set on a monolingual site, so have
+them *report* that they did, the way the draft rules already do in
+`test/publication.test.mjs`, rather than pass in silence. That is what makes them
+start biting the day `content/fr/` gains its first file, with nobody having to
+remember to come back.
+
+## Pitfalls, by symptom
+
+These are the ones that cost an afternoon, listed by what you see rather than by
+what causes it.
+
+**Every non-Latin character renders as a box, or in a system font.**
+`astro.config.ts` self-hosts the webfont with `subsets: ['latin']`. Russian,
+Greek, Japanese and Arabic all need their subset added, and the file size that
+comes with it. Share cards are affected in the same way and often noticed later,
+since nobody looks at them.
+
+**The build fails on a translated page's frontmatter, after the round trip.**
+`description` is capped at 170 characters (`src/content.config.ts`), and German
+and Spanish routinely run 15–25 % over English. A description written comfortably
+at 160 comes back at 200 and fails validation at the least convenient moment:
+after translation, when the fix belongs in the *source* file rather than the one
+the error names.
+
+Aim for **~140 characters** in source descriptions on a site that intends to
+translate. The field's own comment says 150–160, which is right for one language
+and already too close to the ceiling for six.
+
+It bites twice, and the second time is worse. On a *re*translation the same pages
+come back over the cap again: one round saw 16 of 45 files over, up to 212
+characters against a 170 limit. At that point the options are shortening by
+hand, which is the thing the CSV workflow exists to avoid, or another round trip
+for a description.
+
+So treat it as a **source-side constraint, not a translation-side one**. Either
+the source stays well under the limit, or the schema exempts non-default locales.
+The middle is where it hurts. Exempting is the weaker choice: search snippets
+truncate anyway, so the limit is doing real work.
+
+**Every translation reports as stale on the first CI run.** A shallow clone
+gives every file the checkout date. `actions/checkout` needs `fetch-depth: 0`,
+the same requirement the existing `dateModified` already has.
+
+**`hreflang` has no effect at all.** Almost always a non-reciprocal set, or a
+missing self-reference. Both are assertable at build time; assert them.
+
+**A translated page appears for a source page that does not.** `draft: true` on
+a source must suppress its translations too, in every locale. Drafting a page
+and leaving five translated copies live is the inverse of what the flag means.
+
+**Search sometimes answers in the wrong language, under load only.** The Worker
+caches the lexical index in a module-level slot, and one slot serves whichever
+language asked first to every language that asks after it, for the life of the
+isolate. One cache entry per locale. This is invisible in local testing, where
+one request arrives at a time.
+
+**A CSV column lookup fails on exactly one column, the first.** Translation
+services and Excel both write a UTF-8 BOM, which fuses onto the first header
+cell (`﻿kind` rather than `kind`), so that field alone silently misses. One
+line at the top of the parser:
+
+```js
+if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+```
+
+**A new locale cannot be added because its UI strings do not exist yet.** The
+dictionary throws at import time for a configured locale with no entry, which is
+the right design and also a chicken-and-egg. Write the strings first. If you must
+seed them, write the English values out in full rather than spreading `...en`:
+a per-key check reads the file as text and a spread satisfies nothing. And do
+not deploy the locale until the real strings land.
+
+**A locale's search finds less than its sidebar shows.** Under `fallback`, only
+translated pages are indexed, so a reader can browse to a page search cannot
+find. The alternative, indexing the English body under the French index, is
+worse and much harder to notice, so this is the trade to take knowingly rather
+than a defect to fix.
+
+## Deciding later costs nothing
+
+Because the default locale is unprefixed and a page's id *is* its path, adding
+languages never moves an existing URL. There is no redirect map, no link rot,
+and no reason to make this decision before you have a translator.
+
+Start monolingual. The tree accepts `content/fr/` the day it exists.

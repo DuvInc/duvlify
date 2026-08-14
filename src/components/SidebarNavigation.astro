@@ -1,0 +1,81 @@
+---
+/** Shared sidebar renderer for both navigation layouts. */
+import Icon from './Icon.astro';
+import type { NavigationMode } from '../docs.config';
+import type { ResolvedGroup, ResolvedTab } from '../lib/navigation';
+
+interface Props {
+  tabs: ResolvedTab[];
+  activeTab: ResolvedTab;
+  currentPath: string;
+  mode: NavigationMode;
+}
+
+const { tabs, activeTab, currentPath, mode } = Astro.props;
+const groups: ResolvedGroup[] = mode === 'unified-sidebar'
+  ? tabs.flatMap(tab => tab.groups)
+  : activeTab.groups;
+if (mode === 'unified-sidebar') {
+  groups.sort((a, b) =>
+    (a.sidebarOrder ?? Number.MAX_SAFE_INTEGER) -
+    (b.sidebarOrder ?? Number.MAX_SAFE_INTEGER),
+  );
+}
+---
+
+{mode === 'category-tabs' && (
+  <details class="category-switcher">
+    <summary>
+      <span><Icon name={activeTab.icon} size={17} />{activeTab.label}</span>
+      <Icon name="chevronDown" size={16} />
+    </summary>
+    <div class="category-options">
+      {tabs.map(tab => (
+        <a class:list={[activeTab.id === tab.id && 'active']} href={tab.href}>
+          <span><Icon name={tab.icon} size={17} />{tab.label}</span>
+          {activeTab.id === tab.id && <Icon name="check" size={16} />}
+        </a>
+      ))}
+    </div>
+  </details>
+)}
+
+<nav aria-label="Documentation navigation">
+  {groups.map(group => {
+    const links = group.pages.map(page => (
+      <a class:list={[currentPath === page.href && 'active']} href={page.href}>
+        {page.icon && <Icon name={page.icon} size={16} />}
+        {page.apiMethod && (
+          <small class="api-nav-method" data-method={page.apiMethod}>
+            {page.apiMethod === 'DELETE' ? 'DEL' : page.apiMethod}
+          </small>
+        )}
+        <span>{page.label}</span>{page.badge && <em>{page.badge}</em>}
+      </a>
+    ));
+    const apiGroup = group.pages.some(page => page.apiMethod);
+    const collapsible = group.folder || apiGroup;
+    /* The folder holding the current page is always open, whatever the
+       configuration says: a sidebar that hides the page being read has failed at
+       the one thing it is for. Every other folder follows
+       `navigationLayout.expandFolders`, already resolved onto the group. */
+    const open = group.pages.some(page => page.href === currentPath) || group.defaultOpen;
+    return collapsible ? (
+      <details
+        class:list={['nav-group', 'nav-folder', apiGroup && 'api-nav-group']}
+        open={open}
+      >
+        <summary>
+          <span>{group.icon && <Icon name={group.icon} size={16} />}{group.label}</span>
+          <Icon name="chevronDown" size={14} class="nav-folder-caret" />
+        </summary>
+        <div class="nav-children">{links}</div>
+      </details>
+    ) : (
+      <section class="nav-group">
+        <h2>{group.icon && <Icon name={group.icon} size={14} />}{group.label}</h2>
+        {links}
+      </section>
+    );
+  })}
+</nav>

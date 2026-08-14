@@ -1,0 +1,60 @@
+---
+title: Migrating an existing site
+description: Bringing a documentation set over from Mintlify, Docusaurus, or Starlight, with what carries across unchanged and what needs manual rewriting.
+icon: upload
+draft: true
+---
+
+<Callout title="This page is a draft" tone="warning">
+  This page is listed in the navigation config, and one line of frontmatter
+  excludes it from the built site. It has no route, no sidebar entry, and
+  nothing an agent can reach. It is here because the work is real and planned,
+  not to hold a place.
+</Callout>
+
+## What already carries across
+
+Two pieces of compatibility are deliberate and already shipped. A migration
+that requires touching every page is a migration nobody finishes.
+
+**Component names.** The MDX vocabulary accepts the tags most documentation is
+already written with: `Card`, `CardGroup`, `Steps`, `Tabs`, `Accordion`,
+`ParamField`, `ResponseField`, `Frame`, plus aliases like
+`FileTree`/`Folder`/`File` and `RequestExample`/`ResponseExample`. A page
+authored for Mintlify usually renders unedited.
+
+**Icon names.** Content written for other platforms names Font Awesome icons,
+while this site draws from Lucide. `src/icon-aliases.ts` maps the common ones,
+so `icon="rocket"` resolves either way.
+
+## What has to be done by hand
+
+| | |
+| --- | --- |
+| Navigation | Their config format becomes the `navigation` export. There is no importer yet. |
+| Frontmatter | Field names differ. `title` and `description` are shared; the rest needs a manual pass. |
+| Redirects | You must map old URLs in `public/_redirects`, or every existing link breaks. That file is Cloudflare and Netlify syntax; on another host, translate it. See [Deploying](/guides/deployment#what-each-host-needs). |
+| Custom CSS | Anything that overrides their theme has no equivalent. Restyle through `theme` and the tokens instead. |
+
+## Still to write
+
+The steps below are what this page will document once the tooling is in place.
+
+<Steps>
+  <Step title="A content importer">
+    This will fetch a published site, rewrite its MDX, re-encode its images,
+    and emit `content/` plus a starting `navigation` block.
+  </Step>
+  <Step title="A redirect map">
+    This map will be generated from the old URL structure rather than
+    assembled by hand, because a hand-written redirect map is where a
+    migration silently loses pages.
+  </Step>
+  <Step title="A verification pass">
+    This pass will assert that every page in the old sitemap resolves in the
+    new build, so the migration is checked rather than spot-read.
+  </Step>
+</Steps>
+
+If you are migrating now and want to compare notes, open a
+[discussion](https://github.com/DuvInc/duvlify/discussions).

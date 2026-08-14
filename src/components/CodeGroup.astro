@@ -1,0 +1,31 @@
+---
+/**
+ * Several code blocks as one tabbed block.
+ *
+ * Put plain fenced blocks inside it — they keep Shiki highlighting, and each
+ * filename becomes its tab label. The strip itself is filled in by
+ * scripts/tabs.ts, which can read the panels Astro cannot.
+ */
+interface Props {
+  label?: string;
+  /** A dropdown instead of a strip, for a group with many languages. */
+  dropdown?: boolean;
+  /** Opt out of synchronising with other groups offering the same languages. */
+  sync?: boolean;
+}
+const { label = 'Code examples', dropdown, sync = true } = Astro.props;
+---
+<div
+  class:list={['tabs', 'code-tabs', dropdown && 'code-tabs-dropdown']}
+  data-tabs
+  data-code-dropdown={dropdown || undefined}
+  data-tab-sync={String(sync)}
+>
+  {/* The strip is a bar containing the tablist plus, for a code group, the
+      copy button. `role="tablist"` may only contain tabs, so the button sits
+      beside the list rather than inside it. */}
+  <div class="tab-bar">
+    <div class="tab-list" data-tab-list role="tablist" aria-label={label}></div>
+  </div>
+  <slot />
+</div>

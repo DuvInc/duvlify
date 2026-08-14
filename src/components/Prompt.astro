@@ -1,0 +1,27 @@
+---
+/** A copyable prompt to hand to an assistant. */
+import Icon from './Icon.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  actions?: Array<'copy' | 'cursor'>;
+  icon?: string;
+}
+const { title, description, actions = ['copy'], icon = 'sparkles' } = Astro.props;
+const showCopy = actions.includes('copy');
+const showCursor = actions.includes('cursor');
+---
+<div class="prompt">
+  <span class="prompt-mark" aria-hidden="true"><Icon name={icon} size={15} /></span>
+  <div class="prompt-body">
+    {title && <strong>{title}</strong>}
+    {description && <p>{description}</p>}
+    <div data-prompt-content><slot /></div>
+  </div>
+  {showCopy && <button type="button" data-copy-prompt class="copy-swap">
+    <span class="copy-swap-idle">Copy prompt</span>
+    <span class="copy-swap-done">Copied</span>
+  </button>}
+  {showCursor && <a class="prompt-cursor" data-prompt-cursor href="#">Open in Cursor</a>}
+</div>

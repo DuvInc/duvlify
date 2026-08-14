@@ -1,0 +1,61 @@
+name: CI
+
+# Pull requests only get the default read-only token, and nothing here needs
+# more. No secret is referenced, and `pull_request` (never
+# `pull_request_target`) means a fork's code cannot reach one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # Set for the whole job, not per step: `npm test` builds the site and
+    # `manual:check` compares the committed snapshot against that build, so both
+    # have to agree on the origin. Every snapshot carries a `canonical:` line
+    # derived from it, and a build with the placeholder host would report all 16
+    # files stale.
+    #
+    # Using this framework for your own documentation? Set a repository variable
+    # named SITE_URL (Settings → Secrets and variables → Actions → Variables) and
+    # this workflow builds against your origin instead. Nothing else here needs
+    # editing: the fallback below is only what upstream's own CI uses.
+    #
+    # This matters more than it looks if you ever add a deploy step to this
+    # workflow. The fallback is a real, working origin belonging to someone else,
+    # so `check:origin` — which only knows the placeholder — would not stop a
+    # deploy that canonicalises your site to it. Set the variable first.
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://duvlify.dev' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # `npm test` asserts the updates feed, whose dates come from each
+          # file's last commit. A shallow clone has no history to read them from.
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Builds, typechecks, asserts every output, then boots a real Worker and
+      # exercises the MCP and HTTP surfaces over the network.
+      - run: npm test
+      # handbook/ is a committed snapshot of the pages in content/, and a
+      # snapshot has one failure mode: going quietly stale. `npm test` above
+      # already built the site, so this only compares.
+      #
+      # Left unconditional on purpose. In a repository whose content/ has been
+      # replaced, the script sees that handbook/ describes a different set of
+      # pages, prints why, and exits 0 — so this step does not need a
+      # `github.repository` guard to keep a fork's CI green, and upstream cannot
+      # lose the check by renaming the repository.
+      - run: npm run manual:check

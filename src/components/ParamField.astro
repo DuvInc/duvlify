@@ -1,0 +1,16 @@
+---
+/** A request parameter. `path`, `query` and `body` all name the field. */
+import Field from './Field.astro';
+import type { FieldProps } from '../lib/field-props';
+
+/* The location props are alternative spellings of `name`, so a page can write
+   the parameter the way the specification does. */
+interface Props extends FieldProps {
+  path?: string;
+  query?: string;
+  header?: string;
+  body?: string;
+}
+const { path, query, header, body, name, ...rest } = Astro.props;
+---
+<Field name={path || query || header || body || name} {...rest}><slot /></Field>

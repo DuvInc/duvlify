@@ -1,0 +1,42 @@
+---
+/**
+ * The site-wide announcement strip, fixed above the topbar.
+ *
+ * Configured once in docs.config.ts, never written by a page. The height it
+ * occupies is `--banner-h` (styles/tokens.css), which every fixed bar and the
+ * document's top padding already add — so nothing here has to know about the
+ * shell, and dismissing the strip collapses that space by removing one
+ * attribute from the root element.
+ */
+import Icon from './Icon.astro';
+import type { SiteBanner } from '../docs.config';
+import { cssColor } from '../lib/css-value';
+
+type Props = SiteBanner;
+const { content, dismissible, tone = 'info', color } = Astro.props;
+
+/*
+ * An explicit colour wins over the tone through the custom-property fallback in
+ * shell.css: `background: var(--banner-light, var(--banner-tone))`. Declaring
+ * nothing when there is no override is what lets the tone through, so these are
+ * only emitted when they hold a value.
+ */
+const light = cssColor(color?.light ?? color?.dark);
+const dark = cssColor(color?.dark ?? color?.light);
+const style = [
+  light && `--banner-light:${light}`,
+  dark && `--banner-dark:${dark}`,
+].filter(Boolean).join(';') || undefined;
+
+/* Dismissal is remembered against the text itself, so a new announcement is
+   shown again to everyone who dismissed the previous one. */
+const key = `banner:${content}`;
+---
+<aside class:list={['global-banner', tone]} style={style} data-global-banner data-banner-key={key}>
+  <span>{content}</span>
+  {dismissible && (
+    <button type="button" data-banner-dismiss aria-label="Dismiss announcement">
+      <Icon name="x" size={15} />
+    </button>
+  )}
+</aside>

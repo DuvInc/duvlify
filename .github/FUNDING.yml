@@ -1,0 +1,7 @@
+# Shown as a "Sponsor" button on the repository.
+#
+# Running your own documentation on this framework? Delete this file. It is not
+# inert in a clone: GitHub reads it wherever it finds it, so your repository
+# would show a Sponsor button crediting this project's author to everyone who
+# visits yours.
+github: [DuvInc]

@@ -1,0 +1,50 @@
+---
+/**
+ * A link that looks like a button, for the one action a passage is asking for.
+ *
+ * Deliberately always an anchor. A `<button>` in static documentation has
+ * nothing to do — it would need JavaScript to mean anything, and a control that
+ * looks pressable and does nothing is worse than prose. So `href` is required,
+ * and everything here is a navigation.
+ *
+ * The chrome is the topbar's, on purpose: same height, same radius formula, same
+ * icon gap as `.header-primary` / `.header-secondary` in shell.css. A reader
+ * meeting a button in the article and a button in the bar should not be able to
+ * tell they were written by different components.
+ *
+ * Usable on its own, and what `<CTA>` puts in its actions slot.
+ */
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Where the button goes. Required: see the note above on why. */
+  href: string;
+  /**
+   * `primary` carries the accent fill and is the one action a block is for.
+   * `secondary` is the bordered surface beside it. `ghost` drops the box
+   * entirely, for a third option that should not compete.
+   */
+  variant?: 'primary' | 'secondary' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  /** Icon name, resolved by Icon.astro. */
+  icon?: string;
+  /** Which side of the label the icon sits on. */
+  iconPlacement?: 'start' | 'end';
+}
+const {
+  href,
+  variant = 'primary',
+  size = 'md',
+  icon,
+  iconPlacement = 'end',
+} = Astro.props;
+
+/* Scaled with the button rather than fixed, so a large button does not get a
+   small glyph and a small one does not get a crowded box. */
+const iconSize = size === 'lg' ? 17 : size === 'sm' ? 14 : 15;
+---
+<a class:list={['button', `button-${variant}`, `button-${size}`]} href={href}>
+  {icon && iconPlacement === 'start' && <Icon name={icon} size={iconSize} />}
+  <span class="button-label"><slot /></span>
+  {icon && iconPlacement === 'end' && <Icon name={icon} size={iconSize} />}
+</a>

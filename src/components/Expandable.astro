@@ -1,0 +1,14 @@
+---
+/** Nested object properties, disclosed inside a field. */
+import Icon from './Icon.astro';
+
+interface Props { title?: string; name?: string; defaultOpen?: boolean }
+const { title, name, defaultOpen } = Astro.props;
+---
+<details class="expandable" open={defaultOpen}>
+  <summary>
+    <span class="disclosure-caret" aria-hidden="true"><Icon name="chevronRight" size={11} /></span>
+    <span>{title || name}</span>
+  </summary>
+  <div class="expandable-body"><slot /></div>
+</details>

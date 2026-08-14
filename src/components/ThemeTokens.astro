@@ -1,0 +1,45 @@
+---
+/**
+ * Turns the `theme` block of docs.config.ts into CSS custom properties. These
+ * are the only brand-level tokens; the neutral palette and component styling
+ * live in src/styles/tokens.css.
+ *
+ * Everything downstream reads var(--accent) / var(--font-sans) / var(--r-lg),
+ * so changing the accent or the radius scale is a one-line edit in the config.
+ *
+ * The font family itself is not requested here — astro.config.ts hands the same
+ * config to Astro's fonts API, which self-hosts the files and exposes the stack
+ * as --font-brand. This only aliases it onto --font-sans.
+ */
+import { theme, type CornerSmoothing } from '../docs.config';
+
+const { font, accent, headerPrimary, radius } = theme;
+
+/** `theme.radius.smoothing` → the actual `corner-shape` value it stands for. */
+const CORNER_SHAPE: Record<CornerSmoothing, string> = {
+  none: 'round',
+  subtle: 'superellipse(2)',
+  standard: 'superellipse(3)',
+  ios: 'squircle',
+};
+
+const tokens = `
+:root {
+  --font-sans: var(${font.sansVariable}), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ${font.mono};
+  --accent: ${accent.base};
+  --accent-strong: ${accent.strong};
+  --accent-contrast: ${accent.contrast};
+  /* Falls back to the accent above whenever a site leaves these unset. */
+  --header-primary-bg: ${headerPrimary.background || accent.base};
+  --header-primary-fg: ${headerPrimary.foreground || accent.contrast};
+  --r-lg: ${radius.lg};
+  --r-md: ${radius.md};
+  --r-sm: ${radius.sm};
+  --r-xs: ${radius.xs};
+  --corner-shape: ${CORNER_SHAPE[radius.smoothing]};
+}
+[data-theme="dark"] { --accent-strong: ${accent.strongDark}; }
+`.trim();
+---
+<style is:global set:html={tokens}></style>
