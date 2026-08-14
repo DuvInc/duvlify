@@ -28,14 +28,14 @@
     "images:check": "node scripts/optimize-images.mjs --check"
   },
   "dependencies": {
-    "@astrojs/check": "0.9.9",
+    "@astrojs/check": "0.9.10",
     "@astrojs/markdown-remark": "7.2.2",
     "@astrojs/mdx": "7.0.5",
     "@iconify-json/fa6-brands": "1.2.6",
     "@iconify-json/fa6-solid": "1.2.4",
-    "@iconify-json/lucide": "1.2.121",
+    "@iconify-json/lucide": "1.2.123",
     "@iconify/utils": "3.1.4",
-    "@lucide/astro": "1.23.0",
+    "@lucide/astro": "1.31.0",
     "agents": "0.20.1",
     "astro": "7.2.1",
     "mermaid": "11.16.1",
