@@ -1,0 +1,5 @@
+---
+interface Props { for: 'humans' | 'agents' }
+const audience = Astro.props.for;
+---
+{audience === 'humans' && <div class="visibility-humans"><slot /></div>}

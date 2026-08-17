@@ -1,0 +1,19 @@
+---
+/**
+ * A full-width announcement strip inside the article, for something true of the
+ * whole page.
+ *
+ * It takes the same three tones as the site-wide banner in docs.config.ts, so
+ * "warning" means one thing in this documentation whichever of the two a reader
+ * meets. Use `<Callout>` instead for something true of one passage: a callout
+ * has a wider tone vocabulary and an icon, and reads as part of the prose.
+ */
+import type { AnnouncementTone } from '../docs.config';
+
+interface Props { tone?: AnnouncementTone; title?: string }
+const { tone = 'info', title } = Astro.props;
+---
+<aside class:list={['banner', tone]}>
+  {title && <strong>{title}</strong>}
+  <span><slot /></span>
+</aside>

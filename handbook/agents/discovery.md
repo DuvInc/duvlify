@@ -1,0 +1,176 @@
+---
+title: "Discoverability"
+description: "How an agent finds these surfaces without being told: the API catalog, DNS-based discovery, an agent-skills index, and the places people actually look."
+canonical: "https://duvlify.dev/agents/discovery"
+updated: "2026-08-18"
+---
+
+# Discoverability
+
+An endpoint that no agent ever finds is dead code. The build advertises each
+endpoint in the places agents actually look: the `## Optional` section of
+`llms.txt`, a comment block in `robots.txt`, and `Link` headers on every
+page.
+
+### `/.well-known/api-catalog`
+
+The Worker serves two more well-known URIs, both defined relative to the
+origin: `/.well-known/mcp.json` (with the server-card spelling beside it) and
+`/.well-known/api-catalog`.
+
+The catalog follows [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727), a
+specification that answers a question the documentation itself cannot:
+_which_ API. A site that documents a product actually has two APIs: the
+product's own API, and this documentation's own read-only API under
+`/api/docs`. Until an agent reads the docs, it has no way to tell the two
+apart. The catalog states the difference in one fetch:
+
+```json
+{
+  "linkset": [
+    { "anchor": "https://api.example.com/v1",
+      "service-desc": [{ "href": "https://docs.example.com/openapi.json", "type": "application/openapi+json" }],
+      "service-doc":  [{ "href": "https://docs.example.com/", "type": "text/html" }] },
+    { "anchor": "https://docs.example.com/api/docs",
+      "service-desc": [{ "href": "https://docs.example.com/api/docs/openapi.json", "type": "application/openapi+json" }],
+      "service-doc":  [{ "href": "https://docs.example.com/", "type": "text/html" }],
+      "status":       [{ "href": "https://docs.example.com/api/docs", "type": "application/json" }] }
+  ]
+}
+```
+
+Three details matter, and `test/agents.test.mjs` asserts each one rather
+than leaving it to review:
+
+- The media type is `application/linkset+json`
+  ([RFC 9264](https://www.rfc-editor.org/rfc/rfc9264)), not
+  `application/json`. A client negotiating for a linkset will not accept the
+  generic type.
+- Every relation's value is an **array** of link target objects, even when
+  there is only one link. A bare object is well-formed JSON, but no generic
+  client reads it correctly.
+- The first entry is anchored on the _API's own_ base URL, taken from the
+  specification's `servers[0].url`, not on the page that describes it. This
+  lets an agent holding a request URL match it against the catalog.
+
+Each entry appears only when it is true. With no configured OpenAPI spec,
+there is no first entry. With `agents.http` off, there is no second one. The
+`<head>` advertises the catalog with `rel="api-catalog"`, and only on a root
+deployment; see the subpath note below.
+
+### DNS-based discovery, if you own the zone
+
+Everything described above needs a fetch before an agent learns anything.
+DNS-AID
+([draft-mozleywilliams-dnsop-dnsaid](https://datatracker.ietf.org/doc/draft-mozleywilliams-dnsop-dnsaid),
+built on [RFC 9460](https://www.rfc-editor.org/rfc/rfc9460) SVCB records)
+moves this first step into DNS instead. A resolver can then answer "this
+domain has agent endpoints, here they are" without any HTTP request at all.
+
+This repository cannot set this up for you, because it only publishes
+files, and DNS-AID is a zone operation. If your documentation is on a domain
+you control, setting it up takes a few minutes in the DNS dashboard and no
+code:
+
+1. **Sign the zone.** Publish DNSSEC, so a validating resolver returns
+   authenticated answers instead of whatever a middlebox chose to return. On
+   Cloudflare this means going to DNS → Settings → DNSSEC → Enable, plus
+   adding a DS record at your registrar. Unsigned records are still served,
+   but an audit still marks them unvalidated. The signature is the whole
+   point.
+2. **Publish the discovery records.** ServiceMode SVCB/HTTPS records under
+   `_agents`, one per protocol, with `alpn` and the endpoint path:
+
+   | Name                              | Type    | Value                                                               |
+   | --------------------------------- | ------- | ------------------------------------------------------------------- |
+   | `_index._agents.docs.example.com` | `HTTPS` | `1 docs.example.com. alpn="h2" endpoint="/.well-known/api-catalog"` |
+   | `_mcp._agents.docs.example.com`   | `HTTPS` | `1 docs.example.com. alpn="h2" endpoint="/mcp"`                     |
+
+   Point `_index` at whichever document is your front door. With this engine
+   that is the API catalog above. `llms.txt` is the alternative if you would
+   rather send agents to prose than to a linkset.
+
+Know two things before you spend time on this. First, the draft is still a
+draft, so its parameter names may still change. Second, none of this is
+possible on a `*.workers.dev` hostname, because that zone belongs to
+Cloudflare, not to you. This is why an audit run against a preview
+deployment reports DNS-AID as unvalidated no matter what you do. Attach your
+own domain first.
+
+### An agent-skills index, if you have skills to publish
+
+[Cloudflare's Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc)
+defines `/.well-known/agent-skills/index.json`. This file is a catalogue of
+_skills_: instruction bundles an agent loads to learn how to work with you,
+rather than tools the agent calls directly.
+
+This engine does **not** publish one, and this is a deliberate choice rather
+than an omission. Your MCP server already tells an agent what it can do, in
+a form agents already act on. A skill would restate the same information in
+a second format, and that format's spec is still at v0.2.0 and will change.
+Publish a skill when you have something to say that the tool descriptions
+cannot, such as a house convention for citing your docs, or a multi-step
+procedure an agent should follow.
+
+If you do, the shape is:
+
+```json
+{
+  "$schema": "https://agentskills.io/schema/v0.2.0/index.json",
+  "skills": [
+    {
+      "name": "search-example-docs",
+      "type": "skill",
+      "description": "How to answer questions about Example using its documentation MCP server.",
+      "url": "https://docs.example.com/.well-known/agent-skills/search-example-docs/SKILL.md",
+      "digest": "sha256-<base64 of the SKILL.md bytes>"
+    }
+  ]
+}
+```
+
+Two implementation notes, both about the digest. First, the digest covers
+the `SKILL.md` bytes, so it must be computed at build time from the file you
+actually ship. A hand-written digest is a digest that silently stops
+matching on the next edit. Second, because the index lives under
+`/.well-known/`, serve it the same way the catalog above is served: from the
+Worker, reading the built file, rather than as a static asset. Otherwise a
+subpath deployment will publish it at a path no client looks at.
+
+### And in the places people look
+
+All of the above is invisible to a reader who has to paste a URL into
+Claude or Cursor, and that reader is the one who actually does it. So
+[`AgentAccess.astro`](https://github.com/DuvInc/duvlify/blob/main/src/components/AgentAccess.astro) provides the
+human-facing half: one dialog with the MCP URL, an example API call, and the
+raw-Markdown routes, each with a copy button.
+
+Two places open this same dialog, so there is only one thing to learn:
+
+- **The topbar**, next to search, where whole-documentation tools sit
+  together.
+- **The page menu**, last and behind a rule, because everything above it
+  acts on the page being read, and these two entries do not. The menu has
+  two entries rather than one combined entry (`Connect docs via MCP`,
+  `Query the docs API`), because a reader arrives already knowing which of
+  the two words they came for.
+
+Every label and heading says "docs" or "these docs" out loud, and this is
+not padding. A reader skims headings, and on a site documenting a product
+that has its own MCP server, a bare "Connect via MCP" would read as the
+product's. The dialog's prose is also kept deliberately plain: short
+sentences, common words, and no dashes standing in for punctuation. This
+matters because the reader reads it mid-setup, sometimes not in their first
+language.
+
+The dialog is gated on `agents.enabled` and `agents.http`, never on a flag
+of its own. A dialog cannot advertise an endpoint that is switched off, so a
+fork that never enables `agents` ships no dead button. On mobile, the
+topbar button is hidden and the page-menu entries carry this function
+instead, since the topbar has no room to spare.
+
+If the product being documented also exposes an MCP server of its own, mind
+the collision. In that case, a `/mcp-server` content page is about _the
+product's_ MCP, while this dialog is about the documentation's own MCP.
+Some sites built on Duvlify have exactly that pair. Name each one by the
+difference, the same way the two OpenAPI descriptions do.

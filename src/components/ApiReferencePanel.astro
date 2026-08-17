@@ -1,0 +1,94 @@
+---
+/** Sticky request/response rail for pages backed by an OpenAPI operation. */
+import type { ApiReference } from '../lib/openapi-reference';
+import Icon from './Icon.astro';
+import { languageIconUrl } from '../lib/language-icon';
+
+interface Props { api: ApiReference }
+const { api } = Astro.props;
+const firstStatus = api.responses[0]?.status;
+const firstRequest = api.requests[0];
+---
+<aside class="api-reference-panel" aria-label="API examples">
+  <div class="api-panel-scroll">
+    <section class="code-block api-code-card api-request-card" data-api-request-code>
+      <header class="code-block-header">
+        <strong>Request</strong>
+        <div class="api-language-select" data-api-language-select>
+          <button
+            type="button"
+            class="api-language-trigger"
+            data-api-language-toggle
+            aria-label="Select request language"
+            aria-haspopup="menu"
+            aria-expanded="false"
+          >
+            <span
+              class="api-language-icon"
+              style={`--api-language-icon: ${languageIconUrl(firstRequest.icon)}`}
+              aria-hidden="true"
+            ></span>
+            <span data-api-language-label>{firstRequest.label}</span>
+            <Icon name="chevronDown" size={13} />
+          </button>
+          <div class="api-select-menu api-language-menu" data-api-language-menu role="menu" hidden>
+            {api.requests.map(request => (
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={request.id === firstRequest.id ? 'true' : 'false'}
+                data-api-language-option={request.id}
+                data-label={request.label}
+                data-icon={request.icon}
+              >
+                <span
+                  class="api-language-icon"
+                  style={`--api-language-icon: ${languageIconUrl(request.icon)}`}
+                  aria-hidden="true"
+                ></span>
+                <span>{request.label}</span>
+                <Icon name="check" size={14} class="api-select-check" />
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+      {api.requests.map(request => (
+        <div class="api-request-panel" data-api-request-panel={request.id} hidden={request.id !== firstRequest.id}>
+          <div class="code-block-body"><pre tabindex="0"><code>{request.code}</code></pre></div>
+        </div>
+      ))}
+    </section>
+
+    {api.responses.length > 0 && (
+      <section class="code-block api-code-card api-response-card" data-api-response-code>
+        <header class="code-block-header api-response-header">
+          <div class="api-status-tabs" role="tablist" aria-label="Response status">
+            {api.responses.map(response => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={response.status === firstStatus ? 'true' : 'false'}
+                data-api-response-tab={response.status}
+              >
+                {response.status}
+              </button>
+            ))}
+          </div>
+          <span class="api-content-type">{api.responses[0]?.contentType}</span>
+        </header>
+        {api.responses.map(response => (
+          <div
+            class="api-response-panel"
+            role="tabpanel"
+            data-api-response-panel={response.status}
+            data-content-type={response.contentType}
+            hidden={response.status !== firstStatus}
+          >
+            <div class="code-block-body"><pre tabindex="0"><code>{response.code}</code></pre></div>
+          </div>
+        ))}
+      </section>
+    )}
+  </div>
+</aside>

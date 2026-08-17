@@ -1,0 +1,47 @@
+---
+import { site } from '../docs.config';
+import Brand from './Brand.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  previous?: { label: string; href: string };
+  next?: { label: string; href: string };
+}
+const { previous, next } = Astro.props;
+---
+<footer class="page-footer">
+  {/* A blank `<span>` on the missing side keeps the two-column grid aligned
+      when only one neighbour exists — the ordinary case, a first or last page
+      within a tab's flow. The row itself is only worth rendering when there is
+      at least one link in it: the configured homepage sits outside every tab
+      and has neither, and an empty grid row still claims its height. */}
+  {(previous || next) && (
+    <div class="page-nav">
+      {/* `title` carries the untruncated label: the CSS clips these to one line
+          with an ellipsis, so a long title needs somewhere to still be readable. */}
+      {previous
+        ? <a class="previous" href={previous.href} title={previous.label}><strong>{previous.label}</strong><small><Icon name="arrow" size={12} class="page-nav-arrow-back" />Previous</small></a>
+        : <span></span>}
+      {next
+        ? <a class="next" href={next.href} title={next.label}><strong>{next.label}</strong><small>Next<Icon name="arrow" size={12} /></small></a>
+        : <span></span>}
+    </div>
+  )}
+
+  <div class="site-footer">
+    <nav class="footer-links" aria-label="Footer">
+      {site.footer.links.map(link => <a href={link.href}>{link.label}</a>)}
+    </nav>
+    <div class="footer-bottom">
+      <div class="footer-brand">
+        <Brand />
+        <span>{site.footer.copyright}</span>
+      </div>
+      <div class="theme-switch" role="radiogroup" aria-label="Color theme">
+        <button type="button" data-theme-option="system" aria-label="Use system theme"><Icon name="monitor" size={14} /></button>
+        <button type="button" data-theme-option="light" aria-label="Use light theme"><Icon name="sun" size={14} /></button>
+        <button type="button" data-theme-option="dark" aria-label="Use dark theme"><Icon name="moon" size={14} /></button>
+      </div>
+    </div>
+  </div>
+</footer>

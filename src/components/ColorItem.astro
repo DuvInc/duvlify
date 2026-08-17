@@ -1,0 +1,26 @@
+---
+/**
+ * One swatch. `value` is either a single colour or a `{ light, dark }` pair —
+ * a palette that documents both modes is documenting two colours, not one.
+ */
+import { cssColor } from '../lib/css-value';
+
+interface ThemeColor { light: string; dark: string }
+interface Props { name?: string; value?: string | ThemeColor }
+const { name, value } = Astro.props;
+
+const rawLight = typeof value === 'object' ? value.light : value;
+const rawDark = typeof value === 'object' ? value.dark : value;
+const light = cssColor(rawLight) ?? 'var(--accent)';
+const dark = cssColor(rawDark) ?? light;
+
+/* The caption shows what was written, not what survived sanitising: a value
+   that reads as a colour to a person still belongs under the swatch. */
+const caption = typeof rawLight === 'string' ? rawLight : undefined;
+const secondary = typeof rawDark === 'string' && rawDark !== rawLight ? rawDark : undefined;
+---
+<div class="swatch" style={`--swatch-light:${light};--swatch-dark:${dark}`}>
+  <i></i>
+  <strong>{name}</strong>
+  {caption && <span>{caption}{secondary ? ` / ${secondary}` : ''}</span>}
+</div>

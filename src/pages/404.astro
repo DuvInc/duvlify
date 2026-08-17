@@ -1,0 +1,23 @@
+---
+import DocumentHead from '../components/DocumentHead.astro';
+import Icon from '../components/Icon.astro';
+import { site } from '../docs.config';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    {/* No canonical, so DocumentHead marks this noindex. */}
+    <DocumentHead
+      title="Page not found"
+      description="The documentation page you asked for does not exist."
+    />
+  </head>
+  <body>
+    <main class="not-found">
+      <div class="eyebrow">404 ERROR</div>
+      <h1>This page wandered off.</h1>
+      <p>The documentation may have moved, or the link is taking a creative detour.</p>
+      <a class="header-primary" href={site.home}>Back to the docs <Icon name="arrow" size={14} /></a>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+---
+/**
+ * Lays cards out on a responsive grid.
+ *
+ * `cols` is an upper bound, not a fixed count — unlike `<Columns cols>`, which
+ * is exact. The grid packs as many ~210px tracks as fit and no more than `cols`,
+ * so a group asking for four gets four in a wide layout and three in the default
+ * reading column, with no breakpoint per card count.
+ *
+ * `data-columns` exists for the one case the formula in components.css cannot
+ * express: a single column is not "one 320px card", it is one card across the
+ * whole column, so the width cap has to be lifted rather than computed.
+ */
+import { cssCount } from '../lib/css-value';
+
+interface Props { cols?: number }
+const columns = cssCount(Astro.props.cols, 2, 4);
+---
+<div class="card-grid" data-columns={columns} style={`--card-columns: ${columns}`}><slot /></div>

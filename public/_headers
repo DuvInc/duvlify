@@ -1,0 +1,85 @@
+# Response headers for Cloudflare Workers static assets.
+#
+# Astro copies public/ into dist/ verbatim, so this file ships with the build.
+# Cloudflare's default for every asset is `public, max-age=0, must-revalidate`,
+# which is right for HTML — a docs edit should be live immediately — and wrong
+# for fingerprinted assets, which can be cached forever.
+#
+# Patterns allow one trailing splat only, so there is no way to target `*.md`
+# here; those routes rely on Wrangler's extension-based content type.
+#
+# Paths here are the *built* paths, never prefixed with `site.basePath`, even on
+# a site served under a subpath. The Worker strips that prefix before it calls
+# `ASSETS.fetch()` (see `assetRequest` in worker/index.ts), so matching happens
+# against the already-stripped path — the same shape as `dist/`.
+#
+# Getting this wrong fails in the worst available way rather than loudly. A
+# `/docs/_astro/*` rule on a `/docs` site matches nothing and falls through to
+# Cloudflare's `max-age=0, must-revalidate` default, so every fingerprinted
+# asset is revalidated on every page view — while the `/*` block below still
+# applies and makes the file look like it is working. A test enforces it: see
+# test/components.test.mjs, 'every _headers rule matches something the build
+# produced'.
+
+/*
+  # A year, without includeSubDomains or preload: this is a shared workers.dev
+  # hostname, and either of those would impose the policy on sibling projects.
+  # A custom domain should add both.
+  Strict-Transport-Security: max-age=31536000
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), geolocation=(), microphone=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# Content-addressed: the filename changes whenever the bytes do, so a repeat
+# visitor never revalidates the CSS, the JS bundle or the self-hosted fonts.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fetched once per session, on the first search. Short freshness window plus a
+# long grace period, so it is effectively instant without going stale for long.
+/search-index.json
+  Cache-Control: public, max-age=300, stale-while-revalidate=604800
+
+/favicon.svg
+  Cache-Control: public, max-age=604800
+
+# Diagram markup in reference/code-and-diagrams, not fingerprinted because it is
+# referenced by a literal path rather than imported.
+/frame-demo.svg
+  Cache-Control: public, max-age=604800
+
+# Read by sitemap.xml's own `xml-stylesheet` instruction, once per crawler visit
+# rather than once per reader — a browser opening sitemap.xml directly is rare
+# enough not to design around.
+/sitemap.xsl
+  Cache-Control: public, max-age=604800
+
+# Language marks for code-block headers, shipped with the engine rather than
+# authored per site, so they change on a framework upgrade and not otherwise.
+# A week of freshness, and not immutable, because the names are stable.
+/icons/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
+# Share cards are regenerated whenever a page title changes, and their names are
+# not content-addressed, so they cannot be immutable. A day of freshness with a
+# long grace period keeps them effectively instant without pinning a stale card
+# to a renamed page.
+/og/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/og.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# The hand-made homepage card. Same story as the generated ones above: a stable
+# name whose bytes can change, so fresh for a day and served stale while the new
+# one comes in.
+/og-home.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+# Content screenshots. Not content-addressed either — replacing one keeps its
+# name — so they get the share-card treatment rather than the fingerprinted
+# bundle's `immutable`.
+/screenshots/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

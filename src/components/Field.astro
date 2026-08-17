@@ -1,0 +1,26 @@
+---
+/**
+ * One documented field: its name, its type, whether it is required, and what it
+ * does. ParamField and ResponseField are the author-facing names — request and
+ * response fields read the same way, so they share this DOM.
+ */
+import type { FieldProps } from '../lib/field-props';
+
+type Props = FieldProps;
+const { name, type = 'string', required, deprecated, default: defaultValue, initialValue, placeholder, pre = [], post = [], hint } = Astro.props;
+const shownDefault = defaultValue ?? initialValue;
+---
+<div class="field">
+  <div class="field-head">
+    {pre.map(label => <span class="field-pill">{label}</span>)}
+    <code class="field-name">{name}</code>
+    {post.map(label => <span class="field-pill">{label}</span>)}
+    <span class="field-pill">{type}</span>
+    {required && <span class="field-pill required">required</span>}
+    {deprecated && <span class="field-pill deprecated">deprecated</span>}
+    {shownDefault !== undefined && <span class="field-pill">default: {String(shownDefault)}</span>}
+    {placeholder && <span class="field-pill">placeholder: {placeholder}</span>}
+    {hint && <span class="field-pill">{hint}</span>}
+  </div>
+  <div class="field-content"><slot /></div>
+</div>

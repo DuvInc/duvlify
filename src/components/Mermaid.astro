@@ -1,0 +1,22 @@
+---
+/**
+ * A Mermaid diagram.
+ *
+ * Prefer a fenced block — a ```mermaid fence, optionally with title="…" — which
+ * lib/remark-mermaid.ts turns into exactly this markup. A fence keeps the
+ * definition's line breaks intact; MDX would reflow them inside a component.
+ * This component exists for compact one-line diagrams; fences are preferred.
+ */
+interface Props {
+  /** The definition. Use this rather than children for anything multi-line. */
+  chart?: string;
+  caption?: string;
+  actions?: boolean;
+  placement?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+}
+const { chart, caption, actions, placement = 'bottom-right' } = Astro.props;
+---
+<figure class="diagram">
+  <div class="mermaid" data-mermaid data-mermaid-actions={actions === undefined ? undefined : String(actions)} data-mermaid-placement={placement}>{chart}<slot /></div>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>

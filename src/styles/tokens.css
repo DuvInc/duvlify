@@ -1,0 +1,265 @@
+/* Design tokens.
+ *
+ * These are the derived values the design system runs on. The *brand* knobs —
+ * accent colour, font family, radius scale — are not here: they come from the
+ * `theme` block of docs.config.ts, injected as --accent*, --font-* and --r-* by
+ * ThemeTokens.astro. Edit the config to rebrand; edit this file to change how
+ * the system itself is built.
+ */
+
+:root {
+  /* Page and layout */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  /*
+   * The two raised steps above the page, derived from `--bg` rather than fixed.
+   *
+   * `--surface-2` is hover; `--surface-active` is the current item. Both are
+   * `--bg` mixed a measured distance toward `--text`, which is the one colour
+   * guaranteed to contrast with it — so the pair follows the background
+   * wherever a distribution puts it, in either mode, with no second set of
+   * values to keep in step.
+   *
+   * They used to be absolute, and that only worked while `--bg` stayed white.
+   * A distribution that set `--bg: #f5f5f5` got a `--surface-2` of #f5f5f5:
+   * the same colour, so the selected sidebar item was invisible against the
+   * page. Nothing was misconfigured — the tokens simply did not know the
+   * background had moved.
+   *
+   * Mixing toward `--text` rather than toward black is what makes one formula
+   * serve both modes: in light `--text` is dark and the step darkens, in dark
+   * it is pale and the same step lightens. There is no "if dark, invert".
+   *
+   * The percentages differ by mode because perceived contrast does. Measured in
+   * OKLab, dark needs roughly twice the lightness step to read as the same
+   * separation — which is what the original hand-picked hover values already
+   * encoded (ΔL 0.03 light, 0.07 dark) and what these reproduce. The selected
+   * step keeps the same ratio to hover in both modes, about 1.6x.
+   */
+  --surface-2: color-mix(in oklab, var(--bg) 96%, var(--text));
+  --surface-active: color-mix(in oklab, var(--bg) 93%, var(--text));
+  --shadow: 0 18px 55px rgba(0, 0, 0, .08);
+  --sidebar: 262px;
+  --toc: 228px;
+  /* Reading column: the widest the article ever gets, whatever the viewport. */
+  --content: 712px;
+  --header: 56px;
+  --categories: 54px;
+  --mobile-pagebar: 54px;
+  /*
+   * Height of the site-wide announcement, zero when there is none.
+   *
+   * Everything the banner displaces — the fixed bars, the document's top
+   * padding on both desktop and mobile, and the offset an anchor jump scrolls
+   * to — adds this token rather than a literal 40px. That is the whole reason
+   * it exists: the bars and the padding are set in four different places and in
+   * three media queries, so a hand-applied offset reliably reaches some of them
+   * and not others. The attribute sits on the root element, not on <body>, so
+   * `scroll-padding-top` on <html> can see it too.
+   *
+   * Two tokens, not one, and the split matters. `--banner-min` is the floor the
+   * stylesheet gives the strip; `--banner-h` is what the shell reserves, and
+   * scripts/rich-components.ts overwrites it with the strip's measured height so
+   * a wrapped announcement is accounted for exactly. Feeding the strip's own
+   * `min-height` from `--banner-h` instead made those two the same value, and a
+   * measurement cannot be smaller than the floor it sets: once an announcement
+   * had wrapped on a narrow window, widening the window again left the shell
+   * reserving the taller height until the next reload.
+   */
+  --banner-h: 0px;
+  --banner-min: 40px;
+  /* Sidebar rhythm: keep folder rows compact while giving category headings
+     their own entry and exit spacing. */
+  --nav-folder-gap: 5px;
+  --nav-folder-expanded-gap: 12px;
+  --nav-category-before-gap: 22px;
+  --nav-category-after-gap: 10px;
+  /* Height of the fixed bars. The grid's top padding and the sticky rails both
+     derive from this, so a sticky rail can never start above or below them. */
+  --shell-top: calc(var(--banner-h) + var(--header) + var(--categories));
+  color-scheme: light;
+
+  /* Shell text and rules */
+  --text: #111111;
+  --muted: #6b6b6b;
+  /* A sidebar section label — "Start here", "Publishing" — has to read as a
+     heading over the page links beneath it, not as one more link. Sitting at
+     exactly `--muted`, the colour every inactive link already uses, left the
+     two indistinguishable at a glance. Pulled most of the way to `--text`
+     rather than all the way, so it still reads as secondary to the page title
+     above it and the active link below it. */
+  --nav-heading: color-mix(in srgb, var(--text) 55%, var(--muted) 45%);
+  --line: #f1f1f2;
+
+  /* Prose colour ramp: headings a touch blacker than body copy, both
+     independent of --text/--muted (which drive UI chrome, not the article
+     itself). Dark mode aliases both back to --text — see below. */
+  --prose-heading: #171a18;
+  --prose-body: #3f4140;
+
+  /* Reading scale: compact for UI chrome, roomier for prose. */
+  --font-ui: 14px;
+  --font-reading: 16px;
+  --reading-leading: 1.7;
+
+  /* Article heading scale. Page layouts may change the surrounding rhythm,
+     but the title hierarchy stays shared by normal and API pages. */
+  --article-title-size: clamp(1.75rem, 2.6vw, 2.125rem);
+  --article-title-line-height: 1.15;
+  --article-title-letter-spacing: normal;
+  --article-title-weight: 600;
+  --article-summary-size: 16px;
+  --article-summary-line-height: 1.6;
+
+  /* Component borders: one hairline, plus a near-invisible and a hover variant. */
+  --c-border: rgb(12 10 9 / 0.10);
+  --c-border-soft: rgb(12 10 9 / 0.06);
+  --c-border-strong: rgb(12 10 9 / 0.20);
+
+  /*
+   * Badge palette.
+   *
+   * These are named by the author — `<Badge color="blue">` — so unlike the
+   * surfaces above they cannot be derived from anything; a hue is the whole
+   * message. They are still declared here, in both modes, rather than written
+   * into components.css, because a light-mode hue on a near-black page is the
+   * one thing that reliably fails: #2563eb at 78% against white reads as blue,
+   * the same value against #0a0a0a reads as a hole. The dark set is the same
+   * six hues lifted to where they carry on a dark surface.
+   *
+   * Badge.astro mixes these — 14% for the fill, 78% toward --c-title for the
+   * text — so a hue only has to be correct, not pre-tinted.
+   */
+  --badge-gray: var(--c-mute);
+  --badge-blue: #2563eb;
+  --badge-green: #16a34a;
+  --badge-yellow: #ca8a04;
+  --badge-orange: #ea580c;
+  --badge-red: #dc2626;
+  --badge-purple: #9333ea;
+
+  /*
+   * Component surfaces: a sunken well and its stronger step.
+   *
+   * Alpha rather than a fixed colour, and for a different reason than the
+   * `--surface-*` pair above. Those always sit directly on the page, so
+   * deriving them from `--bg` is exact. These do not: a frame, a code block or
+   * a table header can sit inside a card, a callout or a panel, and only ink
+   * laid over whatever is actually behind stays a *well* in every one of those
+   * places.
+   *
+   * They were `#fafaf9` and `#f5f5f4`, which assumed a white page. On a grey
+   * one they came out *lighter* than the background, so a frame meant to look
+   * recessed read as raised — the same failure as the surfaces, with the
+   * semantics inverted rather than the contrast lost. These alphas reproduce
+   * the old appearance on white almost exactly (ΔL 0.015 and 0.030) and hold
+   * that separation on any background. The dark side below already worked this
+   * way; this is light catching up, and it matches `--c-border*`, which was
+   * alpha all along.
+   */
+  --c-sunken: rgb(12 10 9 / 0.02);
+  --c-sunken-strong: rgb(12 10 9 / 0.04);
+
+  /*
+   * Ink for the plus lattice behind a preview — see components.css.
+   *
+   * Alpha, and a token, for the same reason as the surfaces above: the texture
+   * sits on whatever is actually behind it, and one value per mode is tunable in
+   * one place. It used to be a colour baked into the SVG data URI, which meant
+   * two copies of the pattern and a hardcoded hex in each — and that is exactly
+   * why it could not be reused on a frame: there was no single knob to turn to
+   * make it read the same in both modes.
+   */
+  --c-lattice: rgb(12 10 9 / 0.09);
+
+  /* Component text ramp, strongest to faintest. */
+  --c-title: #292524;
+  --c-body: #44403c;
+  --c-mute: #57534e;
+  --c-faint: #a8a29e;
+
+  /*
+   * Announcement tones. Unlike the callout tones below, these are solid fills
+   * for a full-bleed strip that carries white text, so they are saturated
+   * rather than tinted — and every one of them has to clear 4.5:1 against
+   * white, which is the only constraint that matters here.
+   *
+   * `info` follows the brand, so a rebrand carries the banner with it. See the
+   * dark side for why that needs a mix rather than the accent itself.
+   */
+  --banner-info: var(--accent-strong);
+  --banner-info-fg: #fff;
+  --banner-warning: #b45309;
+  --banner-critical: #b91c1c;
+
+  /* Callout tones: border / background / text. */
+  --tone-info: #bfdbfe; --tone-info-bg: #eff6ff; --tone-info-fg: #1e40af;
+  --tone-good: #bbf7d0; --tone-good-bg: #f0fdf4; --tone-good-fg: #166534;
+  --tone-warn: #fef08a; --tone-warn-bg: #fefce8; --tone-warn-fg: #854d0e;
+  --tone-bad:  #fecaca; --tone-bad-bg:  #fef2f2; --tone-bad-fg:  #991b1b;
+}
+
+/* Set by DocsLayout when site.banner is configured, and removed by
+   scripts/rich-components.ts the moment a visitor dismisses the strip — which
+   is what collapses the shell back over the space it occupied. */
+:root[data-has-global-banner] {
+  --banner-h: var(--banner-min);
+}
+
+[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  /* Same derivation, a larger step — see the note in :root. */
+  --surface-2: color-mix(in oklab, var(--bg) 91%, var(--text));
+  --surface-active: color-mix(in oklab, var(--bg) 86%, var(--text));
+  --shadow: 0 18px 55px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+
+  --text: #f5f5f5;
+  --muted: #a3a3a3;
+  --nav-heading: color-mix(in srgb, var(--text) 55%, var(--muted) 45%);
+  --line: #262629;
+
+  --prose-heading: var(--text);
+  --prose-body: var(--text);
+
+  --c-border: rgb(255 255 255 / 0.10);
+  --c-border-soft: rgb(255 255 255 / 0.06);
+  --c-border-strong: rgb(255 255 255 / 0.22);
+
+  /* The same six hues, lifted — see the note in :root. */
+  --badge-gray: var(--c-mute);
+  --badge-blue: #60a5fa;
+  --badge-green: #4ade80;
+  --badge-yellow: #facc15;
+  --badge-orange: #fb923c;
+  --badge-red: #f87171;
+  --badge-purple: #c084fc;
+  --c-sunken: rgb(255 255 255 / 0.04);
+  --c-sunken-strong: rgb(255 255 255 / 0.07);
+  /* Slightly stronger, like every other alpha on this side — see :root. */
+  --c-lattice: rgb(255 255 255 / 0.10);
+
+  --c-title: #ffffff;
+  --c-body: #d6d3d1;
+  --c-mute: #a8a29e;
+  --c-faint: #78716c;
+
+  /*
+   * `--banner-info` and `--banner-info-fg` are reassigned below by
+   * ThemeTokens.astro, which measures the actual accent colour to pick a fill
+   * and a text colour that clear 4.5:1 together — see `bannerDarkTone` there
+   * for why a fixed formula (mix `--accent-strong` toward black, keep white
+   * text) doesn't hold for every accent. The values here are the fallback if
+   * that component is ever skipped.
+   */
+  --banner-info: color-mix(in oklab, var(--accent-strong) 65%, #000);
+  --banner-info-fg: #fff;
+  --banner-warning: #92400e;
+  --banner-critical: #991b1b;
+
+  --tone-info: #1e3a8a; --tone-info-bg: rgb(37 99 235 / 0.20); --tone-info-fg: #93c5fd;
+  --tone-good: #14532d; --tone-good-bg: rgb(22 163 74 / 0.20); --tone-good-fg: #86efac;
+  --tone-warn: #713f12; --tone-warn-bg: rgb(217 119 6 / 0.20); --tone-warn-fg: #fde047;
+  --tone-bad:  #7f1d1d; --tone-bad-bg:  rgb(220 38 38 / 0.20); --tone-bad-fg:  #fca5a5;
+}

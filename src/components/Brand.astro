@@ -1,0 +1,25 @@
+---
+/**
+ * The logo lockup, in the navbar and the mobile drawer.
+ *
+ * src/logo.svg is inlined rather than linked. That costs a little markup on
+ * every page and buys three things: the logo paints with the first frame instead
+ * of arriving one request later above the fold, it can reference `var(--accent)`
+ * so one asset serves both colour modes, and there is no second file to keep in
+ * step with the palette.
+ *
+ * Whether the name is also set as text depends on the asset. A mark gets the
+ * name beside it; a full wordmark already contains its own lettering, and
+ * repeating it in HTML would set the same word twice at two different weights.
+ */
+import { site } from '../docs.config';
+import logoSource from '../logo.svg?raw';
+
+/* The file's own comments explain its geometry to whoever edits it next; they
+   are not worth shipping twice per page, on every page. */
+const logo = logoSource.replace(/<!--[\s\S]*?-->/g, '').trim();
+---
+<a class="brand" href={site.home} aria-label={`${site.name} documentation home`}>
+  {site.showLogoMark && <span class="brand-logo" set:html={logo} />}
+  {(!site.logoIsWordmark || !site.showLogoMark) && <span class="brand-name">{site.name}</span>}
+</a>

@@ -1,0 +1,14 @@
+---
+/**
+ * A file tree. Compose with <TreeFolder>/<TreeFile>, or write a plain Markdown
+ * list — scripts/rich-components.ts turns the list into the same rows.
+ */
+import { cssCustomProperties } from '../lib/css-value';
+
+interface Props {
+  /** Custom properties for this tree, e.g. `{ '--tree-highlight': '#8b5cf6' }`. */
+  style?: string | Record<string, string>;
+}
+const style = cssCustomProperties(Astro.props.style);
+---
+<div class="file-tree" role="tree" aria-label="File tree" style={style} data-file-tree><slot /></div>

@@ -1,0 +1,45 @@
+---
+/** A response-schema field rendered from the OpenAPI model. */
+import Icon from './Icon.astro';
+import type { ApiSchemaField as FieldModel } from '../lib/openapi-reference';
+import { renderSpecMarkdown } from '../lib/spec-markdown';
+
+interface Props { field: FieldModel }
+const { field } = Astro.props;
+
+/* Descriptions come from the specification, where they are CommonMark — see
+   lib/spec-markdown.ts. Resolved here rather than in the markup so the child
+   fields are rendered in one pass alongside the parent. */
+const description = await renderSpecMarkdown(field.description);
+const children = await Promise.all(
+  field.children.map(async child => ({ child, description: await renderSpecMarkdown(child.description) })),
+);
+---
+<div class="field api-schema-field">
+  <div class="field-head">
+    <code class="field-name">{field.name}</code>
+    <span class="field-pill">{field.type}</span>
+    {field.required && <span class="field-pill required">required</span>}
+  </div>
+  {description && <div class="field-content" set:html={description} />}
+  {children.length > 0 && (
+    <details class="expandable api-schema-children">
+      <summary>
+        <span class="disclosure-caret" aria-hidden="true"><Icon name="chevronRight" size={11} /></span>
+        <span>Show child attributes</span>
+      </summary>
+      <div class="expandable-body">
+        {children.map(({ child, description: childDescription }) => (
+          <div class="field api-schema-child-field">
+            <div class="field-head">
+              <code class="field-name">{child.name}</code>
+              <span class="field-pill">{child.type}</span>
+              {child.required && <span class="field-pill required">required</span>}
+            </div>
+            {childDescription && <div class="field-content" set:html={childDescription} />}
+          </div>
+        ))}
+      </div>
+    </details>
+  )}
+</div>

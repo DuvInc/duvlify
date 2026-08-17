@@ -1,0 +1,383 @@
+---
+title: "Configuration"
+description: "Every setting lives in src/docs.config.ts, in five exports for identity, search, theme, navigation, and agent surfaces."
+canonical: "https://duvlify.dev/reference/configuration"
+updated: "2026-08-18"
+---
+
+# Configuration
+
+Everything you change to make this site yours lives in
+[`src/docs.config.ts`](https://github.com/DuvInc/duvlify/blob/main/src/docs.config.ts). You do not need to edit
+`src/components/`, `src/styles/`, or `worker/` to rebrand the site, change its
+navigation, or turn features on and off. If you find yourself editing those
+files to change a string, treat that as a bug in this configuration file, not
+something to work around.
+
+The configuration file has five exports.
+
+## `site`: identity
+
+This export sets the name, title suffix, description, header and footer
+links, and the assistant menu. The description is the site-level meta
+description and the blockquote in `llms.txt`. Write one real sentence for it,
+not a slogan.
+
+`basePath` decides where the documentation sits under its domain. Use `''`
+for `docs.example.com/page`, or `'/docs'` for `example.com/docs/page`. This
+one setting moves every generated URL. The Worker strips the prefix back off
+before it looks anything up. `basePath` must stay in step with Astro's `base`
+in `astro.config.ts`, so both settings read from the same constant. See
+[Deploying](/guides/deployment) for the topologies, the Cloudflare
+route, and the three things a subpath cannot have.
+
+One rule comes with `basePath`. An internal link written by hand _in this
+file_ must carry the prefix itself (`` `${basePath}/getting-started` ``).
+Links built from a page id go through `hrefFor`, which applies the prefix for
+you. An authored string without the prefix is indistinguishable from a link
+to another site.
+
+`homePageId` is the one subtle field. Leave it `undefined` for a docs-first
+site whose home page is its first page. Set it to a content id to serve that
+page at `/`, outside the navigation. That page stays published, indexed, and
+in the corpus, but it is not a sidebar item and takes no part in
+previous/next navigation. A page named here must _not_ also appear in
+`navigation`. The build refuses that combination, because the page would be
+reachable at two URLs.
+
+`banner` is a site-wide announcement fixed above the navbar. It takes
+`content`, a `tone` (`info`, `warning`, or `critical`), `dismissible`, and an
+optional `color` per colour mode. Leave it `undefined` for no strip. The site
+stores a dismissal against the exact text, so publishing new wording shows
+the banner again to everyone who dismissed the previous version. This same
+behaviour makes the strip unsuitable for anything a reader must not be able
+to hide.
+
+Turning the banner on changes the shell's geometry, and nothing in this file
+has to account for that. The height lives in `--banner-h`
+([`src/styles/tokens.css`](https://github.com/DuvInc/duvlify/blob/main/src/styles/tokens.css)). Every fixed bar, the
+document's top padding on both desktop and mobile, and `scroll-padding-top`
+all derive from that one value.
+
+## `seo`: search and generative engines
+
+This export sets the publisher identity for the JSON-LD graph, the locale,
+the AI crawler allowlist, and Cloudflare Content Signals.
+
+Write `agentInstructions` with care. The build emits it as prose at the top
+of `llms.txt` and `llms-full.txt`, in the space the llmstxt.org format leaves
+between the summary and the links. Limit it to facts a model cannot infer
+from the pages: which document wins when two disagree, what the site does
+not cover, and what it must not guess at. Restating the product description
+adds no value, because `site.description` already sits directly above it.
+
+The build deliberately does _not_ prepend `agentInstructions` to every
+page's Markdown. That would put the same paragraph in front of a reader who
+clicked "Copy page" for one answer. It would also make anything crawling the
+corpus re-read the paragraph once per page.
+
+## `theme`: brand
+
+This export sets the font, accent, and radius. The build injects these as CSS
+custom properties, so changing the accent is one line. The neutral palette
+and component styling live in `src/styles/`.
+
+`accent.strong` exists because `accent.base` usually cannot clear a 4.5:1
+contrast ratio against the accent _tints_ used behind badges and method
+pills. It can only clear that ratio against the page background. Check both
+contrasts when you change the accent.
+
+### Changing the page background
+
+`--bg` in [`src/styles/tokens.css`](https://github.com/DuvInc/duvlify/blob/main/src/styles/tokens.css) is the one colour a
+site most often wants to move, for example to a light grey canvas that
+matches a marketing site. Change only this value. The raised surfaces follow
+it automatically.
+
+`--surface-2` (hover) and `--surface-active` (the current item) are not fixed
+colours. Each is `--bg` mixed a measured distance toward `--text` in OKLab.
+This holds the same perceptual separation from whatever background you set,
+in both colour modes. The percentages differ by mode because perceived
+contrast differs by mode: dark mode needs roughly twice the lightness step to
+read the same as light mode.
+
+These values used to be absolute colours, which worked only while `--bg`
+stayed white. One site set `--bg: #f5f5f5` and got a `--surface-2` of
+`#f5f5f5` too. The selected sidebar item then rendered in exactly the page
+colour and disappeared. Nothing was misconfigured. The tokens simply did not
+know the background had moved. If you find yourself hand-picking a second
+colour after changing `--bg`, that is the same bug returning.
+
+## `navigation`: structure
+
+This export lists tabs, groups, and page ids in sidebar order. Labels,
+descriptions, icons, and badges come from each page's own frontmatter. This
+export never restates them.
+
+`navigationLayout.mode` switches between `category-tabs` (large categories in
+a bar under the navbar) and `unified-sidebar` (everything in one left rail).
+Changing this mode never changes routes, content, or navigation data.
+
+Set `folder: true` on a group to render it as a collapsible folder rather than
+a plain labelled section. The build treats that as a request, not an
+instruction: a folder that resolves to fewer than two published pages renders
+as a plain section instead.
+
+> **Note: Why the build overrides folder: true**
+>
+> You write `folder: true` against the pages you _listed_, but drafts are
+> dropped before the sidebar is built. A two-page folder with one draft in it
+> would otherwise become a disclosure the reader has to open to find a single
+> item: a worse version of the section it would have been, with a config file
+> that still reads as though it were fine. The group keeps its label, its icon
+> and its position either way, and it becomes a folder again on its own as soon
+> as a second page is published.
+
+### Which folders start open
+
+`navigationLayout.expandFolders` decides what a reader sees before they touch
+anything.
+
+|          |                                              |
+| -------- | -------------------------------------------- |
+| `all`    | Every folder starts open.                    |
+| `active` | Only the folder holding the page being read. |
+
+```ts title="src/docs.config.ts"
+export const navigationLayout = {
+  mode: 'category-tabs' as NavigationMode,
+  expandFolders: 'all' as FolderExpansion,
+} as const;
+```
+
+The choice is about size, not taste. On a small site (this one, at twenty-odd
+pages), the whole tree fits in the rail, so collapsing it hides links behind a
+click and buys nothing. Past a few dozen pages that inverts: a sidebar that
+opens everything stops being scannable at exactly the size where scanning is
+what it is for. Sites with a large generated API reference feel this first,
+because endpoint groups are the longest ones.
+
+**The folder holding the current page is always open**, under either value. A
+sidebar that does not show where the reader is has failed at its one job, so
+that is not a setting.
+
+For the exception, a group can override the site:
+
+```ts
+{ label: 'Endpoints', folder: true, defaultOpen: false, pages: [...] }
+```
+
+That keeps one long list shut on a site that opens everything, or one important
+folder open on a site that does not. It resolves in `src/lib/navigation.ts`
+alongside every other config-to-content join, so the sidebar component only adds
+the part the config cannot know: which page you are on.
+
+The build validates this export against the content collection. A page id
+with no matching file fails the build. A published page that belongs to no
+group also fails the build. A page id that names a draft is skipped silently,
+and it takes any group or tab it would have emptied with it. This last case
+is what lets you leave work-in-progress listed here while it stays unpublished.
+See [Drafts](/guides/authoring#drafts).
+
+## `agents`: the MCP server, HTTP API and WebMCP
+
+```ts
+export const agents = {
+  enabled: true,            // master switch for all three surfaces
+  http: true,               // also serve /api/docs/*
+  retrieval: 'lexical',     // or 'ai-search'
+  aiSearchInstance: '…',
+  defaultLimit: 8,
+  maxLimit: 25,
+  feedback: { webhook: undefined, fields: [ … ], context: [ … ] },
+  webmcpBridge: 'off',      // 'on' where there is no Cloudflare zone
+  rateLimit: { search: 30, read: 90, write: 2 },
+};
+```
+
+Setting `enabled: false` registers no routes, provisions nothing, and skips
+the index upload. A site that wants plain documentation carries none of that
+cost. Full detail in [Serving agents](/agents/overview).
+
+## Also configurable
+
+- [`src/openapi.config.ts`](https://github.com/DuvInc/duvlify/blob/main/src/openapi.config.ts): the OpenAPI document the
+  endpoint pages render from. Leave the empty stub, and the build emits no
+  `/openapi.json` and advertises nothing. A site with no API should not
+  publish a spec with no paths, because an agent may read that as evidence
+  that the API has no endpoints.
+- [`src/icon-aliases.ts`](https://github.com/DuvInc/duvlify/blob/main/src/icon-aliases.ts): short names for icons.
+- [`public/_headers`](https://github.com/DuvInc/duvlify/blob/main/public/_headers): caching and security headers.
+- [`wrangler.jsonc`](https://github.com/DuvInc/duvlify/blob/main/wrangler.jsonc): the Worker, its asset routing, and the
+  rate limiting bindings.
+
+## The values every site must set
+
+A fresh clone runs as is. `npm run dev`, `npm run build`, and `npm test` all
+pass with nothing configured, because every service integration defaults to
+off and search falls back to the built lexical index. This is intentional.
+The alternative is a template that fails on first contact until you set up an
+account somewhere.
+
+The cost of that choice is that a fresh clone carries **this** site's values.
+Those values are wrong for your site, often in ways that are easy to miss.
+The list below orders them by how soon each one will cause a problem.
+
+| Where                                                              | What a clone starts with   | What happens if you leave it                                                                                                                                                                                                            |
+| ------------------------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`, falling back to `astro.config.ts` → `site`             | `https://docs.example.com` | Canonical tags, the sitemap, `llms.txt` and the agent manifest all name a host that is not yours. The site looks fine and the SEO points elsewhere. Guarded twice: see [Set the origin first](/guides/deployment#set-the-origin-first). |
+| `wrangler.jsonc` → `name`                                          | `duvlify-docs`             | Your first deploy creates a Worker under that name, or collides with one.                                                                                                                                                               |
+| `src/docs.config.ts` → `site`, `seo`, `theme`                      | Duvlify's own identity     | Cosmetic, and obvious on first render.                                                                                                                                                                                                  |
+| `src/docs.config.ts` → `agents.aiSearchInstance`                   | `duvlify-docs`             | The build reads this only when `retrieval` is `'ai-search'`. It stays inert until then.                                                                                                                                                 |
+| `src/openapi.config.ts`                                            | an empty stub              | The build emits nothing and advertises no spec, which is the right behaviour for a site with no API of its own.                                                                                                                         |
+| `content/`                                                         | Duvlify's documentation    | You publish someone else's docs. Delete the folder and write your own.                                                                                                                                                                  |
+| `src/logo.svg`, `public/favicon.svg`                               | Duvlify's mark             | Cosmetic, and obvious in the navbar and the browser tab.                                                                                                                                                                                |
+| `public/screenshots/duvlify.webp`                                  | a screenshot of this site  | Published on your homepage and in your `README.md`, showing someone else's documentation as if it were yours.                                                                                                                           |
+| `public/og-home.png`, and the `image:` line in `content/index.mdx` | this site's share card     | Every link to your homepage previews as a picture of this one. Delete both to fall back to the generated card, which uses your own title.                                                                                               |
+
+Set the origin before anything else. Export `SITE_URL` in the deploy
+environment rather than editing the fallback. This way, a preview build and a
+production build cannot disagree.
+
+## The repository is also this project's showcase
+
+Everything above is a _setting_, and the build or the first render will show you
+what you missed. This section is the part nothing checks.
+
+The repository you cloned publishes [duvlify.dev](https://duvlify.dev). It is the
+framework and the framework's own shop window at the same time, which is why
+`content/` is real documentation rather than lorem ipsum. This means a clone
+also carries files that exist to serve _this project_, and those keep working
+perfectly while pointing at the wrong place.
+
+| Where                                   | What it does in your repository                                                                                                                           |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.github/FUNDING.yml`                   | Puts a Sponsor button on your repository, crediting this project's author.                                                                                |
+| `.github/ISSUE_TEMPLATE/config.yml`     | Sends anyone filing an issue to this repository's Discussions and security advisories, not yours.                                                         |
+| `.github/workflows/ci.yml`              | Builds against `vars.SITE_URL`, falling back to duvlify.dev. Set a repository variable named `SITE_URL` under Settings → Secrets and variables → Actions. |
+| `SECURITY.md`                           | Carries this repository's private advisory URL, and a threat model written for this deployment.                                                           |
+| `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` | Describe this project's review conventions, with its maintainer as the contact.                                                                           |
+| `README.md`                             | Describes the framework, not your documentation.                                                                                                          |
+| `public/_redirects`                     | Holds one redirect from this site's own URL history, which yours has no reason to serve.                                                                  |
+| `handbook/`                             | The frozen manual. Keep it while you need it, delete it when you do not, and never regenerate it: see [Architecture](/reference/architecture).            |
+
+Nothing under `src/components/`, `src/styles/` or `worker/` names this project.
+That is a deliberate property rather than a coincidence, and the one worth
+relying on: if a rebrand ever requires editing those, the configuration has a
+gap. To find whatever this table has missed:
+
+```bash
+grep -ril 'duvlify\|duvinc' . --exclude-dir=node_modules --exclude-dir=dist \
+  --exclude-dir=.git --exclude-dir=.astro --exclude-dir=handbook
+```
+
+> **Warning: LICENSE and NOTICE are not part of the rebrand**
+>
+> Keep both. The MIT licence asks for exactly one thing in return, and it is the
+> copyright notice in `LICENSE`. Add your own line beside the existing one
+> rather than replacing it. `NOTICE` covers the icon sets and the bundled
+> typeface, which carry their own attribution terms and are served to your
+> readers whether or not you credit them, so it applies to your deployment too.
+
+## Secrets
+
+Two different places hold a secret in this framework, and the choice between
+them is not a style preference. Ask one question: **who reads this value?**
+
+| Who reads it                                                | Where it lives                                  | Example            |
+| ----------------------------------------------------------- | ----------------------------------------------- | ------------------ |
+| A script that runs on your machine, at build or deploy time | `.env`, gitignored                              | `AI_SEARCH_TOKEN`  |
+| The Worker, while it is running in production               | A Worker secret, set with `wrangler secret put` | `FEEDBACK_WEBHOOK` |
+
+Putting a value in the wrong place is not a smaller mistake with the same
+result. It is a silent no-op. `.env` is never read by the deployed Worker:
+Cloudflare does not upload it, and nothing in `worker/` opens it. A Worker
+secret is never read by a script running on your machine: `wrangler secret`
+has no `get`, by design, so there is no command that hands the value back to
+you once it is set. Each mechanism only exists on one side of that line.
+
+### `.env`, for scripts that run locally
+
+[`.env.example`](https://github.com/DuvInc/duvlify/blob/main/.env.example)
+lists what a fresh clone can set. Copy it to `.env` and fill in what you need.
+
+Only `scripts/index-sync.mjs` reads it, and only when `agents.retrieval` is
+`'ai-search'`:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `AI_SEARCH_TOKEN`: **not** the token `wrangler` holds. Create a separate
+  token under AI → AI Search → Tokens with `AI Search:Edit` and
+  `AI Search:Run`.
+
+Neither reaches the Worker. The Worker queries the index through its
+`AI_SEARCH` binding instead, which needs no token of its own. See
+[Retrieval](/agents/retrieval).
+
+> **Warning: Nothing loads .env automatically**
+>
+> `index-sync.mjs` runs as a plain `node scripts/index-sync.mjs`, never through
+> Astro or Vite, so it is the one script in this repository that is not handed
+> `.env` for free. It parses the file itself, on lines matching `KEY=value`,
+> and only fills in a key that `process.env` does not already have, so a real
+> shell variable or a CI secret still wins over the file. Write a second script
+> that needs a `.env` value, and it needs the same handful of lines; nothing
+> upstream of it will have loaded the file first.
+
+### Worker secrets, for values the running site needs
+
+`agents.feedback.webhook` in `src/docs.config.ts` is the field's home, but its
+value is not set there. Deploy time is when a Worker secret is created,
+separately:
+
+```bash
+wrangler secret put FEEDBACK_WEBHOOK
+```
+
+Two reasons, and only the first is about security. `agents.feedback.webhook`
+was never a secret in the strict sense: the build would compile a literal
+value into the Worker bundle either way, so a URL that carries its own token
+would still be served to anyone who asks, wherever it was written. The
+stronger reason is that `docs.config.ts` is not private to one deployment: it
+is the file every fork of this framework starts from. A literal webhook there
+would make one operator's endpoint the default destination for everyone who
+clones the project, until they noticed and changed it. A secret has exactly one
+deployment, by construction.
+
+Keeping a personal copy of the value is reasonable. `wrangler secret` has no
+way to show it back to you later. `.env` is _not_ a safe place for that copy
+under the secret's own name, though.
+
+> **Warning: wrangler dev reads .env too, and merges it into env**
+>
+> `npm run dev`, `npm test`, and anything else that boots `wrangler dev` load
+> `.env` and inject every key in it into the local Worker's `env`, the same
+> object a real Worker secret occupies at runtime. A line reading
+> `FEEDBACK_WEBHOOK=...` in `.env` does not stay inert: it makes `report_issue`
+> appear configured whenever you run the site locally, even though
+> `agents.feedback.webhook` is `undefined` and `wrangler deploy` never reads
+> this file at all. Production is unaffected either way, which is exactly what
+> made this go unnoticed until a test that asserts the tool stays hidden by
+> default started failing for no visible reason.
+>
+> Use a name Wrangler will never match to a real binding, such as
+> `FEEDBACK_WEBHOOK_REFERENCE_ONLY`, or keep the copy somewhere that
+> is not this file.
+
+Switching semantic retrieval on takes three edits, and all three must agree.
+This is the usual way it goes wrong. Uncomment the `ai_search` binding in
+`wrangler.jsonc`, set `agents.retrieval` to `'ai-search'`, and set
+`agents.aiSearchInstance` to the same instance name used in the binding. Then
+run `npm run index:sync`.
+
+The instance name appears twice on purpose, and the two copies must agree.
+The Worker queries through the binding, while `scripts/index-sync.mjs` reads
+the name out of the config to build its REST URL. A mismatch causes no
+visible error. The Worker keeps answering, either from the wrong index or
+from none.
+
+Once semantic retrieval is on, `npm run deploy` chains `index:sync` between
+the build and `wrangler deploy`. This makes a deploy from a shell without the
+two credentials fail before it ships, instead of shipping a Worker that
+queries an index one version behind. [Serving agents](/agents/overview) covers
+creating the instance, the settings that are not obvious from the dashboard,
+and how the index is reconciled.

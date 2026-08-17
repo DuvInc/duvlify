@@ -1,0 +1,194 @@
+---
+/**
+ * Every icon on the site, behind a short name.
+ *
+ * Two resolvers, in order.
+ *
+ * The map below is the site's own vocabulary: a curated set of Lucide imports
+ * behind stable aliases, so the chrome — nav, callouts, buttons — never depends
+ * on an icon set's naming and can be re-pointed in one line.
+ *
+ * Anything the map does not know is looked up in Iconify at build time, across
+ * Lucide and then Font Awesome, and inlined as SVG. That exists for migrated
+ * content: imported pages can name Font Awesome icons, sixty-odd
+ * distinct ones, mostly used once. Hand-mapping that tail would have meant
+ * sixty judgement calls that go stale the moment someone writes a new page, so
+ * instead any name either set knows simply works. src/icon-aliases.ts holds
+ * the handful worth redirecting to a better-matching glyph.
+ *
+ * The icon sets are several megabytes of JSON, imported only here and only at
+ * build time — the browser receives inline SVG paths and no icon library.
+ *
+ * An unknown name renders nothing. A missing icon is a blemish; a fallback
+ * glyph that silently means the wrong thing is a lie, and it never gets fixed
+ * because nothing looks broken.
+ */
+import { resolveIcon } from '../lib/icon-svg';
+import { cssColor } from '../lib/css-value';
+import {
+  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  Blocks,
+  BookOpen,
+  Bot,
+  Check,
+  CircleCheck,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  Code,
+  Command,
+  Copy,
+  CornerDownLeft,
+  Database,
+  Ellipsis,
+  ExternalLink,
+  File,
+  FileText,
+  FolderClosed,
+  FolderOpen,
+  GitBranch,
+  Globe,
+  Hash,
+  Info,
+  KeyRound,
+  Languages,
+  Layers,
+  Lightbulb,
+  Link,
+  ListTree,
+  Menu,
+  Maximize2,
+  Monitor,
+  Moon,
+  OctagonAlert,
+  Package,
+  Palette,
+  Plug,
+  Rocket,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Sun,
+  SunMoon,
+  Terminal,
+  TriangleAlert,
+  Type,
+  Upload,
+  Users,
+  Webhook,
+  X,
+  Zap,
+  ZoomIn,
+  ZoomOut,
+} from '@lucide/astro';
+
+interface Props {
+  name?: string;
+  /** Alias for `name`. */
+  icon?: string;
+  /** An image URL, for a mark no icon set has. Takes precedence over `name`. */
+  src?: string;
+  /** Any CSS colour. Ignored when it could be read as anything but a colour. */
+  color?: string;
+  size?: number;
+  class?: string;
+  [key: `data-${string}`]: string | undefined;
+}
+
+const { name, icon, src, size = 18, class: className, ...rest } = Astro.props;
+const iconName = name || icon || 'sparkles';
+const color = cssColor(Astro.props.color);
+/*
+ * Typed as possibly-undefined on purpose. Without the index signature a lookup
+ * is typed as a component even for a name that is not in the map, so the
+ * `Component ?` test below is statically always-true and the Iconify fallback
+ * becomes unreachable to the compiler — which is what `astro check` flagged.
+ * Every value here is a Lucide icon, so one of them stands for the type.
+ */
+const icons: Record<string, typeof Zap | undefined> = {
+  activity: Activity,
+  arrow: ArrowRight,
+  arrowUpRight: ArrowUpRight,
+  blocks: Blocks,
+  book: BookOpen,
+  bot: Bot,
+  check: Check,
+  checkCircle: CircleCheck,
+  chevronDown: ChevronDown,
+  chevronLeft: ChevronLeft,
+  chevronRight: ChevronRight,
+  chevronUp: ChevronUp,
+  clock: Clock,
+  code: Code,
+  command: Command,
+  copy: Copy,
+  database: Database,
+  enter: CornerDownLeft,
+  danger: OctagonAlert,
+  external: ExternalLink,
+  file: File,
+  fileText: FileText,
+  folder: FolderClosed,
+  folderOpen: FolderOpen,
+  git: GitBranch,
+  globe: Globe,
+  hash: Hash,
+  info: Info,
+  key: KeyRound,
+  languages: Languages,
+  layers: Layers,
+  link: Link,
+  listTree: ListTree,
+  menu: Menu,
+  maximize: Maximize2,
+  monitor: Monitor,
+  moon: Moon,
+  more: Ellipsis,
+  package: Package,
+  palette: Palette,
+  plug: Plug,
+  rocket: Rocket,
+  reset: RotateCcw,
+  search: Search,
+  shield: ShieldCheck,
+  sliders: SlidersHorizontal,
+  sparkles: Sparkles,
+  sun: Sun,
+  sunMoon: SunMoon,
+  terminal: Terminal,
+  tip: Lightbulb,
+  type: Type,
+  upload: Upload,
+  users: Users,
+  warning: TriangleAlert,
+  webhook: Webhook,
+  x: X,
+  zap: Zap,
+  zoomIn: ZoomIn,
+  zoomOut: ZoomOut,
+};
+const Component = icons[iconName];
+const inline = Component ? null : resolveIcon(iconName, size);
+
+---
+
+{/* An image mark carries its own colours, so `color` is not applied to it —
+    there is nothing in a raster or an opaque SVG for it to reach. */}
+{src && <img src={src} width={size} height={size} alt="" aria-hidden="true" class={className} />}
+{!src && Component && <Component size={size} stroke-width={1.9} aria-hidden="true" class={className} color={color} {...rest} />}
+{!src && inline && (
+  <svg
+    {...inline.attributes}
+    aria-hidden="true"
+    class={className}
+    style={color ? `color:${color}` : undefined}
+    set:html={inline.body}
+    {...rest}
+  />
+)}

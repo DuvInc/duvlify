@@ -1,0 +1,194 @@
+---
+title: "Authoring pages"
+description: "A file's location sets its URL. Add frontmatter, list the page in a navigation group, and use drafts and noindex to control what ships."
+canonical: "https://duvlify.dev/guides/authoring"
+updated: "2026-08-18"
+---
+
+# Authoring pages
+
+Pages live in `content/`. Files under `src/` build the publishing interface. You
+normally do not need to touch them when you write pages.
+
+## Add a page
+
+1. **Create the file where you want it served**
+
+   `content/guides/my-new-page.mdx` becomes `/guides/my-new-page`. There is no
+   `path` field. The file location sets the URL.
+2. **Give it frontmatter**
+
+   ```yaml
+   ---
+   title: My new page
+   description: A clear sentence explaining what the reader will learn.
+   ---
+   ```
+
+   `title` and `description` are the only required fields. See
+   [Frontmatter](/reference/frontmatter) for the other fields.
+3. **Write it in Markdown**
+
+   Write ordinary Markdown: headings, lists, tables, links, and code fences. Use
+   the [component vocabulary](/reference/components) when prose is not enough.
+4. **List it in a navigation group**
+
+   The id is the path under `content/` without the extension:
+
+   ```ts title="src/docs.config.ts"
+   { label: 'Publishing', folder: true, pages: ['guides/content', 'guides/my-new-page'] }
+   ```
+
+   The position of the id in that array sets the sidebar order. The sidebar
+   label, icon, and badge come from the page's own frontmatter. Nothing is
+   repeated here.
+
+> **Check: Mismatches are build failures**
+>
+> A page id that matches no file fails the build. The error names the group
+> that referenced it. A published page that appears in no group also fails the
+> build. That error lists every orphan page. Neither case can reach production.
+
+## An optional homepage
+
+A documentation homepage is a normal page that lives **outside** the navigation
+tree. Use it for a hub page with cards that should open at `/` but should never
+occupy a row in the sidebar.
+
+Create the page, usually `content/index.mdx`. Then set both values:
+
+```ts title="src/docs.config.ts"
+export const site = {
+  // …
+  home: '/',
+  homePageId: 'index',
+} as const;
+```
+
+The page stays public and indexable. It appears in the sitemap, the Markdown
+corpus, search results, and the logo link. It is excluded only from the
+sidebar, category selection, and the previous/next sequence.
+
+A page named as the homepage must **not** also appear in `navigation`. The
+build refuses that case, because the page would then be reachable at two URLs.
+Leave `homePageId` undefined for a docs-first site whose logo should link to
+its first page.
+
+## Drafts
+
+`draft: true` is the switch for a page you are still writing. The file stays in
+`content/`. It stays in version control. It stays listed in
+`src/docs.config.ts`. Nothing about it reaches the built site.
+
+| Output                             | A draft page  |
+| ---------------------------------- | ------------- |
+| HTML route                         | not generated |
+| `<page>.md`                        | not generated |
+| Share card                         | not generated |
+| Sidebar, breadcrumb, previous/next | absent        |
+| Search index                       | absent        |
+| `sitemap.xml`, `updates.xml`       | absent        |
+| `llms.txt`, `llms-full.txt`        | absent        |
+
+Leave the page listed in the navigation config while it is a draft. Navigation
+resolution skips it silently. It also drops any group, or tab, that this leaves
+empty. Publishing then takes one line of frontmatter, with no second edit to
+remember.
+
+The build still fails on a page id that names _no file at all_. The two cases
+look identical from the outside, but the build treats them as opposites on
+purpose. A draft is a decision. A missing file is a typo. Without this rule, a
+typo could silently remove a sidebar entry, and a reader would find it instead
+of CI.
+
+### `noindex` is a different switch
+
+A draft does not exist on the site. A `noindex` page exists. It is routed, it
+is linked from the sidebar, and it is served as Markdown. It is kept out of
+every surface that _broadcasts_ a page: search results, the sitemap, the
+updates feed, and the `llms.txt` corpus. The reasoning is that a page withheld
+from search should not be handed to a model either.
+
+Use `noindex` for a page that must be reachable but must not be found.
+
+## Reusable snippets
+
+Astro's MDX already has a module system. Shared content is an ordinary import
+rather than a Duvlify-specific registry.
+
+```mdx
+import AuthenticationNote from '../snippets/AuthenticationNote.mdx';
+
+<AuthenticationNote audience="server SDKs" />
+```
+
+Keep snippets near the content that owns them. Pass variation through props.
+Avoid importing a whole page as a snippet. Normal imports stay portable, and
+they fail at build time when a path is wrong.
+
+## Content for humans, content for agents
+
+`<Visibility>` is the only component whose HTML output and Markdown output
+intentionally differ.
+
+```mdx
+<Visibility for="humans">Click **Create account** in the dashboard.</Visibility>
+<Visibility for="agents">Call `POST /v1/accounts`.</Visibility>
+```
+
+The first block appears on the website. The second block appears in the page's
+`.md` route and every agent surface derived from it. From one file, a procedure
+can describe its clicks for a reader and its calls for a model.
+
+You are reading the Markdown twin of this page. The HTML version carries a
+different note in this position. That difference is the point of
+`<Visibility>`.
+
+## What a page's Markdown twin contains
+
+Every page is also served at `<page>.md`. Those exact bytes serve three roles
+at once: that route, the `fetch` tool's payload, and the text the semantic
+indexer embeds. Anything repeated there is repeated three times, and it lands
+in the first chunk of the page.
+
+The header carries `title`, `description`, `canonical`, and `updated`. The body
+carries the title as its `#` heading, then the content. Nothing else repeats:
+the description is not repeated as an opening paragraph, and the URL is not
+repeated as a `Source:` line.
+
+There is one exception, which is why this page states it rather than leaving it
+unsaid. Inside `llms-full.txt` the header is off, so the `Source:` line
+reappears. It is the only thing that carries a page's URL in that file, and
+that file's own preamble tells the reader to cite the HTML URL.
+
+## Preview and validate
+
+```bash
+npm run dev
+npm run build
+```
+
+The development server updates as content changes. The production build
+validates content, TypeScript, MDX syntax, and every generated route.
+
+## What the build refuses
+
+These are errors, not warnings. A bad edit cannot reach production.
+
+| Situation                                              | Message                                                                        |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Missing or too-short `title` / `description`           | Names the file and the field.                                                  |
+| Sidebar lists a page id with no file                   | Names the id and the group that references it.                                 |
+| A published page appears in no sidebar group           | Lists every orphan and suggests `draft: true`.                                 |
+| Configured homepage is missing or listed in navigation | Names the homepage id and explains the rule.                                   |
+| A tab declares no pages at all                         | Names the tab. A tab whose pages are _all_ drafts is dropped silently instead. |
+| Every page in the navigation is a draft                | Explains that at least one page has to be published.                           |
+| An unknown component tag                               | Names the tag, e.g. `Expected component 'Callot' to be defined`.               |
+
+**Now write something richer than prose**
+
+Callouts, cards, tabs, steps, diagrams and parameter tables: the full tag vocabulary, rendered on the page that documents it.
+
+[Browse components](/reference/components)
+
+[Frontmatter fields](/reference/frontmatter)

@@ -1,0 +1,17 @@
+<!--
+  The Duvlify mark: a D counter-punched out of a rounded square.
+
+  Inlined by components/Brand.astro rather than referenced as a file, so the
+  fill can be `var(--accent)` and the mark re-colours with the theme instead of
+  being a second asset to keep in sync. Geometry is on a 32-unit grid: the bowl
+  and the stem are both 4 units thick, so the letter holds its weight when the
+  whole thing is drawn at 24px in the navbar.
+-->
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <rect width="32" height="32" rx="9" fill="var(--accent)" />
+  <path
+    fill="var(--accent-contrast)"
+    fill-rule="evenodd"
+    d="M9.5 8H16a8 8 0 0 1 0 16H9.5V8Zm4 4v8H16a4 4 0 0 0 0-8h-2.5Z"
+  />
+</svg>

@@ -1,0 +1,13 @@
+# Cloudflare evaluates this file before serving any asset, so a rule here wins
+# over whatever Astro renders at that path.
+#
+# Nothing maps `/` here. This site sets `site.homePageId`, so content/index.mdx
+# already serves at the root. A docs-first site with no configured homepage wants
+# one line instead:
+#
+#   /  /getting-started  301
+
+# Moved when the markup reference was consolidated under Reference. The page was
+# published at the old path, so the old path has to keep resolving — this file is
+# the whole reason a restructure does not have to break existing links.
+/guides/diagrams-and-code  /reference/code-and-diagrams  301

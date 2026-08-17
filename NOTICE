@@ -1,0 +1,57 @@
+Duvlify
+Copyright (c) 2026 Guillaume Duvernay
+
+This product includes third-party material. Duvlify's own source is under the
+MIT License (see LICENSE); the items below carry their own terms, and two of
+them require attribution to be carried forward by anyone redistributing this
+software or the site it builds.
+
+--------------------------------------------------------------------------------
+Font Awesome Free — icon artwork
+--------------------------------------------------------------------------------
+Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Source:  https://fontawesome.com
+Via:     @iconify-json/fa6-solid, @iconify-json/fa6-brands
+
+Used by src/components/Icon.astro as a fallback tier, so that content authored
+for other documentation platforms — which commonly names Font Awesome icons —
+resolves without an edit. CC BY 4.0 requires attribution: this notice is it.
+
+The `fa6-brands` set consists of third-party logos. Those are trademarks of
+their respective owners, and the CC BY licence on the artwork grants no right
+to use a company's mark to imply endorsement or affiliation.
+
+--------------------------------------------------------------------------------
+Lucide — icon artwork
+--------------------------------------------------------------------------------
+Licence: ISC
+Source:  https://lucide.dev
+Via:     @lucide/astro, @iconify-json/lucide
+
+The primary icon set, used throughout the interface and available to content
+through <Icon name="..." />. Lucide is a fork of Feather (MIT, © Cole Bemis).
+
+--------------------------------------------------------------------------------
+Inter — typeface
+--------------------------------------------------------------------------------
+Licence: SIL Open Font License 1.1 (https://openfontlicense.org)
+Source:  https://rsms.me/inter, fetched through Google Fonts
+
+Not a repository dependency. Astro's fonts API downloads the family at build
+time and emits it into dist/, so a deployed site serves the font files from its
+own origin. The OFL travels with those files: a deployment that keeps the
+default `theme.font.sans` is redistributing Inter and must keep the licence
+available. The OFL also reserves the font's name — a modified version may not
+be distributed under the name "Inter".
+
+Set `theme.font.sans` in src/docs.config.ts to a system font stack to opt out
+entirely; nothing else in the build depends on it.
+
+--------------------------------------------------------------------------------
+Everything else
+--------------------------------------------------------------------------------
+The remaining dependencies are MIT, ISC or Apache-2.0 and impose no attribution
+duty beyond preserving their own licence text, which npm keeps alongside each
+package in node_modules/. Notable among them: Astro (MIT), Mermaid (MIT), the
+unified/remark/rehype ecosystem (MIT), Shiki (MIT), sharp (Apache-2.0), Zod
+(MIT). None of them ships code into the browser bundle under a copyleft term.

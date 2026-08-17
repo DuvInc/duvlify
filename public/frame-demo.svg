@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Abstract mountain landscape</title>
+  <desc id="desc">A quiet blue and green landscape used as a frame component preview.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b8e4f2"/>
+      <stop offset="1" stop-color="#f5f7f4"/>
+    </linearGradient>
+    <linearGradient id="ridge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6c9b90"/>
+      <stop offset="1" stop-color="#234a49"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="620" fill="url(#sky)"/>
+  <circle cx="930" cy="130" r="58" fill="#fff4c2" opacity=".9"/>
+  <path d="M0 430 215 230l145 120 155-190 230 270 165-150 290 220v120H0Z" fill="url(#ridge)"/>
+  <path d="m0 510 205-110 170 75 155-125 205 150 160-90 305 120v90H0Z" fill="#173b3a" opacity=".92"/>
+  <path d="M0 530c170-45 300-35 445 10 165 52 270 38 405-4 139-43 244-31 350 4v80H0Z" fill="#0f302f"/>
+</svg>

@@ -1,0 +1,25 @@
+---
+import Icon from './Icon.astro';
+
+interface Props {
+  id?: string;
+  level: 2 | 3;
+}
+
+const { id, level } = Astro.props;
+const Tag = `h${level}` as 'h2' | 'h3';
+---
+
+<Tag id={id} class="anchored-heading">
+  {id && (
+    <button class="heading-anchor-button" data-copy-heading={id} aria-label="Copy link to this section">
+      <Icon name="link" size={14} />
+    </button>
+  )}
+  <span
+    data-copy-heading={id}
+    title={id ? 'Copy link to this section' : undefined}
+    role={id ? 'button' : undefined}
+    tabindex={id ? 0 : undefined}
+  ><slot /></span>
+</Tag>

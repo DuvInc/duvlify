@@ -1,0 +1,40 @@
+name: Bug report
+description: Something behaves differently from what the documentation says.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: "0.1.0, or a commit SHA"
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations: { required: true }
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Paste the build error in full if there is one. It usually names the file at fault.
+    validations: { required: true }
+  - type: textarea
+    id: repro
+    attributes:
+      label: Smallest reproduction
+      description: >
+        The minimal content/ page and src/docs.config.ts that shows it. A link to
+        a repository is ideal; a pasted frontmatter block is often enough.
+    validations: { required: true }
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where it shows up
+      options:
+        - The build
+        - The rendered site
+        - The Markdown twins, llms.txt or share cards
+        - The agent surfaces (/mcp, /api/docs)
+        - Deployment
+    validations: { required: true }

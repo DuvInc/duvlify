@@ -1,0 +1,20 @@
+---
+/**
+ * One panel of a <Tabs> group. `title` becomes its tab label.
+ *
+ * There is deliberately no `id`. The prop existed and did nothing: scripts/tabs.ts
+ * assigns every panel its own id from the group's index (`${rootId}-panel-${n}`)
+ * and overwrites `panel.id` on the way, so an authored value was emitted to the
+ * DOM as `data-tab-id`, read by nothing, and then contradicted by the generated
+ * id it appeared to set. A prop that promises a stable anchor and delivers none
+ * is worse than no prop. Deep-linking to one tab would be a real feature, and it
+ * would have to start in tabs.ts rather than here.
+ */
+import Icon from './Icon.astro';
+interface Props { title?: string; icon?: string }
+const { title = 'Tab', icon } = Astro.props;
+---
+<section class="tab-panel" data-tab-title={title}>
+  {icon && <span hidden data-tab-icon-template><Icon name={icon} size={14} /></span>}
+  <slot />
+</section>

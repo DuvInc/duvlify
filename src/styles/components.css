@@ -1,0 +1,1463 @@
+/* Documentation content components.
+ *
+ * One block per component in src/components, in roughly the order they appear in
+ * mdx-components.ts. Everything here is driven by the token scale below rather
+ * than one-off values, so a component can be added or restyled without touching
+ * any other block.
+ *
+ * The visual language is deliberately narrow: a single hairline border, a soft
+ * sunken fill, generous padding, and radii that step down as elements nest. Colour
+ * is reserved for meaning (callout tone, active state, the brand accent) and is
+ * never decorative.
+ */
+
+
+
+/* ── Callout ─────────────────────────────────────────────────────────────── */
+
+.callout {
+  display: flex;
+  gap: 12px;
+  margin: 1rem 0;
+  padding: 16px 20px;
+  border: 1px solid var(--tone-info);
+  border-radius: var(--r-lg);
+  background: var(--tone-info-bg);
+  color: var(--tone-info-fg);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.callout.success, .callout.tip, .callout.check {
+  border-color: var(--tone-good); background: var(--tone-good-bg); color: var(--tone-good-fg);
+}
+.callout.warning {
+  border-color: var(--tone-warn); background: var(--tone-warn-bg); color: var(--tone-warn-fg);
+}
+.callout.danger {
+  border-color: var(--tone-bad); background: var(--tone-bad-bg); color: var(--tone-bad-fg);
+}
+.callout.custom {
+  border-color: var(--callout-color);
+  background: color-mix(in srgb, var(--callout-color) 10%, transparent);
+  color: color-mix(in srgb, var(--callout-color) 72%, var(--c-title));
+}
+.callout-icon {
+  flex: none;
+  /* Without align-self the grid box stretches to the callout's full height and
+     centres the glyph, which floats it mid-paragraph on multi-line callouts. */
+  align-self: flex-start;
+  margin-top: 2px;
+  display: grid;
+  place-items: center;
+  color: currentColor;
+}
+.callout-body { min-width: 0 }
+.callout-body > :first-child { margin-top: 0 }
+.callout-body > :last-child { margin-bottom: 0 }
+.callout-title { display: block; font-weight: 600; color: inherit }
+.callout-title + * { margin-top: 12px }
+.callout p { margin: 0 }
+.callout a, .callout code, .callout strong { color: currentColor }
+
+/* ── Banner ──────────────────────────────────────────────────────────────── */
+
+/* Top-aligned for the same reason as .callout-icon and .prompt-mark: the label
+   names the first line, and centring it drifts as the body wraps. Identical on
+   a one-line banner, which is most of them. */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 1.25rem 0;
+  padding: 10px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-sunken);
+  color: var(--c-mute);
+  font-size: 14px;
+}
+/* The same three tones as the site-wide strip, drawn the way a callout is —
+   tinted, not saturated — because this one sits in the reading column. */
+.banner.info { border-color: var(--tone-info); background: var(--tone-info-bg); color: var(--tone-info-fg) }
+.banner.warning { border-color: var(--tone-warn); background: var(--tone-warn-bg); color: var(--tone-warn-fg) }
+.banner.critical { border-color: var(--tone-bad); background: var(--tone-bad-bg); color: var(--tone-bad-fg) }
+.banner strong { color: currentColor; font-weight: 600 }
+.banner a, .banner code { color: currentColor }
+
+/* ── Button ──────────────────────────────────────────────────────────────── */
+
+/*
+ * The same chrome as the topbar's buttons — see `.header-primary` and
+ * `.header-secondary` in shell.css, which share this height, radius formula and
+ * icon gap. Two components, one button family, so an action in the article and
+ * an action in the bar are recognisably the same control.
+ *
+ * `align-items: center` with `line-height: 1` rather than a line-height that
+ * happens to match the height: a label that wraps inside a button is already a
+ * label too long for one, and this way it centres instead of overflowing.
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--r-md) + 2px);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+}
+.button svg { flex: none }
+.button-sm { height: 32px; padding: 0 12px; font-size: 12px }
+.button-md { height: 36px; padding: 0 14px; font-size: 13px }
+.button-lg { height: 44px; padding: 0 20px; font-size: 15px }
+/* Drawn from --header-primary-bg rather than --accent, so a site that gives its
+   call to action its own colour gets it here too and not only in the topbar. */
+.button-primary {
+  border-color: var(--header-primary-bg);
+  background: var(--header-primary-bg);
+  color: var(--header-primary-fg);
+}
+.button-primary:hover { opacity: .9 }
+.button-secondary {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+.button-secondary:hover { border-color: var(--c-border-strong); background: var(--surface-2) }
+.button-ghost { background: transparent; color: var(--text) }
+.button-ghost:hover { background: var(--surface-2) }
+.button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px }
+
+/* ── CTA ─────────────────────────────────────────────────────────────────── */
+
+/*
+ * Three layouts, because "where does the image go" and "where does the button
+ * go" are the same question in a row and different questions otherwise:
+ *
+ *   row    text left, action right. A mark may sit at the far left. Mid-page.
+ *   stack  everything centred, action last. End of a page.
+ *   split  text and action share one half, an image fills the other.
+ *
+ * `--cta-background` / `--cta-foreground` are set inline by the component when a
+ * page passes a colour, and default here to the variant's own. One indirection
+ * means every rule below reads the same two variables whether the colour came
+ * from the theme or from the page.
+ */
+.cta {
+  --cta-background: var(--c-sunken);
+  --cta-foreground: var(--c-body);
+  --cta-border: var(--c-border);
+  /* The action's own pair, read only by a filled block — see the note there. A
+     page can replace either through `actionBackground` / `actionForeground`. */
+  --cta-action-bg: var(--surface);
+  --cta-action-fg: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 1.5rem 0;
+  padding: 20px 24px;
+  border: 1px solid var(--cta-border);
+  border-radius: var(--r-lg);
+  background: var(--cta-background);
+  color: var(--cta-foreground);
+}
+.cta-accent {
+  --cta-background: var(--header-primary-bg);
+  --cta-foreground: var(--header-primary-fg);
+  --cta-border: var(--header-primary-bg);
+}
+.cta-outline {
+  --cta-background: transparent;
+}
+
+.cta-text { flex: 1; min-width: 0 }
+.cta-text > :first-child { margin-top: 0 }
+.cta-text > :last-child { margin-bottom: 0 }
+.cta-eyebrow {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  /* On a filled block the eyebrow is the one element allowed to recede, and it
+     cannot use a theme colour there — see the note on `.cta-filled` below. */
+  color: var(--accent-strong);
+}
+.cta-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+  color: var(--c-title);
+}
+.cta-description {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c-mute);
+}
+.cta-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The mark beside a row. A square well rather than a bare glyph, so it reads as
+   deliberate at the small size a row allows. */
+.cta-media { flex: none }
+.cta-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--c-sunken-strong);
+  color: var(--accent-strong);
+}
+.cta-media img {
+  display: block;
+  width: 88px;
+  height: auto;
+  border-radius: var(--r-md);
+}
+
+/*
+ * Centred, and wider-set. The description is capped rather than left to run the
+ * full width: centred text is measurably harder to scan long, so the block that
+ * invites the most reading is the one that gets the shortest line.
+ */
+.cta-stack {
+  flex-direction: column;
+  text-align: center;
+  padding: 32px 24px;
+}
+.cta-stack .cta-text { flex: none }
+.cta-stack .cta-description { max-width: 52ch; margin-inline: auto }
+.cta-stack .cta-actions { justify-content: center }
+.cta-stack .cta-media img { width: auto; max-width: 100%; max-height: 140px }
+
+/*
+ * The image is a flex item at 50%, not a background, so it keeps its own
+ * intrinsic ratio and cannot end up with text on top of it. `aspect-ratio` plus
+ * `object-fit: cover` reserves the space before the file arrives, which is the
+ * same layout-shift problem rehype-images.ts solves for content images — this
+ * component renders its own `<img>`, so no plugin sees it and the ratio has to
+ * come from here.
+ */
+.cta-split { align-items: stretch; padding: 0; overflow: hidden }
+.cta-split .cta-text { padding: 28px 28px 28px 32px; align-self: center }
+.cta-split .cta-actions { padding: 0 32px 28px 32px; align-self: center }
+.cta-split .cta-media { flex: 0 0 44%; align-self: stretch }
+.cta-split .cta-media img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0;
+}
+/* Split puts the text and the action in one column, so the block becomes a
+   two-column grid rather than the single flex row the other layouts use. */
+.cta-split {
+  display: grid;
+  grid-template-columns: 1fr 44%;
+  gap: 0;
+}
+.cta-split .cta-media { grid-row: 1 / span 2; grid-column: 2 }
+.cta-split.cta-media-start .cta-media { grid-column: 1 }
+.cta-split.cta-media-start .cta-text,
+.cta-split.cta-media-start .cta-actions { grid-column: 2 }
+.cta-split.cta-media-start { grid-template-columns: 44% 1fr }
+
+/*
+ * A block that sits on a colour of its own.
+ *
+ * Everything inside has to be redrawn from `currentColor`, because the theme's
+ * surface colours describe the page and this is not on the page any more: a
+ * `--surface` secondary button on an accent fill is a grey hole, and
+ * `--c-mute` grey text on a saturated colour is unreadable. Deriving from
+ * `currentColor` means one set of rules is correct on the accent and on whatever
+ * colour a page passes, without either having to know the other exists.
+ */
+.cta-filled { --cta-border: transparent }
+.cta-filled .cta-title,
+.cta-filled .cta-eyebrow { color: currentColor }
+/*
+ * Not dimmed, unlike the description on a plain block.
+ *
+ * Fading it to 78% read nicely and measured 3.39:1 on this site's accent, under
+ * the 4.5 that normal-size body text needs. There is no mix that rescues it
+ * either — white on that accent tops out at 4.51, so *any* reduction fails, and
+ * a page passing its own `background` could be tighter still. So the hierarchy
+ * between title and description here comes from size and weight, which cost no
+ * contrast and hold on whatever colour the block is given.
+ */
+.cta-filled .cta-description { color: currentColor }
+.cta-filled .cta-icon {
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: currentColor;
+}
+/*
+ * The button on a filled block is the topbar's secondary button: `--surface`
+ * behind `--text`, the same pair as `.header-secondary` in shell.css.
+ *
+ * That pair rather than the block's own two colours, which was the first
+ * attempt. Tinting the label with `--cta-background` gave a green-on-white pill
+ * on the accent — legible, but it read as a third brand colour in a block that
+ * already had one, and it measured 4.51:1 where this pair measures 12 or more.
+ *
+ * Mode-correct by construction, which a literal grey would not be: `--surface`
+ * and `--text` invert together, so the pill is light with dark text on a light
+ * page and dark with light text on a dark one. Hard-coding the grey would have
+ * put light text on a light pill the moment a reader switched to dark mode.
+ *
+ * Overridable through the two properties below, and deliberately not through
+ * `currentColor` — in `background: currentColor` the keyword resolves against
+ * the element's *own* colour, so an earlier version that set both from it
+ * collapsed to one value and rendered an invisible block. Measured, not
+ * imagined: computed style came back `rgb(22, 134, 106)` for the fill and the
+ * label alike.
+ */
+.cta-filled .button-primary {
+  border-color: var(--cta-action-bg);
+  background: var(--cta-action-bg);
+  color: var(--cta-action-fg);
+}
+/*
+ * These two have no fill on a filled block, so the border *is* the control's
+ * visible boundary and has to carry the 3:1 that WCAG 1.4.11 asks of one.
+ *
+ * Walked up by measurement, not by eye: 38% of the text colour gave 1.87 against
+ * this accent and 62% gave 2.70, both a shape you could lose against the fill.
+ * 76% measures comfortably past 3.
+ *
+ * A translucent wash instead of a brighter border was the tempting alternative
+ * and does not work — 18% of the text colour as a fill computes to 1.37, further
+ * from the threshold than the faint border it would replace. On a coloured block
+ * the boundary has to be a real outline, which is also what an outlined button on
+ * a hero has always looked like.
+ */
+.cta-filled .button-secondary,
+.cta-filled .button-ghost {
+  border-color: color-mix(in srgb, currentColor 76%, transparent);
+  background: transparent;
+  color: currentColor;
+}
+.cta-filled .button-secondary:hover,
+.cta-filled .button-ghost:hover {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.cta-filled .button:focus-visible { outline-color: currentColor }
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  background: var(--c-sunken-strong);
+  color: var(--c-mute);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  /*
+   * A flex box takes its baseline from its *first* flex item. With an icon that
+   * item is an SVG, a replaced element whose baseline is its bottom edge, so an
+   * icon badge sat about 2px higher than the text-only badge beside it — read as
+   * "the icon one is smaller" rather than as a misalignment. Centring the box on
+   * the text line instead makes the offset independent of what is inside it.
+   */
+  vertical-align: middle;
+  /*
+   * Held here so the outlined variants below swap a colour rather than add a
+   * box. Height is `auto`, and `box-sizing` only governs a declared size, so a
+   * 1px border on those variants alone made them 2px taller than a filled badge
+   * on the same line.
+   */
+  border: 1px solid transparent;
+}
+/* One hue per colour, from the mode-aware palette in tokens.css, tinted by the
+   same two mixes everywhere — so adding a colour is one token and one line. */
+.badge.blue { --badge-color: var(--badge-blue) }
+.badge.green { --badge-color: var(--badge-green) }
+.badge.yellow, .badge.warning { --badge-color: var(--badge-yellow) }
+.badge.orange { --badge-color: var(--badge-orange) }
+.badge.red, .badge.danger { --badge-color: var(--badge-red) }
+.badge.purple { --badge-color: var(--badge-purple) }
+.badge.blue, .badge.green, .badge.yellow, .badge.warning,
+.badge.orange, .badge.red, .badge.danger, .badge.purple {
+  background: color-mix(in srgb, var(--badge-color) 14%, transparent);
+  color: color-mix(in srgb, var(--badge-color) 78%, var(--c-title));
+}
+/*
+ * `white` and `surface` name a chrome rather than a hue: an outlined chip that
+ * sits on the page, and one that sits on a raised surface. Drawn from --bg and
+ * --c-sunken-strong rather than from #fff, so "white" in dark mode is the
+ * page's own paper — a literal white pill on a near-black page is a hole, not
+ * a badge. The destructive pair is the same chrome carrying the red text.
+ */
+.badge.white { border: 1px solid var(--c-border-strong); background: var(--bg); color: var(--c-title) }
+.badge.surface { border: 1px solid var(--c-border); background: var(--c-sunken-strong); color: var(--c-title) }
+.badge.white-destructive, .badge.surface-destructive { color: var(--badge-red) }
+.badge.white-destructive {
+  border: 1px solid color-mix(in srgb, var(--badge-red) 42%, var(--c-border));
+  background: var(--bg);
+}
+.badge.surface-destructive {
+  border: 1px solid var(--c-border);
+  background: color-mix(in srgb, var(--badge-red) 12%, transparent);
+}
+.badge-xs { padding: 1px 5px; font-size: 10px }
+.badge-sm { padding: 1px 6px; font-size: 12px }
+.badge-lg { padding: 4px 10px; font-size: 15px }
+.badge-pill { border-radius: 999px }
+/* Qualified with .badge so it outranks the colour rules above on specificity
+   and source order, rather than on !important. */
+.badge.badge-stroke { border: 1px solid currentColor; background: transparent }
+.badge.disabled { opacity: .48; cursor: not-allowed }
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+
+/* `--card-columns` is set by CardGroup's `cols`; two is the default. The
+   `auto-fit` floor keeps a four-column group from crushing its cards on a
+   medium screen — it drops to three, then two, before the mobile rule below
+   takes it to one. */
+/*
+ * There used to be a per-card width cap here:
+ *
+ *   max-width: calc(var(--card-columns) * 320px + (var(--card-columns) - 1) * 16px)
+ *
+ * It had exactly one effect in the whole design system, and it was the wrong
+ * one. The reading column is 712px at its widest, so the cap resolved to 992px
+ * at three columns and 1328px at four — unreachable, dead arithmetic. That left
+ * two columns, the default: 2 x 320 + 16 = 656px, which is *narrower* than the
+ * column, so the commonest card group on any page sat up to 56px short of the
+ * right edge that every paragraph, callout, code block and step list shares.
+ *
+ * Removing the cap fixed that, and broke the thing it was never actually doing:
+ * bounding the column count. A flat 210px floor with no upper bound is a
+ * function of container width alone, not of `cols` — the reading column fits
+ * three 210px tracks (3 x 210 + 2 x 16 = 662 < 712) whether a group asks for
+ * two, three or four, so `cols={2}` on four cards rendered 3-then-1 rather
+ * than 2-and-2. Only `cols={1}` ever worked, because it was a special case
+ * below rather than a value this formula read.
+ *
+ * The fix makes the floor itself a function of `--card-columns`: each track's
+ * minimum is whichever is larger, 210px or an exact N-way share of the row. At
+ * N columns and a full-width row, the share equals 210px near-exactly by
+ * construction (won't stay after a redesign, but bounds `auto-fit` correctly
+ * regardless), so `auto-fit` cannot pack more than N tracks — the share leaves
+ * no room for one more. Below that width, the 210px floor takes over and the
+ * grid degrades to fewer columns exactly as `auto-fit` should on a phone. One
+ * formula now covers every count, including one, so the dedicated
+ * `[data-columns="1"]` rule this file used to carry is gone: dividing a full
+ * row by one column always yields the row's own width, which is what that
+ * rule hardcoded by hand.
+ */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(max(210px, calc((100% - (var(--card-columns) - 1) * 16px) / var(--card-columns))), 1fr)
+  );
+  gap: 16px;
+  margin: 1.25rem 0;
+}
+
+.card {
+  position: relative;
+  display: block;
+  margin: .5rem 0;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  transition: border-color .15s ease;
+}
+.card-body { padding: 20px 24px }
+.card-text { min-width: 0 }
+/* font-size sizes a plain-text/emoji icon; an <Icon> SVG is sized by its own
+   `size` prop instead and just inherits the colour via currentColor. */
+.card-icon:not(:empty) { margin-bottom: 16px; display: flex; align-items: center; color: var(--c-title); font-size: 20px; line-height: 1 }
+.card-icon:empty { display: none }
+
+/* Header image, flush to the card's top edge and clipped by its radius. */
+.card-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover }
+
+/* Horizontal: the icon sits beside the text instead of above it. */
+.card.horizontal .card-body { display: flex; align-items: center; gap: 16px }
+.card.horizontal .card-icon:not(:empty) { margin-bottom: 0 }
+
+/* Call-to-action row. Replaces the corner arrow when present. */
+.card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-mute);
+  transition: color .15s ease, gap .15s ease;
+}
+a.card:hover .card-cta { color: var(--accent-strong); gap: 9px }
+/* Card and step titles are h3 elements; opt them out of the article heading scale. */
+.card .card-title { margin: 0; font-size: 16px; line-height: 1.5; font-weight: 600; color: var(--c-title) }
+.card-content { margin-top: 4px; font-size: 15px; line-height: 1.55; color: var(--c-mute) }
+.card-content > :first-child { margin-top: 0 }
+.card-content > :last-child { margin-bottom: 0 }
+.card-content p { margin: 0 }
+
+.card-arrow { position: absolute; top: 20px; right: 20px; display: grid; color: var(--c-faint); transition: color .15s ease }
+a.card { cursor: pointer }
+a.card:hover { border-color: var(--accent-strong) }
+a.card:hover .card-arrow { color: var(--accent-strong) }
+a.card:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent-strong) }
+
+/* ── Tile ────────────────────────────────────────────────────────────────── */
+
+
+.tile { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+a.tile { cursor: pointer }
+
+/*
+ * The plus lattice: a faint texture behind a preview, so a tile reads as a
+ * surface rather than a hole.
+ *
+ * Drawn as a *mask* rather than as a background image. The SVG supplies only the
+ * shape; the colour is `--c-lattice`, a token. As a background image the colour
+ * had to be written inside the data URI, which meant the whole pattern existed
+ * twice — once per colour mode — with a hardcoded hex in each, and no single
+ * value to tune. One shape, one knob, and any surface can now carry it.
+ */
+.plus-lattice { position: relative }
+.plus-lattice::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: var(--c-lattice);
+  mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='%23000' stroke-width='1' stroke-linecap='round'%3E%3Cline x1='12' y1='7' x2='12' y2='17'/%3E%3Cline x1='7' y1='12' x2='17' y2='12'/%3E%3C/g%3E%3C/svg%3E");
+  mask-size: 24px 24px;
+  mask-position: center;
+}
+
+.tile-preview {
+  display: grid;
+  place-items: center;
+  height: 170px;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background-color: var(--c-sunken);
+}
+/* Positioned, so it paints above the lattice: both are in the positioned layer
+   and this one comes later in DOM order. */
+.tile-preview-inner { position: relative; display: grid; place-items: center; padding: 32px; font-size: 28px; line-height: 1 }
+.tile-preview-inner :where(img, svg) { max-width: 100%; max-height: 100%; height: auto }
+
+.tile-text { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; text-align: center }
+.tile-title { margin: 0; font-size: 16px; line-height: 1.5; font-weight: 500; letter-spacing: -0.2px; color: var(--c-title) }
+.tile-description { margin: 0; font-size: 14px; line-height: 1.45; letter-spacing: -0.1px; color: var(--c-mute) }
+
+/* ── Frame ───────────────────────────────────────────────────────────────── */
+
+.frame-wrap { margin: 1.5rem 0 }
+.frame-hint { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 14px; font-weight: 500; color: var(--c-body) }
+
+/*
+ * The content well sits inside a softly tinted outer frame.
+ *
+ * Deliberately *not* carrying `.plus-lattice`, and worth recording why, because
+ * the obvious next thought is to reuse the tile texture here. It was tried
+ * twice. The reason it fails is geometric, not chromatic: `.frame-content` fills
+ * the frame, so the only place a texture can show is the 8px gutter and the
+ * caption band — where it runs behind the caption text and rings a photograph
+ * with noise. Widening the gutter does not rescue it; it makes a bigger ring.
+ * A tile preview works because the texture *is* the surface, sized to be seen.
+ */
+.frame {
+  position: relative;
+  margin: 0;
+  padding: 8px;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background-color: color-mix(in srgb, var(--c-sunken) 50%, transparent);
+}
+/* Decorative hairline drawn on top of the padding gutter. */
+.frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border: 1px solid var(--c-border-soft);
+  border-radius: var(--r-lg);
+}
+.frame-content {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--r-md);
+}
+.frame-content > :where(img, video, svg, iframe) { display: block; width: 100%; height: auto; margin: 0 }
+/*
+ * Framed and plain prose images open in the lightbox (see shell.css); other
+ * images — card headers, tile previews, icons — are decorative or already
+ * small, and don't invite zooming.
+ *
+ * `border-radius` here is not decorative on `.frame-content > img`: it is
+ * `.frame-content`'s own rounding, restated. That parent already clips to
+ * this radius with `overflow: hidden`, so the image looks identical either
+ * way today — but a plain `![]()` in prose has no such parent, and its
+ * corners were square while everything else in the theme was not. One rule
+ * for both means an author dropping a screenshot straight into a paragraph
+ * gets the same corners as one who wraps it in `<Frame>`, without having to
+ * know that distinction exists.
+ */
+.frame-content > img, .mdx-content p > img {
+  border-radius: var(--r-md);
+  cursor: zoom-in;
+  transition: opacity .15s ease;
+}
+.frame-content > img:hover, .mdx-content p > img:hover { opacity: .92 }
+/* An iframe has no intrinsic size the way an image does — `height: auto` alone
+   collapses it to nothing — so a video embed needs its own rule fixing the
+   aspect ratio, plus dropping the border the element still draws by default in
+   some browsers even with `frameborder` gone from HTML. remark-video-embed.ts
+   is what puts an iframe inside `.frame-content` in the first place. */
+.frame-content > iframe { aspect-ratio: 16 / 9; border: 0 }
+.frame-content > :not(img):not(video):not(svg):not(iframe) { display: block; width: 100%; margin: 0; padding: 1.5rem }
+/* Transparent, so the caption reads as part of the frame rather than a white
+   strip pasted underneath the content. */
+.frame-caption {
+  position: relative;
+  margin: 12px 0 0;
+  padding: 0 32px 8px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-body);
+}
+
+/* ── Columns and panel ───────────────────────────────────────────────────── */
+
+.columns { display: grid; grid-template-columns: repeat(var(--columns, 2), minmax(0, 1fr)); gap: 16px; margin: 1.25rem 0 }
+.columns > * { margin: 0 }
+.column { min-width: 0 }
+
+.panel { margin: 1.25rem 0; padding: 20px 24px; border: 1px solid var(--c-border); border-radius: var(--r-lg); background: var(--surface) }
+/* A panel's own rhythm. The prose rules in shell.css space paragraphs that are
+   direct children of `.mdx-content`, which these are not, so a panel of several
+   paragraphs ran them together — in the article and in the right rail alike. */
+.panel > p { margin: 0 0 10px }
+.panel > :first-child { margin-top: 0 }
+.panel > :last-child { margin-bottom: 0 }
+
+/* ── Code block ──────────────────────────────────────────────────────────── */
+
+/* The 2px outer padding is what turns the border into a thin gutter around the
+   header and body rather than a single stroke: the inner line reads as a seam
+   between the two, the outer as the frame around both. */
+.code-block {
+  margin: 1.25rem 0 2rem;
+  padding: 2px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-sunken);
+}
+.code-block-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px 4px 14px;
+  /* Concentric with .code-block's own var(--r-lg), inset by its 2px padding —
+     the same derivation .code-tabs .code-block-body already uses below. This
+     used to be a literal 14px, which only matched by coincidence while
+     --r-lg was 16px; a site with a different radius scale got a header
+     corner that didn't line up with the block around it. */
+  border-radius: calc(var(--r-lg) - 2px) calc(var(--r-lg) - 2px) 0 0;
+  font-size: 12px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--c-mute);
+}
+.code-block-filename { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-body) }
+
+/* Copy button: a fixed 26px square holding both icons stacked in the same grid
+   cell, so confirming a copy crossfades to a checkmark without the button
+   changing size or the label overflowing. */
+.copy-button {
+  margin-left: auto;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: transparent;
+  color: var(--c-faint);
+  cursor: pointer;
+}
+.copy-button:hover { background: var(--c-sunken-strong); color: var(--c-title) }
+.copy-button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 1px }
+.copy-button > span {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.32, .72, 0, 1);
+}
+.copy-button-done { opacity: 0; transform: scale(.6); color: var(--accent-strong) }
+.copy-button.copied .copy-button-idle { opacity: 0; transform: scale(.6) }
+.copy-button.copied .copy-button-done { opacity: 1; transform: scale(1) }
+.copy-button.copied { color: var(--accent-strong) }
+
+/* Same idea as .copy-button, generalised to a button whose confirmed state has
+   its own label ("Copy page" → "Copied") rather than just an icon. Both states
+   are grid-stacked in one cell, so the button's width is the wider of the two
+   from the very first paint and never changes when it confirms. */
+.copy-swap { position: relative; display: grid }
+.copy-swap > span {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.32, .72, 0, 1);
+}
+.copy-swap-done { opacity: 0; transform: scale(.96); color: var(--accent-strong) }
+.copy-swap.copied .copy-swap-idle { opacity: 0; transform: scale(.96) }
+.copy-swap.copied .copy-swap-done { opacity: 1; transform: scale(1) }
+.copy-swap.copied { color: var(--accent-strong) }
+
+/* Same derivation as the header above, and as .code-tabs .code-block-body
+   below — concentric with the outer block, inset by its 2px padding. */
+.code-block-body { border-radius: calc(var(--r-lg) - 2px); background: var(--surface); overflow: hidden }
+.code-block pre { margin: 0; padding: 14px 16px; overflow: auto }
+.code-block pre:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -3px }
+
+/* Fenced Markdown gets the same surface without the filename header. */
+.code-block pre, .code-block code, .mdx-content > pre, .mdx-content > pre code {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 24px;
+  color: var(--c-title);
+  background: transparent;
+}
+.mdx-content > pre {
+  margin: 1.25rem 0 2rem;
+  padding: 14px 16px;
+  overflow: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+/* Shiki emits both themes as custom properties (see astro.config.mjs) and we
+   pick one per colour mode. Only the token colours come from Shiki — the code
+   surface stays ours, so fences match hand-authored <CodeBlock> exactly. */
+.astro-code, .astro-code span { color: var(--shiki-light) }
+[data-theme="dark"] .astro-code, [data-theme="dark"] .astro-code span { color: var(--shiki-dark) }
+
+/* Hand-authored <CodeBlock> markup uses plain class names for its tokens. */
+.code-block .keyword { color: #9a3412 }
+.code-block .string { color: #166534 }
+.code-block .comment { color: var(--c-faint) }
+[data-theme="dark"] .code-block .keyword { color: #fdba74 }
+[data-theme="dark"] .code-block .string { color: #86efac }
+
+/* ── Fields (ParamField / ResponseField) ─────────────────────────────────── */
+
+.field { margin: 10px 0; padding: 10px 0 20px; border-bottom: 1px solid var(--c-border-soft) }
+.field-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px }
+/* A <code> element, so it must out-specify the inline-code pill styling. */
+.field .field-name {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+.field-pill {
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  background: var(--c-sunken-strong);
+  color: var(--c-mute);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.field-pill.required { background: var(--tone-bad-bg); color: #b91c1c }
+.field-pill.deprecated { background: var(--tone-warn-bg); color: var(--tone-warn-fg); text-decoration: line-through }
+[data-theme="dark"] .field-pill.required { color: #fca5a5 }
+.field-content { margin-top: 6px; font-size: 14px; line-height: 1.55; color: var(--c-mute) }
+.field-content > :first-child { margin-top: 0 }
+.field-content > :last-child { margin-bottom: 0 }
+.field-content p { margin: 0 }
+
+/* ── Accordion and expandable ────────────────────────────────────────────── */
+
+.accordion-item, .expandable { overflow: hidden }
+.accordion-item summary, .expandable summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.accordion-item summary::-webkit-details-marker, .expandable summary::-webkit-details-marker { display: none }
+.disclosure-caret { flex: none; display: grid; place-items: center; color: var(--c-mute); transition: transform .2s ease }
+details[open] > summary .disclosure-caret { transform: rotate(90deg) }
+
+/* Accordion: a filled card. */
+.accordion-item {
+  margin: 12px 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.accordion-item summary { padding: 16px 20px; font-weight: 500; color: var(--c-title) }
+.accordion-label { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px }
+.accordion-label small { color: var(--c-mute); font-size: 13px !important; font-weight: 400 }
+.accordion-icon { flex: none; display: grid; place-items: center; color: var(--c-mute) }
+.accordion-item summary:hover { background: var(--c-sunken-strong) }
+.accordion-body { margin: 8px 24px 16px; color: var(--c-mute); font-size: 14px; line-height: 1.55 }
+.accordion-body > :first-child { margin-top: 0 }
+.accordion-body > :last-child { margin-bottom: 0 }
+
+/* Accordion group: one shared box with dividers instead of stacked cards. */
+.accordion { margin: 1.25rem 0; border: 1px solid var(--c-border); border-radius: var(--r-md); overflow: hidden }
+.accordion > .accordion-item, .accordion > .expandable {
+  margin: 0; border: 0; border-radius: 0; background: transparent;
+}
+.accordion > * + * { border-top: 1px solid var(--c-border) }
+
+/* Expandable: the lighter cousin — transparent, tighter, smaller type. */
+.expandable { margin: 1rem 0; border: 1px solid var(--c-border); border-radius: var(--r-md) }
+.expandable summary { padding: 12px 14px; font-size: 14px; color: var(--c-mute) }
+.expandable summary:hover { background: var(--c-sunken); color: var(--c-title) }
+.expandable-body {
+  margin: 0 12px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--c-border-soft);
+  color: var(--c-mute);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.expandable-body > :first-child { margin-top: 0 }
+.expandable-body > :last-child { margin-bottom: 0 }
+
+/* ── Steps ───────────────────────────────────────────────────────────────── */
+
+.steps { counter-reset: step; margin: 2.5rem 0 1.5rem; padding-left: 14px }
+.step { counter-increment: step; position: relative; padding: 0 0 20px 32px }
+.step::before {
+  content: var(--step-number, counter(step));
+  position: absolute;
+  left: -14px;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--c-sunken-strong);
+  color: var(--c-title);
+  font-size: 12px;
+  font-weight: 600;
+}
+.step-icon {
+  position: absolute;
+  z-index: 1;
+  left: -14px;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--c-sunken-strong);
+  color: var(--c-title);
+}
+.step-with-icon::before { visibility: hidden }
+.steps[data-title-size="h2"] .step-title { font-size: 22px }
+.steps[data-title-size="h3"] .step-title { font-size: 18px }
+/* Hairline connector, offset to sit through the centre of the markers. */
+.step::after { content: ''; position: absolute; left: 0; top: 36px; bottom: 0; width: 1px; background: var(--c-border) }
+.step:last-child::after { background: linear-gradient(to bottom, var(--c-border) 70%, transparent) }
+.step .step-title { margin: 3px 0 0; font-size: 16px; line-height: 1.5; font-weight: 600; color: var(--c-title) }
+.step-content { margin-top: 4px; color: var(--c-mute); font-size: 15px; line-height: 1.6 }
+.step-content > :first-child { margin-top: 0 }
+.step-content > :last-child { margin-bottom: 0 }
+.step-content p { margin: 0 }
+
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+
+.tabs { margin: 1.25rem 0 }
+/* The strip is filled in by scripts/tabs.ts, which is the only thing that can
+   read a slot's panels. Until it runs, show the first panel and nothing else —
+   otherwise every panel of every group would flash stacked on top of each
+   other. `[data-tabbed]` marks the moment the script has taken over. */
+/* The bar holds the tablist and, in a code group, the copy button beside it.
+   The rule lives here rather than on .tab-list because `role="tablist"` may
+   only contain tabs — so the button has to be a sibling of the list. */
+.tab-bar { display: flex; align-items: stretch; gap: 12px; border-bottom: 1px solid var(--c-border) }
+.tab-bar > .tab-list { flex: 1; min-width: 0; border-bottom: 0 }
+/* Nothing to show until scripts/tabs.ts has built the tabs. */
+.tabs:not([data-tabbed]) > .tab-bar { display: none }
+.tabs:not([data-tabbed]) > [data-tab-title] ~ [data-tab-title] { display: none }
+/* overflow-x alone is not enough: the spec converts a `visible` overflow-y to
+   `auto` whenever the other axis isn't `visible`, so any 1px vertical overflow
+   (e.g. from the active tab's underline) draws a spurious vertical scrollbar. */
+.tab-list { display: flex; gap: 24px; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--c-border) }
+.tab-list button:not(.copy-button) {
+  flex: none;
+  padding: 12px 0 10px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--c-mute);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.tab-list button:not(.copy-button) svg { display: inline-block; margin-right: 6px; vertical-align: -2px }
+.tabs-border-bottom { padding-bottom: 20px; border-bottom: 1px solid var(--c-border) }
+.tab-bar > .copy-button { align-self: center; flex: none }
+.tab-list button:not(.copy-button):hover { color: var(--c-title) }
+.tab-list button:not(.copy-button).active { border-bottom-color: var(--accent-strong); color: var(--accent-strong) }
+.tab-panel { padding: 24px 0 0; color: var(--c-mute); font-size: 15px; line-height: 1.6 }
+.tab-panel > :first-child { margin-top: 0 }
+.tab-panel > :last-child { margin-bottom: 0 }
+/* A code group is one card: the filename tabs live inside the same bordered,
+   rounded shell as the code, with the copy button on the tab row. The nested
+   code block therefore gives up its own border, fill and margins and becomes
+   just the code surface. */
+.code-tabs {
+  margin: 1.25rem 0 2rem;
+  padding: 2px;
+  overflow: hidden;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-sunken);
+}
+.code-tabs > .tab-bar {
+  gap: 0;
+  padding: 0 10px 0 8px;
+  border-bottom: 0;
+  min-height: 34px;
+  align-items: center;
+}
+.code-tabs .tab-list {
+  gap: 4px;
+  border-bottom: 0;
+  align-items: center;
+}
+.code-tabs-dropdown .tab-list { display: none }
+.code-tabs-dropdown { position: relative; z-index: 2; overflow: visible }
+/*
+ * The code group's language selector: the shared select from scripts/dropdown.ts,
+ * dressed to sit on a code block's header row.
+ *
+ * Only the differences are here. The chevron, the check, the menu and the
+ * trigger's own behaviour come from `.api-select-*` in api-reference.css — the
+ * chevron and check used to be redrawn from CSS borders in this block, a second
+ * pair of glyphs for the same two shapes.
+ */
+.code-language-select { margin-left: auto }
+/* The selector owns the row's one auto margin, exactly like the API request
+   language control. Leaving the generic Copy button's auto margin in place
+   would split the free space between both controls and centre the selector. */
+.code-tabs-dropdown .tab-bar > .copy-button { margin-left: 0 }
+/*
+ * Nothing about the trigger's appearance is set here on purpose.
+ *
+ * It used to be given a filled surface, a border and accent-coloured text, which
+ * made it a prominent button on a code block's header row — and made it look
+ * unlike the request-language selector in the OpenAPI panel, which is the same
+ * control doing the same job. Inheriting `.api-select-trigger` unchanged means
+ * both are quiet until pointed at, and there is one appearance to maintain.
+ * Only the menu's placement differs, because this one hangs off a header row.
+ */
+.code-language-select .api-select-menu { top: calc(100% + 7px); width: 184px }
+/* Tabs are quieter here than content tabs, and the indicator is a rounded bar
+   floating below the label rather than a full-width underline. */
+.code-tabs .tab-list button:not(.copy-button) {
+  position: relative;
+  padding: 4px 6px 6px;
+  margin: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-mute);
+}
+.code-tabs .tab-list button:not(.copy-button):hover { background: var(--c-sunken-strong); color: var(--c-title) }
+.code-tabs .tab-list button:not(.copy-button).active { background: transparent; color: var(--accent-strong) }
+.code-tabs .tab-list button:not(.copy-button)::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.code-tabs .tab-list button:not(.copy-button).active::after { opacity: 1 }
+
+.code-tabs .tab-panel { padding: 0 }
+.code-tabs .code-block {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+/* When a tab strip exists the tabs already name each file, so the nested headers
+   collapse away. A single-file group has no tab strip, so it keeps its own header
+   — and therefore its filename and copy button. */
+.code-tabs[data-tabbed] .code-block-header { display: none }
+.code-tabs .code-block-body { border-radius: calc(var(--r-lg) - 2px) }
+
+/* ── Prompt ──────────────────────────────────────────────────────────────── */
+
+/* Top-aligned, not centred. The mark and the actions belong beside the prompt's
+   *first* line: centring them drifted further from the title the longer the
+   prompt got — a title, a description and three lines of instruction put the
+   mark level with the middle of the body, which reads as a mistake. */
+.prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 1.25rem 0;
+  padding: 14px 16px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-sunken);
+}
+/* Optical alignment with the cap height of the first line, not its box. */
+.prompt-mark { flex: none; display: grid; margin-top: 2px; color: var(--accent-strong) }
+.prompt-body { flex: 1; min-width: 0 }
+.prompt-body > strong { display: block; margin-bottom: 2px; font-size: 14px; font-weight: 600; color: var(--c-title) }
+.prompt-body > p { margin: 0 0 6px; font-size: 14px; color: var(--c-mute) }
+.prompt-cursor { flex: none; padding: 8px 2px; color: var(--accent-strong); font-size: 13px; font-weight: 600; text-decoration: none }
+.prompt-body [data-prompt-content] { font-size: 14px; line-height: 1.5; color: var(--c-body) }
+.prompt > button {
+  flex: none;
+  padding: 7px 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--c-title);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.prompt > button:hover { border-color: var(--accent-strong); color: var(--accent-strong) }
+
+/* ── Tooltip ─────────────────────────────────────────────────────────────── */
+
+.tooltip {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted var(--c-faint);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.tooltip:hover::after, .tooltip:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 256px;
+  padding: 12px 16px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--c-mute);
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 10px 16px -3px rgb(10 10 10 / .06), 0 3px 10px -2px rgb(10 10 10 / .03);
+}
+.tooltip:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; border-radius: 2px }
+
+/* ── File tree ───────────────────────────────────────────────────────────── */
+
+.file-tree {
+  margin: 1.25rem 0;
+  padding: 12px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+/* A Markdown list inside <Tree>. The rows themselves are built by
+   scripts/rich-components.ts and carry the same icons as <TreeFile>, so all
+   this has to undo is the list's own bullets and indentation. */
+.file-tree ul { margin: 0; padding: 0; list-style: none }
+.file-tree li { margin: 0; list-style: none }
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--r-sm);
+  color: var(--c-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  list-style: none;
+}
+.tree-row::-webkit-details-marker { display: none }
+.tree-row:hover { background: var(--c-sunken-strong) }
+.tree-row svg { flex: none; color: var(--c-faint) }
+.tree-folder > summary { cursor: pointer }
+.tree-folder-static > .tree-row { cursor: default }
+.tree-row.highlight, .tree-folder.highlight > .tree-row {
+  background: color-mix(in srgb, var(--tree-highlight, var(--accent)) 15%, transparent);
+  color: var(--c-title);
+}
+.tree-folder.highlight .tree-branch .tree-row {
+  color: color-mix(in srgb, var(--tree-highlight, var(--accent)) 65%, var(--c-title));
+}
+.file-tree [role="treeitem"]:focus-visible > .tree-row,
+.file-tree .tree-row[role="treeitem"]:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px }
+/* One guide line per nesting level, aligned under the parent folder's icon. */
+.tree-branch { position: relative; padding-left: 22px }
+.tree-branch::before { content: ''; position: absolute; left: 14px; top: 0; bottom: 4px; width: 1px; background: var(--c-border) }
+
+/* ── Color swatches ──────────────────────────────────────────────────────── */
+
+.color-palette { margin: 1.25rem 0 }
+/* Built as `color-${variant}` in Color.astro, where `compact` is the default, so
+   this rule styles every <Color> that names no variant. It reads as unused to a
+   text search precisely because nothing writes the class name literally. */
+.color-compact { display: flex; flex-wrap: wrap; gap: 16px }
+.color-row { display: flex; flex-wrap: wrap; gap: 16px }
+.color-table { display: grid; border: 1px solid var(--c-border); border-radius: var(--r-md); overflow: hidden }
+/*
+ * A row is unframed by default and only becomes a table cell inside
+ * <Color variant="table">. Written this way round because <ColorRow> was an
+ * alias for the plain row before the table variant existed, and pages that
+ * still use it that way have to keep rendering as a row.
+ *
+ * The 140px label column is likewise only reserved when there is a label for
+ * it, so a title-less row is swatches rather than a 140px indent.
+ */
+.color-table-row { display: grid; gap: 10px }
+.color-table-row:has(.color-row-title) { grid-template-columns: 140px 1fr; gap: 20px }
+.color-table > .color-table-row { padding: 16px; border-bottom: 1px solid var(--c-border) }
+.color-table > .color-table-row:last-child { border-bottom: 0 }
+.color-row-title { color: var(--c-title); font-size: 14px }
+.swatch { display: flex; flex-direction: column; gap: 8px; width: 104px; text-align: center }
+.swatch i { display: block; aspect-ratio: 1; border: 1px solid var(--c-border); border-radius: var(--r-sm); background: var(--swatch-light) }
+[data-theme="dark"] .swatch i { background: var(--swatch-dark) }
+.swatch strong { font-size: 14px; font-weight: 500; color: var(--c-title) }
+.swatch span {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--c-mute);
+}
+
+/* ── Update ──────────────────────────────────────────────────────────────── */
+
+.update { display: flex; flex-direction: column; gap: 8px; padding: 32px 0; border-bottom: 1px solid var(--c-border-soft) }
+.update-rail { flex: none }
+.update-label {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-strong);
+  font-size: 14px;
+  font-weight: 500;
+}
+.update-content { min-width: 0; color: var(--c-mute); font-size: 15px; line-height: 1.6 }
+.update-content h3 { margin: 0 0 6px; font-size: 18px; line-height: 1.4; font-weight: 600; color: var(--c-title) }
+.update-description { margin: 0 0 8px; color: var(--c-mute); font-size: 14px }
+.update-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 }
+.accordion-item summary, .accordion-item summary * { font-size: 16px }
+.update-content > :last-child { margin-bottom: 0 }
+
+@media (min-width: 1024px) {
+  .update { flex-direction: row; align-items: flex-start; gap: 24px }
+  .update-rail { width: 160px }
+}
+
+/* ── Endpoint and response table ─────────────────────────────────────────── */
+
+.endpoint-row { display: flex; align-items: center; gap: 8px; margin: 1.1rem 0 1.6rem }
+.api-method {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+.endpoint {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--c-title);
+}
+
+/* ── Mermaid placeholder ─────────────────────────────────────────────────── */
+
+/* A real Mermaid diagram, drawn client-side by scripts/mermaid.ts. The library
+   is only fetched on pages that contain one, and the drawing is re-rendered
+   when the colour mode changes. Before it arrives the definition is hidden
+   rather than shown as raw text. */
+.diagram {
+  position: relative;
+  margin: 1.25rem 0;
+  padding: 24px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-sunken);
+  text-align: center;
+  /* Reserves a plausible height so the page doesn't jump when the SVG lands. */
+  min-height: 140px;
+}
+/* Until scripts/mermaid.ts takes ownership, the definition stays visible as
+   preformatted text. If the library never loads — no JavaScript, a failed
+   request, a tab closed before it scrolled into view — a reader gets the
+   readable source rather than an empty box. `data-mermaid-pending` is set the
+   moment the script commits to rendering, and removed if rendering fails. */
+.diagram .mermaid {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  color: var(--c-mute);
+}
+.diagram .mermaid[data-mermaid-pending]:not([data-processed]) { visibility: hidden }
+.diagram .mermaid[data-processed] { white-space: normal; text-align: center }
+/* Only a diagram with pan/zoom controls clips: panning is what needs a
+   viewport to pan inside. A static one keeps scrolling if it overflows, which
+   is the only way to read a wide diagram that has no controls to move it. */
+.diagram .mermaid { overflow: auto }
+.diagram .mermaid[data-mermaid-interactive] { overflow: hidden }
+.diagram svg { max-width: 100%; height: auto; margin-inline: auto; transform-origin: center; transition: transform .15s ease }
+.diagram-controls {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 32px);
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 10px 28px rgb(0 0 0 / .08);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
+  transition: opacity .16s ease, transform .16s ease;
+}
+/*
+ * Shown on hover, or on *keyboard* focus — `:focus-visible`, not `:focus-within`.
+ *
+ * Closing the fullscreen viewer returns focus to the button that opened it,
+ * which is the correct thing to do for a keyboard user and exactly what
+ * `:focus-within` cannot tell apart from a mouse click: after the dialog closed,
+ * the pad stayed pinned open over a diagram nobody was pointing at.
+ * `:focus-visible` is the distinction — it matches when the browser judges the
+ * focus worth showing, which is the same condition under which the pad should
+ * stay reachable.
+ */
+.diagram:hover .diagram-controls,
+.diagram:has(:focus-visible) .diagram-controls { opacity: 1; pointer-events: auto; transform: translateY(0) }
+.diagram-controls.top-left { top: 10px; left: 10px }
+.diagram-controls.top-right { top: 10px; right: 10px }
+.diagram-controls.bottom-left { bottom: 10px; left: 10px }
+.diagram-controls.bottom-right { right: 10px; bottom: 10px }
+.diagram-controls button { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--c-border); border-radius: var(--r-sm); background: var(--surface); color: var(--c-title); cursor: pointer }
+.diagram-controls button:hover { border-color: var(--c-border-strong); background: var(--c-sunken-strong) }
+.diagram-controls button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px }
+@media (hover: none) { .diagram-controls { opacity: 1; pointer-events: auto; transform: none } }
+
+.diagram-dialog {
+  position: fixed;
+  inset: 16px;
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--c-title);
+  box-shadow: 0 28px 90px rgb(0 0 0 / .24);
+  overflow: hidden;
+}
+.diagram-dialog::backdrop { background: rgb(15 23 42 / .58); backdrop-filter: blur(2px) }
+.diagram-dialog-shell { position: relative; width: 100%; height: 100%; overflow: hidden }
+.diagram-dialog-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+  background-color: var(--surface);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--c-border) 72%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.diagram-dialog-canvas.dragging { cursor: grabbing }
+.diagram-dialog-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+  will-change: transform;
+}
+/* The stage is sized to the diagram's own coordinate space by scripts/mermaid.ts
+   and the SVG fills it, so neither dimension is `auto` here — the fit scale is
+   computed against that box. */
+.diagram-dialog-stage svg { display: block; max-width: none; user-select: none; pointer-events: none }
+.diagram-dialog-toolbar,
+.diagram-dialog-close {
+  position: absolute;
+  z-index: 2;
+}
+.diagram-dialog-toolbar {
+  top: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.diagram-dialog-toolbar button,
+.diagram-dialog-close {
+  display: grid;
+  min-width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--c-title);
+  box-shadow: 0 5px 16px rgb(0 0 0 / .06);
+  cursor: pointer;
+}
+.diagram-dialog-toolbar button:hover,
+.diagram-dialog-close:hover { background: var(--c-sunken-strong) }
+.diagram-dialog-toolbar output {
+  min-width: 64px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  font: 600 13px/34px var(--font-mono);
+  text-align: center;
+  box-shadow: 0 5px 16px rgb(0 0 0 / .06);
+}
+.diagram-dialog-close { top: 14px; right: 14px }
+.diagram-dialog-hint {
+  position: absolute;
+  z-index: 2;
+  right: 18px;
+  bottom: 14px;
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  color: var(--c-mute);
+  font-size: 12px;
+  pointer-events: none;
+}
+.content-view[hidden] { display: none }
+.visibility-humans > :first-child { margin-top: 0 }
+.visibility-humans > :last-child { margin-bottom: 0 }
+.diagram figcaption {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--c-mute);
+}
+
+@media (max-width: 760px) {
+  .card-grid, .columns { grid-template-columns: 1fr }
+  /* Wrapping alone did nothing: `.prompt-body` has `min-width: 0`, so it kept
+     shrinking — to 153px of the 335px available on a phone — instead of pushing
+     the actions onto their own line. Claiming the row beside the mark is what
+     actually makes them wrap. */
+  .prompt { flex-wrap: wrap }
+  .prompt-body { flex-basis: calc(100% - 30px) }
+  .prompt > button, .prompt-cursor { margin-left: auto }
+  .color-table-row { grid-template-columns: 1fr }
+  .diagram-dialog { inset: 8px; border-radius: var(--r-md) }
+
+  /*
+   * Every layout becomes the stacked one on a phone, because none of the
+   * horizontal ones survive 335px: a row puts a button beside text that then has
+   * nowhere to wrap, and split asks for two columns out of one. Left-aligned
+   * rather than centred, though — `stack` centres because an author chose it,
+   * and inheriting that here would silently re-typeset a row nobody asked to
+   * centre.
+   */
+  .cta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .cta-split { padding: 20px 20px 24px }
+  .cta-split .cta-text,
+  .cta-split .cta-actions { padding: 0; align-self: stretch }
+  /* Image first once stacked: it is the block's opening gesture, and below the
+     action it would be a footnote to a button. */
+  .cta-split .cta-media { order: -1; flex: none; width: 100% }
+  /*
+   * And back to its own proportions. The 4/3 box exists on a wide screen to
+   * match the text column's height, and there is no second column here to match
+   * — so all it did was crop. A 1200x620 illustration lost about a third of its
+   * width to `cover` and stood 281px tall before the reader reached the
+   * headline; at its own ratio it is 194px and whole.
+   */
+  .cta-split .cta-media img {
+    aspect-ratio: auto;
+    height: auto;
+    border-radius: var(--r-md);
+  }
+  .cta-stack { align-items: center; text-align: center }
+  /*
+   * The action takes the width rather than sitting narrow and orphaned, which is
+   * what a 36px pill looks like alone on a 335px line.
+   *
+   * `actionWidth="auto"` opts out and keeps the button at its natural size,
+   * aligned with the text above it. Both are right for different blocks: a full
+   * bleed button is the obvious tap target at the end of a page, and a natural
+   * one stays visibly secondary in a block that is an aside rather than the
+   * point. Hence a choice rather than a rule.
+   */
+  .cta:not(.cta-action-auto) .cta-actions { align-self: stretch }
+  .cta:not(.cta-action-auto) .cta-actions .button { flex: 1 }
+}

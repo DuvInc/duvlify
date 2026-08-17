@@ -1,0 +1,200 @@
+---
+title: Why Duvlify
+description: "Reasons to pick Duvlify for your documentation, and the use cases it fits: a static site you own, an API reference, and an MCP server for AI agents."
+icon: sparkles
+---
+
+Duvlify gives you full control of your documentation. This page lists the main
+reasons to use it, and the situations it fits best.
+
+## Reasons to use Duvlify
+
+{/* Eight cards: four rows of two. The count is what keeps the last row full,
+    so it is load-bearing rather than incidental. A ninth card would leave an
+    orphan here, which is why the watermark and ownership points share a card
+    as much as because they argue the same thing.
+
+    Two columns rather than three: these bodies are a sentence or two of prose,
+    and a third of the width turned that into four- and five-line stacks.
+
+    Ordered by what a reader decides on, not by what took the most work:
+    speed and agent support come first because they are the two things a
+    hosted platform cannot match, and ownership closes because it is the
+    reason to stay rather than the reason to switch. */}
+<CardGroup cols={2}>
+  <Card title="Incredible web performance">
+    <Icon slot="icon" name="zap" size={22} />
+    Astro with static output: no hydration, no client-side router, no framework
+    runtime. Finished HTML plus one 11 KB bundle, and a search index that loads
+    only when someone searches.
+  </Card>
+  <Card title="Built for AI agents & GEO">
+    <Icon slot="icon" name="bot" size={22} />
+    Six agent surfaces from one build: an MCP server at `/mcp`, the same tools
+    over plain HTTP, WebMCP, `llms.txt`, and a Markdown twin of every page.
+    Agents cite your docs instead of guessing.
+  </Card>
+  <Card title="Free to deploy and run">
+    <Icon slot="icon" name="rocket" size={22} />
+    No subscription, no per-seat bill, no tier above the one you are on.
+    MIT-licensed, and it deploys to Cloudflare Workers, whose free plan covers a
+    docs site of ordinary size.
+  </Card>
+  <Card title="Effortless to maintain">
+    <Icon slot="icon" name="file-text" size={22} />
+    Content is a folder of Markdown in your repository: easy to diff, easy to
+    review, and the format coding agents write best. A broken link or a missing
+    field stops the build and names the file.
+  </Card>
+  <Card title="Beautiful out of the box">
+    <Icon slot="icon" name="sparkles" size={22} />
+    A considered theme, dark mode, and 45 components: callouts, cards, steps,
+    tabs, code groups, API fields, Mermaid diagrams. Nothing starts unstyled.
+  </Card>
+  <Card title="Customise everything">
+    <Icon slot="icon" name="blocks" size={22} />
+    One config file covers your colour, font and radius scale. Past that, every
+    component and stylesheet is yours to edit. No plan gates it, and no plugin
+    API limits it.
+  </Card>
+  <Card title="Ready for translation">
+    <Icon slot="icon" name="languages" size={22} />
+    Locale-prefixed URLs need no router configuration, so a translated tree is
+    served the day you add one. The [Languages](/guides/internationalization)
+    guide specifies the rest, from `hreflang` to per-locale search.
+  </Card>
+  <Card title="No watermark, no lock-in">
+    <Icon slot="icon" name="package" size={22} />
+    Nothing on your site says who built it, and no plan adds it back. The output
+    is plain HTML you can move to any host, and the framework sits in your
+    repository under the MIT licence. Read it, change it, keep it private.
+  </Card>
+</CardGroup>
+
+## Use cases
+
+**Developer documentation.** Duvlify renders an API reference from your OpenAPI
+document. It shows a request sample, the response fields, and the parameters,
+all from one source. See [API reference pages](/guides/api-reference).
+
+**Product documentation.** Guides, concepts, and step-by-step pages, with a
+search box, a sidebar, and cards for a home page. See
+[Authoring pages](/guides/authoring).
+
+**Internal knowledge bases.** Deploy Duvlify inside your own network, or behind
+your own login. The site is a set of static files, so it works with most access
+controls.
+
+**Documentation an AI agent can use.** Duvlify serves each page as HTML and as
+plain Markdown. It also runs an MCP server, so a coding agent or a support bot
+can search your docs and quote them. See [Serving agents](/agents/overview).
+
+## What is optimised for search engines and for AI answers
+
+Two audiences find documentation, and they need different things. A search
+engine wants one canonical page per topic, with structured data it can turn into
+a rich result. An AI assistant wants clean text, a map of the corpus, and
+permission to use it.
+
+Duvlify emits both from one build. You configure the identity once in
+`seo` (see [Configuration](/reference/configuration)) and everything below
+follows. Nothing in this section is an add-on to install.
+
+### For search engines
+
+| What you get | Where it comes from |
+| --- | --- |
+| One canonical URL per page | `rel="canonical"`, so a Markdown copy never competes with its page |
+| Meta description per page | The `description` field, which the build caps at 170 characters |
+| Structured data as a JSON-LD graph | `TechArticle` per page, `APIReference` on endpoint pages, plus `Organization`, `WebSite`, and a `BreadcrumbList` |
+| Open Graph and Twitter cards | A share card generated per page at 1200×630, with width, height, and alt text declared |
+| `sitemap.xml` | Every published page, with its last-modified date |
+| `robots.txt` | Written by the build, not by hand |
+| An Atom feed at `updates.xml` | What changed, newest first |
+| Pages withheld on purpose | `noindex` keeps a page reachable and out of search, the sitemap, and the feed |
+| Search-console verification | `seo.verification`, which emits nothing while it is empty |
+
+Two details matter more than they look. Dates come from each file's **last
+commit**, not from the build time, so rebuilding the site does not tell a
+crawler that every page changed. And there is no client-side router, so a
+crawler receives finished HTML on the first request rather than an empty shell.
+
+### For AI answers
+
+| What you get | Where it comes from |
+| --- | --- |
+| Every page as clean Markdown | `<page>.md`, or the page URL with `Accept: text/markdown` |
+| A map of the corpus | `llms.txt`, following the llmstxt.org convention |
+| The whole corpus in one file | `llms-full.txt`, for an assistant that would rather read once than crawl |
+| Facts a model cannot infer | `seo.agentInstructions`, emitted at the top of both files |
+| A stated licence to use the content | Cloudflare Content Signals in `robots.txt`: `search`, `ai-input`, `ai-train` |
+| An explicit welcome per crawler | Named `Allow` rules for fifteen agents, including GPTBot, ClaudeBot and PerplexityBot |
+| Discovery without parsing HTML | `Link` and `X-Llms-Txt` response headers, so a `HEAD` request is enough |
+| Your docs as callable tools | An MCP server at `/mcp`: `search`, `fetch`, `list_pages`, and optional `report_issue` |
+| The same tools over plain HTTP | `/api/docs/`, for anything that does not speak MCP, with a generated OpenAPI description |
+| Registration with in-browser agents | The WebMCP bridge |
+| Pre-flight discovery | `/.well-known/mcp.json` for the MCP server card, and `/.well-known/api-catalog` ([RFC 9727](https://www.rfc-editor.org/rfc/rfc9727)) to tell your product's API apart from the documentation's own |
+| A per-page outline with line offsets | `agent-manifest.json`, which is how a search result reports the exact lines a passage covers |
+| Semantic search, optionally | Cloudflare AI Search. Lexical search works with no account at all: see [Retrieval](/agents/retrieval) |
+
+<Callout title="Why the Markdown is generated once" tone="note">
+  The bytes served at `<page>.md` are the same bytes the `fetch` tool returns and
+  the same bytes the semantic indexer embeds. One function produces all three. A
+  second rendering would drift, and a passage's reported line range would start
+  pointing at the wrong paragraph without anything failing.
+</Callout>
+
+### What is deliberately not done
+
+- **The Markdown is not hidden from search crawlers.** It is offered to
+  everyone, and every Markdown response carries
+  `Link: <page>; rel="canonical"`. A crawler that indexes it credits the HTML
+  page instead of competing with it. Blocking the `.md` twins in `robots.txt` was
+  the earlier approach, before that header existed; a test now asserts the block
+  is gone.
+- **No structured data is claimed that a page does not earn.** Endpoint pages
+  are typed as `APIReference` only because `seo.apiReferenceTabs` names their tab.
+  A page that merely *illustrates* an endpoint stays a `TechArticle`, because
+  structured data that overstates a page earns a manual action rather than a rich
+  result.
+- **No AI crawler is blocked by default.** Documentation exists to be found and
+  quoted. A site whose content *is* the product would set
+  `seo.contentSignals` differently.
+
+## What you trade for this control
+
+Duvlify is a framework, not a hosted product. Read this before you choose it.
+
+- **You run the build.** There is no dashboard that edits pages for you. You
+  write Markdown files and run a command.
+- **You host the output.** Duvlify does not host your site. It deploys well to
+  Cloudflare, and it works on any static host. See [Deploying](/guides/deployment).
+- **Non-technical writers need a workflow.** A writer can edit Markdown files in
+  a text editor, but Duvlify does not include a visual editor.
+
+## Compare it to what you use today
+
+| If you use | What changes with Duvlify |
+| --- | --- |
+| A hosted docs platform | You keep the Markdown files. You lose the per-seat bill and the vendor lock-in. You gain full control of the code. |
+| The free plan of a hosted platform | The footer credit goes away, because there is nothing to credit. So do the limits that free plans usually carry: how many editors you have, how many pages you publish, whether you may use your own domain. |
+| A wiki | You gain a faster site, version control for every page, and checks that catch broken links before readers do. |
+| No documentation yet | You get a working site in one command, with search and an MCP server included. |
+
+The free-plan row is the one worth stating plainly, because it is the difference
+your readers see. A free hosted plan is a trial of someone else's product, and it
+says so on your pages. Nothing in this build names the framework: there is no
+setting to turn the credit off, because there is none to turn on. There is also no
+tier above the one you are on.
+
+<CTA
+  layout="stack"
+  variant="accent"
+  title="See it for yourself"
+  description="The fastest way to judge any of this is to run it. One command gets you a site with search, an API reference and an MCP server, all switched on."
+>
+  <Fragment slot="actions">
+    <Button href="/getting-started">Run it in one command</Button>
+    <Button href="https://github.com/DuvInc/duvlify" variant="secondary">Read the source</Button>
+  </Fragment>
+</CTA>

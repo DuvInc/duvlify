@@ -1,0 +1,8 @@
+---
+import Icon from './Icon.astro';
+interface Props { name?: string; highlight?: boolean }
+const { name, highlight } = Astro.props;
+---
+<div class:list={['tree-row', highlight && 'highlight']} role="treeitem" tabindex="-1">
+  <Icon name="file" size={15} /><span>{name}</span><slot />
+</div>

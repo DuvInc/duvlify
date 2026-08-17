@@ -1,0 +1,2135 @@
+/* Page shell: navbar, category tabs, sidebar, table of contents, search,
+ * article typography, page footer and the not-found page.
+ *
+ * Base rules first, in cascade order; all responsive overrides are grouped at
+ * the end of the file. Tokens live in tokens.css, content components in
+ * components.css.
+ */
+* {
+  box-sizing: border-box;
+}
+/*
+ * `corner-shape` only does anything on an element that also has a
+ * `border-radius`, so setting it here, once, for every element is free on
+ * every element that has no radius and exactly what's wanted on the ones that
+ * do — no need to repeat it beside every `border-radius: var(--r-*)` in this
+ * file. `--corner-shape` comes from `theme.radius.smoothing` in docs.config.ts
+ * (see ThemeTokens.astro).
+ *
+ * The radius itself is never written by hand here. Every corner reads one of
+ * the four scale tokens, or a calc() on one, so theme.radius controls all of
+ * them at once; 0, 50% and 999px are the only literals, because square, circle
+ * and pill are not points on that scale. A test enforces it — see
+ * test/components.test.mjs, 'every corner radius in the scale comes from the
+ * scale'.
+ *
+ * This is a genuinely new CSS property (2025), so on anything but a current
+ * Chromium browser the declaration is simply unrecognised and ignored — the
+ * plain circular radius already set elsewhere is what renders there. Nothing
+ * to feature-detect: an unsupported property doesn't break the one next to it.
+ */
+*, ::before, ::after {
+  corner-shape: var(--corner-shape, round);
+}
+html {
+  scroll-behavior: smooth;
+  /* Derived rather than a literal, so an anchor jump clears whatever is
+     actually fixed at the top — both bars, plus the announcement strip when
+     there is one. It was 88px against 110px of chrome, which landed every
+     deep-linked heading behind the category bar. */
+  scroll-padding-top: calc(var(--shell-top) + 12px);
+}
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  background: var(--text);
+  color: var(--bg);
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+}
+.skip-link:focus {
+  top: calc(var(--banner-h) + 10px);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 760;
+  font-size: 17px;
+  min-width: 230px;
+}
+/* The logo is inlined SVG, so it carries its own intrinsic size. Pinning the
+   height and letting the width follow the viewBox ratio means one rule serves
+   both a square mark and a wide wordmark, which is the difference between the
+   two brands this platform is used for. */
+.brand-logo {
+  display: flex;
+  flex: none;
+}
+.brand-logo svg {
+  display: block;
+  height: 24px;
+  width: auto;
+}
+.brand-name {
+  letter-spacing: -.01em;
+}
+.header-actions {
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+.search-trigger {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  /* Matches .header-secondary / .header-primary: same 36px height, same row,
+     so the same radius formula (r-md scaled up, not the raw token) is what
+     keeps every pill in the topbar reading as one family. .navbar-search below
+     used to override this with an unrelated hardcoded 10px. */
+  border-radius: calc(var(--r-md) + 2px);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 7px 10px;
+  width: fit-content;
+  min-width: 150px;
+  justify-self: start;
+}
+.search-trigger .shortcut {
+  margin-left: auto;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--muted);
+}
+/* Round, not a rounded square. These hold a single centred glyph and no label,
+   so a circle states that better than a rectangle with a large radius — and it
+   distinguishes them from the pill-shaped buttons that do carry text. */
+.icon-button {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  cursor: pointer;
+  /* Same weight as .search-trigger's glyph, which sits beside these in the
+     topbar. Without this they inherited --text and read as the darkest thing
+     in the bar, pulling the eye to a secondary control. */
+  color: var(--muted);
+}
+/* --surface-2 is the shared hover fill, derived from --bg rather than fixed, so
+   this follows a site that moves its background. See tokens.css. */
+.icon-button:hover,
+.search-trigger:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.mobile-only {
+  display: none;
+}
+.docs-grid {
+  display: grid;
+  grid-template-columns: var(--sidebar) minmax(0,var(--content)) var(--toc);
+  justify-content: center;
+  gap: 54px;
+  padding: var(--header) 28px 0;
+  min-height: 100vh;
+  padding-top: var(--shell-top);
+}
+.nav-group {
+  margin: var(--nav-category-before-gap) 0 var(--nav-category-after-gap);
+}
+.nav-group.nav-folder {
+  margin-top: 0;
+}
+.nav-group a:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.nav-group a.active {
+  /* The current page, not merely hovered: a full step above `--surface-2` so
+     the two states are told apart by colour rather than by weight alone. */
+  background: var(--surface-active);
+  color: var(--text);
+  border-color: var(--line);
+  font-weight: 600;
+}
+.nav-group em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 9px;
+  color: var(--tone-good-fg);
+  background: var(--tone-good-bg);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: auto;
+}
+.article {
+  padding: 70px 0 110px;
+  min-width: 0;
+  font-size: var(--font-reading);
+  line-height: var(--reading-leading);
+  color: var(--prose-body);
+}
+.article-heading {
+  position: relative;
+  padding-bottom: 34px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 42px;
+}
+.article-heading h1 {
+  font-size: var(--article-title-size);
+  line-height: var(--article-title-line-height);
+  letter-spacing: var(--article-title-letter-spacing);
+  margin: 0 0 15px;
+  font-weight: var(--article-title-weight);
+  margin-bottom: 12px;
+  color: var(--prose-heading);
+  /* Evens out the last line rather than leaving one orphaned word under a full
+     one. A title that reads as two sentences then breaks between them, which is
+     where a reader would break it anyway. Unsupported browsers just wrap. */
+  text-wrap: balance;
+}
+/* The summary is a bare <p> for a prose page, and rendered Markdown inside
+   `.article-summary` for an endpoint page, whose text comes from the OpenAPI
+   description — CommonMark, like every description in a spec. One rule for both
+   so the two cannot drift apart. */
+.article-heading > :is(p, .article-summary > p) {
+  font-size: var(--article-summary-size);
+  line-height: var(--article-summary-line-height);
+  color: var(--muted);
+  max-width: 62ch;
+  margin: 0;
+}
+.toc-actions.inline-page-actions {
+  display: none;
+}
+.action-menu span {
+  color: var(--muted);
+}
+.article>p {
+  color: var(--muted);
+  max-width: 680px;
+}
+.toc-actions {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 28px;
+  align-items: center;
+  position: relative;
+}
+.toc-list>a:hover {
+  color: var(--text);
+}
+.toc-list>a.active {
+  color: var(--text);
+  font-variation-settings: 'wght' 500;
+}
+/* One shared marker, positioned in the same coordinate space as the links it
+   travels between (see .toc-list), so moving between headings is a single slide
+   rather than one bar fading out while another fades in.
+   It sits flush at the list's own left edge (left: 0), not just outside it —
+   .toc-list is a scroll container (overflow-y: auto), and per spec that silently
+   promotes overflow-x to auto too, which clips anything positioned outside the
+   box, such as a negative offset. Flush avoids relying on that clipped sliver. */
+.toc-marker {
+  position: absolute;
+  left: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  opacity: 0;
+  transition: transform .3s cubic-bezier(.32, .72, 0, 1), height .3s cubic-bezier(.32, .72, 0, 1), opacity .2s ease;
+}
+.toc-marker.visible {
+  opacity: 1;
+}
+.page-footer {
+  margin-top: 78px;
+}
+.page-nav {
+  display: grid;
+  /* minmax(0,…) rather than 1fr: the card titles are `white-space: nowrap`, so
+     their min-content width is the whole string, and a bare 1fr — which means
+     minmax(auto,1fr) — would refuse to shrink below it and push the pair wider
+     than the column. Zero as the floor is what lets the ellipsis happen. */
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 24px;
+}
+.page-nav a.next {
+  text-align: right;
+}
+.page-nav small {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.page-nav a.next small {
+  justify-content: flex-end;
+}
+.page-nav-arrow-back {
+  transform: rotate(180deg);
+}
+/* One line, truncated. A long title used to wrap to two or three lines and make
+   the two cards different heights; the title is a signpost to the next page, not
+   the content, so the first few words plus an ellipsis do the job. The full
+   string stays available as a tooltip and to assistive tech via `title`. */
+.page-nav strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feedback {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 35px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+}
+.feedback button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-sm);
+  padding: 5px 9px;
+  font-size: 10px;
+}
+.search-dialog::backdrop {
+  background: rgba(18,20,16,.42);
+  backdrop-filter: blur(5px);
+}
+.lightbox {
+  border: 0;
+  padding: 0;
+  margin: auto;
+  max-width: 92vw;
+  max-height: 92vh;
+  /* Sizing to content (width/height: auto below) depends on the image having
+     an intrinsic size. An SVG with only a viewBox and no width/height has
+     none, and silently collapses to 0×0 — invisible, but still "open", so the
+     backdrop shows with nothing in it. This floor keeps a broken image from
+     disappearing entirely; fix the asset (add width/height) as the real fix. */
+  min-width: 240px;
+  min-height: 160px;
+  background: transparent;
+  cursor: zoom-out;
+  /* showModal() focuses the dialog itself (there's nothing else focusable
+     inside), which would otherwise draw the browser's default focus ring
+     around the whole image — not useful here, since closing is by clicking
+     anywhere or Escape, not by tabbing to something. */
+  outline: none;
+  /* Grows in from slightly smaller rather than appearing at full size, so the
+     zoom reads as an expansion of the thumbnail rather than a swap. `display`
+     is included so the effect also applies as the dialog enters the top layer;
+     browsers without @starting-style support just skip the transition and
+     show it instantly. opacity/scale are set explicitly (not left at their
+     initial values) so there's a concrete end state for the transition to
+     animate toward. */
+  opacity: 1;
+  scale: 1;
+  transition: opacity .22s ease, scale .22s cubic-bezier(.32, .72, 0, 1), display .22s allow-discrete;
+}
+.lightbox::backdrop {
+  background: rgba(10,10,10,.75);
+  backdrop-filter: blur(3px);
+  transition: opacity .22s ease;
+}
+@starting-style {
+  .lightbox[open] { opacity: 0; scale: .94; }
+  .lightbox[open]::backdrop { opacity: 0; }
+}
+.lightbox img {
+  display: block;
+  max-width: 92vw;
+  max-height: 92vh;
+  min-width: inherit;
+  min-height: inherit;
+  width: auto;
+  height: auto;
+  border-radius: var(--r-md);
+  cursor: zoom-out;
+}
+.search-box {
+  height: 58px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 11px;
+}
+.search-box input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  flex: 1;
+  font-size: 14px;
+}
+.search-content {
+  padding: 11px;
+  max-height: min(460px, calc(100dvh - 190px));
+  overflow: auto;
+}
+.search-label {
+  font-weight: 740;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 8px;
+  margin: 4px 0 8px;
+}
+/* Loading, empty and error states for the fetched index. */
+.search-empty {
+  padding: 26px 10px 30px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.search-empty strong { color: var(--text) }
+.search-content a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+}
+/* Matched substrings in a result. The index carries full page text, so a hit is
+   often mid-sentence and needs pointing at. */
+.search-content mark {
+  background: color-mix(in oklab, var(--accent) 24%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.search-content a:hover,
+.search-content a.active {
+  background: var(--surface-active);
+}
+.search-content a > svg {
+  flex: none;
+  color: var(--muted);
+}
+.search-result-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.search-result-icon > svg {
+  display: none;
+}
+[data-search-item][data-search-kind='page'] [data-search-icon='page'],
+[data-search-item][data-search-kind='endpoint'] [data-search-icon='endpoint'],
+[data-search-item][data-search-kind='heading'] [data-search-icon='heading'] {
+  display: block;
+}
+.search-result-body {
+  flex: 1;
+  min-width: 0;
+}
+.search-result-body strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.search-result-body [data-search-title] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-api-method {
+  flex: none;
+}
+.search-content strong,
+.search-content small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-dialog>footer {
+  border-top: 1px solid var(--line);
+  padding: 8px 14px;
+  display: flex;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.search-dialog>footer span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.search-dialog>footer span:last-child {
+  margin-left: auto;
+}
+.search-dialog>footer kbd {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: var(--muted);
+}
+.mobile-overlay {
+  display: none;
+}
+.categorybar-inner {
+  height: 100%;
+  padding: 0 30px;
+  display: flex;
+  align-items: stretch;
+  gap: 28px;
+}
+.nav-folder {
+  margin-bottom: var(--nav-folder-gap);
+}
+/* Closed folders keep a compact rhythm with a tiny breathing gap. Once
+   expanded, a little extra space separates the final child page from the
+   next folder. */
+.nav-folder[open] {
+  margin-bottom: var(--nav-folder-expanded-gap);
+}
+.nav-folder summary:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.nav-folder summary:hover svg {
+  color: var(--text);
+}
+.nav-folder summary:focus-visible {
+  outline: 2px solid color-mix(in srgb,var(--accent) 55%,transparent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.nav-folder summary::-webkit-details-marker {
+  display: none;
+}
+.nav-folder summary>span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.nav-folder-caret {
+  flex: none;
+  color: var(--muted);
+  transition: transform .15s ease, color .15s ease;
+}
+.nav-folder:not([open]) .nav-folder-caret {
+  transform: rotate(-90deg);
+}
+.nav-children {
+  padding-left: 9px;
+  border-left: 1px solid var(--line);
+  margin-left: 11px;
+  /* Matches the gap added below .nav-group h2, so a plain heading and a
+     collapsible folder heading sit the same distance from their first link. */
+  margin-top: 6px;
+}
+.toc-actions button {
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  height: 36px;
+  border-radius: var(--r-md);
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 480;
+  color: var(--text);
+  background: var(--surface);
+  transition: background .15s ease,border-color .15s ease;
+}
+/* .copy-swap needs its two label states grid-stacked in the same cell (see
+   components.css) so confirming a copy never resizes the button — this class
+   selector is more specific than the type selector above and wins the cascade. */
+.toc-actions button.copy-swap {
+  display: grid;
+}
+.toc-actions button:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb,var(--text) 22%,var(--line));
+}
+.toc-actions button:focus-visible,
+.action-menu-panel a:focus-visible,
+.action-menu-panel button:focus-visible,
+.theme-menu-panel button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.toc-actions [data-page-menu-toggle] {
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.toc-actions svg {
+  flex: none;
+}
+/* One pill holding both the copy button and the dropdown toggle — each
+   button loses its own border/radius, the pill carries a single outer
+   border, and a hairline seam separates the two segments. */
+.toc-actions .page-actions-pill {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  overflow: hidden;
+}
+.toc-actions .page-actions-pill button {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.toc-actions .page-actions-pill button:hover {
+  background: var(--surface-2);
+}
+.toc-actions .page-actions-pill [data-page-menu-toggle] {
+  border-left: 1px solid var(--line);
+}
+.action-menu,
+.theme-menu {
+  position: relative;
+}
+.action-menu-panel[hidden],
+.theme-menu-panel[hidden] {
+  display: none;
+}
+.theme-menu-panel {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  z-index: 25;
+  width: 168px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .1);
+}
+.theme-menu-panel button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 520;
+  cursor: pointer;
+  text-align: left;
+}
+.theme-menu-panel button span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+}
+.theme-menu-panel button:hover {
+  background: var(--surface-2);
+}
+.theme-menu-panel .theme-check {
+  flex: none;
+  color: var(--accent-strong);
+  opacity: 0;
+}
+.theme-menu-panel button.active .theme-check {
+  opacity: 1;
+}
+/* The trigger button always holds all three icons; only the one matching the
+   visitor's stored preference is shown, driven off the <html> attribute so it
+   resolves before first paint — no JS-timed swap, no icon flash. */
+.theme-icon {
+  display: none;
+}
+html[data-theme-pref="system"] [data-theme-icon="system"],
+html[data-theme-pref="light"] [data-theme-icon="light"],
+html[data-theme-pref="dark"] [data-theme-icon="dark"] {
+  display: block;
+}
+.action-menu-panel a,
+.action-menu-panel button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  /* Same muted label colour and weight as the pill's "Copy page" trigger, so
+     opening the menu doesn't read as a different type ramp. */
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 480;
+  text-align: left;
+  cursor: pointer;
+}
+.action-menu-panel a:hover,
+.action-menu-panel button:hover {
+  background: var(--surface-2);
+}
+.action-menu-panel svg {
+  flex: none;
+}
+.action-menu-panel .menu-external-icon {
+  margin-left: auto;
+  color: var(--muted);
+}
+/* First and last pages have only one neighbour. The grid keeps both columns and
+   the missing side renders as an empty placeholder (see PageFooter.astro), so
+   the lone card stays half width on the side it belongs to — a "next" card on
+   the right, right-aligned, exactly as it looks mid-sequence. */
+.page-nav a:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb,var(--text) 20%,var(--line));
+}
+.anchored-heading {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  scroll-margin-top: 132px;
+}
+.anchored-heading>span {
+  min-width: 0;
+}
+.heading-anchor-button {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--muted);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity .14s ease,background .14s ease,border-color .14s ease,color .14s ease;
+}
+.anchored-heading:hover .heading-anchor-button,
+.heading-anchor-button:focus-visible {
+  opacity: 1;
+}
+.heading-anchor-button:hover {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb,var(--text) 22%,var(--line));
+  color: var(--text);
+}
+.heading-anchor-button.copied {
+  opacity: 1;
+  color: var(--text);
+  border-color: var(--text);
+}
+.anchored-heading>span[data-copy-heading] {
+  cursor: pointer;
+}
+.anchored-heading>span[data-copy-heading]:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+  border-radius: 3px;
+}
+.search-dialog {
+  width: min(620px,calc(100% - 24px));
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0;
+  top: -8vh;
+  margin: auto;
+  border-radius: var(--r-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .1);
+}
+.action-menu-panel {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  z-index: 25;
+  width: 212px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .1);
+}
+summary {
+  transition: color .15s ease, background-color .15s ease,
+    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+a {
+  -webkit-tap-highlight-color: transparent;
+  color: inherit;
+  text-decoration: none;
+  transition: color .15s ease, background-color .15s ease,
+    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+button {
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-sans);
+  transition: color .15s ease, background-color .15s ease,
+    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+input {
+  font: inherit;
+  color: inherit;
+  font-family: var(--font-sans);
+  transition: color .15s ease, background-color .15s ease,
+    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.topbar {
+  height: var(--header);
+  position: fixed;
+  inset: var(--banner-h) 0 auto;
+  z-index: 40;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding: 0 30px;
+  display: grid;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px);
+  grid-template-columns: minmax(190px,1fr) minmax(220px,340px) minmax(250px,1fr);
+  gap: 20px;
+}
+/*
+ * --banner-h is the space the shell reserves; this is the strip that occupies
+ * it, and the two must not drift apart.
+ *
+ * One line of announcement is 40px, which is why that is the token's value and
+ * why the first paint is already correct. But an announcement is prose an
+ * author writes, and on a narrow screen it wraps — a fixed 40px box let the
+ * second line spill over the navbar. Three things keep that from happening,
+ * in order of how much they can be relied on:
+ *
+ *   1. The token is larger on a narrow viewport (see the media query), where
+ *      wrapping is what actually occurs.
+ *   2. `overflow: hidden`, so text that still exceeds the strip is clipped
+ *      rather than drawn over the navbar. Clipping is the graceful failure.
+ *   3. scripts/rich-components.ts observes the rendered strip and writes its
+ *      real height back into the token, which makes the reservation exact for
+ *      text nobody has written yet. This is the only one that needs JavaScript,
+ *      and it is the correction, not the mechanism.
+ */
+.global-banner {
+  position: fixed;
+  z-index: 50;
+  inset: 0 0 auto;
+  /* --banner-min, never --banner-h: the script writes the measured height into
+     --banner-h, and a floor taken from the same token could never shrink again.
+     See the note in tokens.css. */
+  min-height: var(--banner-min);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 20px;
+  background: var(--banner-light, var(--banner-tone));
+  color: var(--banner-fg, #fff);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+/* A tone sets the default; an explicit colour, emitted by the component as
+   --banner-light/--banner-dark, wins through the custom-property fallback.
+   Only "info" ties its text colour to the brand accent — --banner-info-fg,
+   set alongside --banner-info above — because it is the only tone whose fill
+   can land light enough that white text stops working. Warning/critical are
+   fixed, always-dark colours, so they keep the #fff default. */
+.global-banner.info { --banner-tone: var(--banner-info); --banner-fg: var(--banner-info-fg, #fff) }
+.global-banner.warning { --banner-tone: var(--banner-warning) }
+.global-banner.critical { --banner-tone: var(--banner-critical) }
+[data-theme="dark"] .global-banner { background: var(--banner-dark, var(--banner-tone)) }
+.global-banner button { flex: none; display: grid; place-items: center; border: 0; background: transparent; color: inherit; cursor: pointer }
+.global-banner button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; border-radius: var(--r-sm) }
+.navbar-search span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-drawer-head {
+  display: none;
+}
+.mobile-pagebar {
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px);
+  display: none;
+}
+.categorybar {
+  position: fixed;
+  z-index: 39;
+  top: calc(var(--banner-h) + var(--header));
+  left: 0;
+  right: 0;
+  height: var(--categories);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(14px);
+  display: block;
+}
+.toc {
+  position: sticky;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 0;
+  overflow-y: auto;
+  overflow: visible;
+  top: var(--shell-top);
+  height: calc(100vh - var(--shell-top));
+}
+/* The custom right rail lives inside .api-panel-scroll, which already provides
+   the sticky column, its own scrolling and its padding — see api-reference.css.
+   All this adds is the stacking of whatever the page put there. The endpoint
+   rail's own cards set their spacing, so the gap here is for authored
+   components, which do not. */
+.right-rail-content:empty { display: none }
+.right-rail-content { display: grid; gap: 18px; min-width: 0 }
+.right-rail-content > * { margin: 0; min-width: 0 }
+.right-rail-content .code-tabs { max-width: 100% }
+/* The page-wide view selector: the shared select (scripts/dropdown.ts), widened
+   to fill whichever column it is placed in. It governs the whole page, so unlike
+   a code group's language control it is not a quiet affordance on a header row —
+   it gets a visible field and the full width. */
+.view-select { display: block }
+.view-select .api-select-trigger {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-color: var(--c-border);
+  background: var(--surface);
+  color: var(--c-title);
+  font-size: 14px;
+}
+.view-select .api-select-trigger:hover,
+.view-select .api-select-trigger[aria-expanded='true'] { border-color: var(--c-border-strong) }
+.view-select .api-select-menu { left: 0; right: 0; width: auto }
+.sidebar {
+  position: sticky;
+  align-self: start;
+  top: var(--shell-top);
+  height: calc(100vh - var(--shell-top));
+}
+/* The scrollable content lives one level deeper than .sidebar so the custom
+   scrollbar overlay below can be an absolutely-positioned sibling of it —
+   not a child of the element that actually scrolls, so it stays put while
+   the content scrolls underneath. Native scrollbar is hidden; ours replaces it. */
+.sidebar-viewport {
+  height: 100%;
+  overflow-y: auto;
+  padding: 22px 18px 18px 0;
+  scrollbar-width: none;
+}
+.sidebar-viewport::-webkit-scrollbar {
+  display: none;
+}
+/* No border by default — the boundary between nav and content only appears
+   as a thin track+thumb, and only while hovering the rail or actively
+   scrolling it (see the .scrolling class toggled in DocsLayout's script). */
+.sidebar-scrollbar {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  right: 2px;
+  width: 4px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.sidebar:hover .sidebar-scrollbar,
+.sidebar-scrollbar.scrolling {
+  opacity: 1;
+}
+.sidebar-scrollbar-thumb {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 20%, transparent);
+  cursor: pointer;
+  touch-action: none;
+}
+.sidebar-scrollbar-thumb:hover,
+.sidebar-scrollbar-thumb:active {
+  background: color-mix(in srgb, var(--text) 32%, transparent);
+}
+.category-switcher {
+  display: none;
+  position: relative;
+  margin: 0 0 22px;
+}
+.category-switcher summary::-webkit-details-marker {
+  display: none;
+}
+.category-switcher summary span,
+.category-options a span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.category-switcher summary>svg {
+  transition: transform .15s ease;
+}
+.category-switcher[open] summary>svg {
+  transform: rotate(180deg);
+}
+.category-options {
+  margin-top: 8px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: 0 14px 35px rgba(0,0,0,.08);
+}
+.category-options a:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.category-options a.active {
+  color: var(--text);
+  font-weight: 620;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--font-sans);
+  font-size: var(--font-ui);
+  line-height: 1.5;
+}
+/* Sidebar mode removes the second fixed bar. Every sticky offset and the
+   document's top padding derives from this one token, so the whole shell moves
+   up together instead of individual regions drifting out of alignment. */
+body[data-navigation-mode='unified-sidebar'] {
+  --shell-top: calc(var(--banner-h) + var(--header));
+}
+.article h2 {
+  margin: 55px 0 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  font-size: 24px;
+  line-height: 1.3;
+  margin-top: 3rem;
+  margin-bottom: .75rem;
+  color: var(--prose-heading);
+}
+.article h3 {
+  margin: 28px 0 9px;
+  font-weight: 600;
+  letter-spacing: normal;
+  font-size: 20px;
+  line-height: 1.35;
+  margin-top: 2rem;
+  margin-bottom: .6rem;
+  color: var(--prose-heading);
+}
+.mdx-content>blockquote {
+  max-width: 68ch;
+}
+.mdx-content>p {
+  max-width: 68ch;
+  margin-top: 0;
+  margin-bottom: 1.35em;
+  line-height: var(--reading-leading);
+}
+/*
+ * An `<img>` written as raw JSX — typically to size it with a `style`
+ * attribute, since `![]()` markdown always lands inside a `<p>` instead — is a
+ * direct child of `.mdx-content` and, unlike every other prose element, had no
+ * margin of its own at all.
+ *
+ * That went unnoticed until one sat right before a list: `.mdx-content
+ * :is(ul,ol)` sets `margin-top: 0` on purpose, expecting the element above to
+ * supply the gap the way a paragraph always does — and a marginless image
+ * supplies nothing, so the list read as glued to the image above it.
+ *
+ * `1.5rem` on both sides matches `.frame-wrap`'s own margin, so a screenshot
+ * reads with the same rhythm whether or not it happens to sit in a `<Frame>`.
+ */
+.mdx-content > img {
+  margin: 1.5rem 0;
+  /* Matches `.frame-content > img` and `.mdx-content p > img` in
+     components.css: a screenshot dropped in as raw JSX rather than
+     Markdown gets the same corners as every other image in the theme. */
+  border-radius: var(--r-md);
+}
+/* reset.css clears list markers site-wide, because every component that uses a
+   list (steps, file trees, colour rows) draws its own. Prose lists are the
+   exception and need them back. They are matched by having no class at all —
+   Markdown never produces one, every component list has one — which also scopes
+   these rules away from component internals, nested lists included. */
+.mdx-content :is(ul, ol):not([class]) {
+  max-width: 68ch;
+  margin-top: 0;
+  margin-bottom: 1.35em;
+  padding-left: 1.45em;
+  line-height: var(--reading-leading);
+}
+.mdx-content ul:not([class]) {
+  list-style: disc outside;
+}
+.mdx-content ol:not([class]) {
+  list-style: decimal outside;
+}
+.mdx-content ul:not([class]) ul:not([class]) {
+  list-style-type: circle;
+}
+/* A nested list belongs to the item above it: no gap before, none after. */
+.mdx-content :is(ul, ol):not([class]) :is(ul, ol):not([class]) {
+  margin-top: .4em;
+  margin-bottom: 0;
+}
+.mdx-content li:not([class])::marker {
+  color: var(--muted);
+}
+.mdx-content li+li {
+  margin-top: .4em;
+}
+.mdx-content strong {
+  font-weight: 600;
+}
+.mdx-content code:not(pre code) {
+  font-size: .9em;
+  line-height: 1.35;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  padding: .12em .4em;
+  font-family: var(--font-mono);
+}
+.table-wrapper {
+  margin: 1.5rem 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: auto;
+}
+.mdx-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.mdx-content thead {
+  background: var(--surface-2);
+}
+.mdx-content th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+.mdx-content td {
+  padding: 10px 14px;
+}
+.mdx-content tbody tr {
+  border-top: 1px solid var(--line);
+}
+.mdx-content tbody tr:hover {
+  background: var(--surface-2);
+}
+.mdx-content blockquote {
+  margin: 1.5rem 0;
+  padding: .15rem 0 .15rem 1rem;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+}
+/* Denser than the article's own type, but not as tight as 13px/28px turned out
+   to read: at 334 pages the sidebar is scanned rather than read, but 13px sat
+   below the 14px used everywhere else in the chrome and the row felt cramped
+   rather than merely dense. 14px over a 30px row still fits noticeably more
+   links than the original 14px over 35px, just with a little less punishment. */
+.nav-group a {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  margin: 2px 0;
+  border: 1px solid transparent;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.category-switcher summary {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  list-style: none;
+  font-weight: 590;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.category-options a {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+.categorybar a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  padding: 0 3px;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 450;
+}
+/* Each entry sits against a shared hairline rail. The active entry grows its own
+   accent bar over that rail and thickens its weight; both are animated, so
+   scrolling reads as the marker sliding down the rail rather than snapping. */
+.toc-list>a {
+  position: relative;
+  display: block;
+  color: var(--muted);
+  padding: 5px 0 5px 14px;
+  border-left: 1px solid var(--line);
+  font-variation-settings: 'wght' 400;
+  transition: color .2s ease, font-variation-settings .2s ease;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.toc-list>a[data-depth="3"] {
+  padding-left: 28px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--muted) 88%, transparent);
+}
+.toc-list>a[data-depth="3"].active {
+  color: var(--text);
+}
+.toc h2 {
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.toc h2.toc-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toc-title svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+/* A section title is stronger than a folder label, but keeps the authored
+   title case. Folders below use the lighter, sentence-level treatment. */
+.nav-group h2 {
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--text);
+  font-weight: 600;
+  margin: 0 0 12px;
+  padding: 0 11px;
+  font-size: 14px;
+  line-height: 1.35;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+/* Optically aligned rather than mathematically: the label sits at 12px while
+   the glyph is 14px, so matching their box heights leaves the icon looking
+   like it sits low. Fractionally softer than the label itself, the way an
+   icon beside text usually reads best. */
+.nav-group h2 svg {
+  flex: none;
+  color: color-mix(in srgb, currentColor 85%, transparent);
+}
+.nav-folder summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0 11px;
+  letter-spacing: normal;
+  color: var(--muted);
+  font-weight: 450;
+  text-transform: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  border-radius: var(--r-sm);
+  transition: background .15s ease,color .15s ease;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.site-footer {
+  margin-top: 56px;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-bottom: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.footer-links a {
+  font-size: 13px;
+  color: var(--muted);
+}
+.footer-links a:hover {
+  color: var(--text);
+}
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.footer-brand .brand {
+  min-width: 0;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.theme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+}
+.theme-switch button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.theme-switch button:hover {
+  color: var(--text);
+}
+.theme-switch button.active {
+  background: var(--surface-active);
+  color: var(--text);
+}
+.search-content strong {
+  display: flex;
+  font-weight: 600;
+  font-size: 14px;
+}
+.search-content small {
+  display: block;
+  color: var(--muted);
+  margin-top: 2px;
+  font-size: 12px;
+}
+.categorybar a:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+.categorybar a.active {
+  color: var(--text);
+  font-weight: 500;
+  border-color: var(--accent);
+}
+.article a.inline {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--accent-strong);
+}
+.eyebrow {
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  color: var(--accent-strong);
+}
+.categorybar a svg {
+  color: var(--accent);
+}
+.header-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  height: 36px;
+  border-radius: calc(var(--r-md) + 2px);
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+/* --header-primary-bg/fg default to the accent colours (see ThemeTokens.astro)
+   but exist as their own variables precisely so a site can override just this
+   button — a brand's call-to-action colour is not always its accent. */
+.header-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--header-primary-bg);
+  height: 36px;
+  border-radius: calc(var(--r-md) + 2px);
+  padding: 0 14px;
+  font-size: 13px;
+  letter-spacing: normal;
+  line-height: 1;
+  background: var(--header-primary-bg);
+  color: var(--header-primary-fg);
+  font-weight: 550;
+}
+.navbar-search {
+  min-width: 0;
+  width: min(100%,340px);
+  justify-self: center;
+  height: 36px;
+  font-size: 13px;
+}
+/*
+ * Holds the search trigger and the agent button in one grid cell, so the
+ * topbar keeps its three columns.
+ *
+ * Placed here rather than where it was first added — right before the
+ * responsive section's own `.navbar-search` overrides below — on purpose.
+ * `.navbar-center .navbar-search` is two classes, a higher specificity than
+ * the single-class `.navbar-search` those media queries write, so as an
+ * unconditional rule appended *after* them it silently out-cascaded every one
+ * of them at every viewport, including the mobile icon-only collapse. Base,
+ * layout-defining rules belong before the responsive overrides that are meant
+ * to adjust them — see this file's own opening comment — and this is what
+ * happens when that order slips.
+ */
+.navbar-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: center;
+  width: min(100%, 388px);
+  min-width: 0;
+}
+.navbar-center .navbar-search {
+  flex: 1;
+  width: auto;
+}
+.navbar-agent {
+  flex-shrink: 0;
+}
+/*
+ * The topbar links, repeated at the foot of the mobile drawer.
+ *
+ * Hidden by default and shown only in the drawer's own breakpoint: above it the
+ * topbar carries these itself, and two copies in the document at once would put
+ * the same link in the tab order twice.
+ */
+.drawer-actions {
+  display: none;
+}
+.page-nav a {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  padding: 15px 16px;
+  transition: background .15s ease,border-color .15s ease;
+  border-radius: var(--r-md);
+  box-shadow: none;
+}
+@media(max-width:1399px) and (min-width:1280px) {
+  .docs-grid {
+    grid-template-columns: 248px minmax(0,var(--content)) 200px;
+    gap: 40px;
+  }
+}
+/* Below this the table of contents is hidden *and* its column is removed, so the
+   article gets the width back instead of sitting next to an empty rail. */
+@media(max-width:1279px) {
+  .docs-grid {
+    grid-template-columns: 240px minmax(0,var(--content));
+    gap: 38px;
+  }
+  .toc,
+  .toc-actions {
+    display: none;
+  }
+  .article-heading > .inline-page-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 28px 0 4px;
+  }
+}
+@media(max-width:1100px) {
+  .brand {
+    min-width: auto;
+  }
+  .search-trigger {
+    min-width: 190px;
+  }
+  .article {
+    padding-top: 55px;
+  }
+  .header-secondary {
+    display: inline-flex;
+  }
+  .toc-actions {
+    display: none;
+  }
+  .topbar {
+    grid-template-columns: auto minmax(220px,320px) auto;
+    gap: 16px;
+  }
+  .navbar-search {
+    width: min(100%,320px);
+  }
+}
+@media(max-width:760px) {
+  :root {
+    --header: 52px;
+    /* An announcement that sits on one line at 1280px takes two or three at
+       375px. Raising the floor here means the common case is right before any
+       script runs — see the note on .global-banner. */
+    --banner-min: 76px;
+  }
+  .global-banner {
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+  .search-trigger span,
+  .search-trigger .shortcut {
+    display: none;
+  }
+  .search-trigger {
+    min-width: 34px;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+  }
+  .mobile-only {
+    display: grid;
+  }
+  .docs-grid {
+    display: block;
+    padding: var(--header) 20px 0;
+    padding-top: calc(var(--banner-h) + var(--header) + var(--mobile-pagebar));
+  }
+  .article {
+    padding: 42px 0 70px;
+    min-height: 0;
+    display: block;
+    padding-bottom: 70px;
+    font-size: 16px;
+  }
+  .article-heading h1 {
+    font-size: 26px;
+    line-height: 1.18;
+  }
+  .article-heading>p {
+    font-size: 16px;
+  }
+  .page-nav {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .feedback {
+    flex-wrap: wrap;
+  }
+  .site-footer {
+    align-items: center;
+  }
+  .toc {
+    display: none;
+  }
+  .categorybar-inner {
+    padding: 0 16px;
+    gap: 22px;
+    overflow-x: auto;
+  }
+  .categorybar a {
+    white-space: nowrap;
+  }
+  .article h2 {
+    font-size: 22px;
+  }
+  .article h3 {
+    font-size: 17px;
+  }
+  .heading-anchor-button {
+    display: none;
+  }
+  .anchored-heading {
+    display: block;
+  }
+  /*
+   * `.navbar-center .navbar-search`, not `.navbar-search` alone: the base
+   * layout rule that flexes this to fill its wrapper is exactly as specific,
+   * and only matching that lets the icon-only size below actually win here.
+   */
+  .navbar-center .navbar-search {
+    flex: none;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 999px;
+  }
+  /* Dropped for the whole mobile range, not just the narrowest part of it: a
+     reader on a phone is not wiring this documentation into an MCP client, and
+     the space belongs to the call to action instead. The dialog stays reachable
+     from the page menu. */
+  .navbar-agent {
+    display: none;
+  }
+  .navbar-search span {
+    display: none;
+  }
+  .navbar-search .shortcut {
+    display: none;
+  }
+  html.nav-open,
+  html.nav-open body {
+    overflow: hidden;
+  }
+  .topbar {
+    padding: 0 14px;
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  /*
+   * Brand on the left, then search and the primary call to action pinned to the
+   * right edge.
+   *
+   * The auto margin belongs on this wrapper rather than on the search button
+   * inside it. `.navbar-center` is a sized flex item here (`min(100%, 388px)`
+   * from its base rule), so an auto margin on the button only pushed it to the
+   * right of *that box* — which is why the icon used to sit short of the edge
+   * until the viewport was narrow enough for the box to run out of room.
+   */
+  .navbar-center {
+    width: auto;
+    flex: none;
+    margin-left: auto;
+  }
+  /* Of the four header actions only the primary link is worth the width here.
+     Sign-in and the theme control move to the drawer and the footer; the menu
+     button is in the page bar below. Each is hidden by name rather than by
+     hiding the container, which now has to stay laid out for the primary. */
+  .topbar .header-secondary,
+  .topbar .theme-menu,
+  .topbar [data-menu-toggle].mobile-only {
+    display: none;
+  }
+  .topbar .header-actions {
+    gap: 8px;
+  }
+  /* Matched to the 34px search icon beside it, not the 36px of the wide bar, so
+     the two read as one group in a 52px header. */
+  .topbar .header-primary {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 12.5px;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  /* Repeat of the topbar links, at the foot of the drawer. Full-width and
+     stacked: a drawer is a list of destinations, and these are two more. */
+  .drawer-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line);
+  }
+  .drawer-actions .header-secondary,
+  .drawer-actions .header-primary {
+    display: inline-flex;
+    height: 44px;
+    font-size: 14px;
+    border-radius: var(--r-md);
+  }
+  .categorybar {
+    display: none;
+  }
+  .mobile-pagebar {
+    position: fixed;
+    z-index: 38;
+    top: calc(var(--banner-h) + var(--header));
+    left: 0;
+    right: 0;
+    height: var(--mobile-pagebar);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb,var(--bg) 96%,transparent);
+    backdrop-filter: blur(16px);
+  }
+  .mobile-pagebar button {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: 0;
+    cursor: pointer;
+  }
+  .mobile-pagebar span {
+    color: var(--muted);
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .mobile-pagebar strong {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(360px,88vw);
+    height: 100vh;
+    z-index: 60;
+    background: var(--bg);
+    transform: translateX(-105%);
+    transition: transform .22s ease;
+    box-shadow: 0 28px 80px rgba(0,0,0,.18);
+    border-right: 1px solid var(--line);
+  }
+  .sidebar .sidebar-viewport {
+    padding: 22px 18px 26px;
+  }
+  .sidebar.open {
+    transform: none;
+  }
+  .mobile-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .mobile-drawer-head .brand {
+    min-width: 0;
+  }
+  .category-switcher {
+    margin-bottom: 18px;
+    display: block;
+  }
+  .category-switcher summary {
+    height: 45px;
+    border-radius: calc(var(--r-md) + 2px);
+    font-size: 15px;
+  }
+  .category-options {
+    padding: 7px;
+    border-radius: calc(var(--r-md) + 2px);
+  }
+  .category-options a {
+    min-height: 42px;
+    font-size: 14px;
+  }
+  .mobile-overlay {
+    position: fixed;
+    z-index: 55;
+    inset: 0;
+    background: rgba(0,0,0,.28);
+    backdrop-filter: blur(4px);
+  }
+  .mobile-overlay.open {
+    display: block;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  * {
+    scroll-behavior: auto!important;
+    transition: none!important;
+  }
+}
+@media(min-width:761px) {
+  .article {
+    min-height: calc(100vh - var(--shell-top));
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 48px;
+  }
+  .article>.mdx-content {
+    flex: 1;
+  }
+  .article>.page-footer {
+    flex-shrink: 0;
+  }
+}
+@media(max-width:900px) {
+  .heading-anchor-button {
+    display: none;
+    width: 26px;
+    height: 26px;
+  }
+  .anchored-heading {
+    display: block;
+  }
+}
+/*
+ * Bounded below at 761px: under that the bar is a flex row with a 34px search
+ * icon, sized by the `.navbar-center .navbar-search` rule in the mobile block.
+ *
+ * The `.navbar-search` width below is redundant at this range rather than
+ * wrong — `.navbar-center .navbar-search { width: auto; flex: 1 }` is a higher
+ * specificity and always wins for width, so this bar's actual size comes from
+ * `.navbar-center`'s own `width: min(100%, 388px)` filling the narrower grid
+ * track below. Left in place as documentation of the intended width, not as
+ * the rule doing the sizing.
+ */
+@media(min-width:761px) and (max-width:880px) {
+  .topbar {
+    grid-template-columns: auto minmax(190px,300px) auto;
+  }
+  .navbar-search {
+    width: min(100%,300px);
+  }
+  .navbar-search .shortcut {
+    display: none;
+  }
+}
+/* The fixed bars are full-bleed, so they need to pad themselves in to where the
+   grid below them starts, or the brand and the category tabs drift out of line
+   with the sidebar. Each tier's inset is half the leftover viewport once the
+   grid's own width is taken out — and that width is the reading column plus the
+   rails and gaps *of that tier*, which is why every tier carries its own sum.
+   Everything is expressed against --content so narrowing the reading column
+   keeps the bars aligned by construction. */
+@media(min-width:1400px) {
+  /* 262 + 228 rails + 2 x 54 gap */
+  .topbar,
+  .categorybar-inner {
+    padding-left: max(28px,calc((100vw - (var(--content) + 598px)) / 2));
+    padding-right: max(28px,calc((100vw - (var(--content) + 598px)) / 2));
+  }
+}
+@media(min-width:1280px) and (max-width:1399px) {
+  /* 248 + 200 rails + 2 x 40 gap */
+  .topbar,
+  .categorybar-inner {
+    padding-left: max(28px,calc((100vw - (var(--content) + 528px)) / 2));
+    padding-right: max(28px,calc((100vw - (var(--content) + 528px)) / 2));
+  }
+}
+@media(min-width:761px) and (max-width:1279px) {
+  /* No table of contents at this width: 240 sidebar + 38 gap. */
+  .topbar,
+  .categorybar-inner {
+    padding-left: max(28px,calc((100vw - (var(--content) + 278px)) / 2));
+    padding-right: max(28px,calc((100vw - (var(--content) + 278px)) / 2));
+  }
+}
+@media(min-width:761px) {
+  .nav-group h2 {
+    padding-left: 0;
+  }
+  .nav-group>a {
+    padding-left: 14px;
+  }
+  .nav-children a {
+    padding-left: 10px;
+  }
+}
+/* Not-found page. */
+.not-found {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+.not-found h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3.2vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.15;
+}
+.not-found p {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--muted);
+}
+.not-found .header-primary {
+  margin-top: 8px;
+}
+
+/* Table-of-contents link list. The rail is a fixed-height column; only this part
+   scrolls, so a long page's headings stay reachable while the actions popover
+   above can still overflow the rail. */
+.toc-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Fourth-level headings mark variations inside a section. They stay out of the
+   table of contents (which lists h2 and h3) and read as a label, not a heading. */
+.article h4 {
+  margin: 1.75rem 0 .5rem;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+
+/* ── Agent access dialog ──────────────────────────────────────────────────
+   Built from the same pieces as the search dialog (surface, line, radius,
+   backdrop) so it reads as the same product, and typed against the article's
+   own scale rather than a smaller one of its own: this is prose someone reads
+   while setting a tool up, not chrome they glance at. Wider than search,
+   because it is read rather than typed into.
+
+   .navbar-center and .navbar-agent, the two rules that place the dialog's
+   topbar trigger, moved up to sit beside the base .navbar-search rule — see
+   the comment there. */
+.agent-dialog {
+  width: min(700px, calc(100% - 24px));
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--prose-body);
+  padding: 0;
+  top: -4vh;
+  margin: auto;
+  border-radius: var(--r-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .1);
+}
+.agent-dialog::backdrop {
+  background: rgba(18, 20, 16, .42);
+  backdrop-filter: blur(5px);
+}
+.agent-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 24px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.agent-dialog-head h2 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--c-title);
+  margin: 0 0 6px;
+}
+.agent-dialog-head p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+  max-width: 56ch;
+}
+.agent-dialog-body {
+  padding: 4px 24px 24px;
+  /* Reference material, not a scroll surface. But a short viewport must not
+     clip the last section out of reach. */
+  max-height: min(620px, calc(100dvh - 180px));
+  overflow: auto;
+}
+.agent-section {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.agent-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 6px;
+}
+.agent-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.agent-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  color: var(--c-title);
+  margin: 0;
+}
+.agent-tag {
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.agent-section p {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--prose-body);
+  margin: 0 0 14px;
+  max-width: 68ch;
+}
+.agent-section p:last-child {
+  margin-bottom: 0;
+}
+.agent-section p code {
+  font-size: 13px;
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+  background: var(--c-sunken-strong);
+  color: var(--c-title);
+}
+.agent-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--c-sunken);
+  border-radius: var(--r-sm);
+  padding: 9px 9px 9px 13px;
+  margin-bottom: 14px;
+}
+.agent-copy code {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--c-title);
+  /* A long URL must not widen the dialog; it scrolls inside its own box. */
+  overflow-x: auto;
+  white-space: nowrap;
+}
+/* The copy control is the same icon-only button as a code block's, including
+   its confirmed state, so the gesture is learned once. It is not `.copy-swap`:
+   that variant carries a text label, and swapping "Copy" for "Copied" beside a
+   URL moved the button under the cursor at the moment it was clicked. */
+.agent-copy .copy-button {
+  margin-left: 0;
+}
+.agent-tools {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.agent-tools li {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--prose-body);
+}
+.agent-tools code {
+  flex-shrink: 0;
+  min-width: 104px;
+  font-size: 13px;
+  color: var(--c-title);
+}
+.agent-section a {
+  display: inline;
+  color: var(--c-title);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--line);
+}
+.agent-section a:hover {
+  text-decoration-color: currentColor;
+}
+/* Keeps the external-link arrow on the same line as the last word of the link,
+   so a wrapping sentence never strands it at the start of a line. */
+.agent-section a > svg {
+  display: inline;
+  vertical-align: -1px;
+  margin-left: 3px;
+}
+.action-menu-rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 6px 4px;
+}
+@media (max-width: 640px) {
+  .agent-dialog-head { padding: 20px 18px 16px; }
+  .agent-dialog-body { padding: 4px 18px 20px; }
+  .agent-tools li { flex-direction: column; gap: 2px; }
+}

@@ -1,0 +1,59 @@
+---
+/**
+ * Registers this site's MCP tools with a WebMCP-capable browser agent.
+ *
+ * WebMCP lets a page hand an in-browser agent a list of callable tools instead
+ * of making it read pixels and guess where to click. The tool shape is the same
+ * as MCP's — name, description, JSON Schema, async execute — so the bridge is
+ * pure relay: it reads the descriptors this site already publishes at
+ * /mcp/tools and forwards each call to /mcp.
+ *
+ * Rendered only when `agents.webmcpBridge` is `'on'`. The default is `'off'`,
+ * because Cloudflare's hosted bridge (Agent Readiness → Labs, the "Site MCP
+ * server" pack) does exactly this with no code to maintain — but that toggle
+ * needs the domain to be a Cloudflare zone, which a fork of this repository may
+ * not have. Never run both: the tools would be registered twice.
+ *
+ * The API moved from `navigator.modelContext` to `document.modelContext`
+ * between Chrome 149 and 150, with the origin trial still serving the old
+ * spelling. That single rename is the whole of the churn, and the `??` below is
+ * the whole of the mitigation.
+ *
+ * Everything past the registration call lives in `src/lib/webmcp.ts` so that
+ * tests can reach it — see the note there. What stays here is what only a
+ * browser can run.
+ */
+---
+
+<script>
+  import { callTool, loadTools } from '../lib/webmcp';
+
+  interface ModelContext {
+    registerTool(tool: {
+      name: string;
+      description: string;
+      inputSchema: unknown;
+      execute(args: Record<string, unknown>): Promise<string>;
+    }): void;
+  }
+
+  const target: ModelContext | undefined =
+    (document as unknown as { modelContext?: ModelContext }).modelContext ??
+    (navigator as unknown as { modelContext?: ModelContext }).modelContext;
+
+  /* No agent, no cost: every browser without the API stops here. */
+  if (target) {
+    void (async () => {
+      try {
+        for (const tool of await loadTools()) {
+          target.registerTool({
+            ...tool,
+            execute: args => callTool(tool.name, args),
+          });
+        }
+      } catch {
+        /* A page that cannot reach its own MCP endpoint still has to render. */
+      }
+    })();
+  }
+</script>

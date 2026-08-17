@@ -1,0 +1,18 @@
+---
+/**
+ * One variant of a whole page — a language, a framework — selected by a single
+ * control that scripts/rich-components.ts builds from every view on the page.
+ *
+ * Two or more views make the selector appear; one on its own renders as an
+ * ordinary section, which is what makes a page safe to write one view at a time.
+ *
+ * `title` is the only label: the selector is a native <select>, so an option
+ * cannot carry an icon. Reach for <Tabs> where the alternatives are local to a
+ * passage and can afford a strip.
+ */
+interface Props { title: string }
+const { title } = Astro.props;
+---
+<section class="content-view" data-content-view data-view-title={title}>
+  <slot />
+</section>
