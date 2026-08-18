@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import { cssColor, cssCounter, cssCustomProperties } from '../src/lib/css-value.ts';
+import { rehypeInlineLinks } from '../src/lib/rehype-inline-links.ts';
 import { slugify } from '../src/lib/slug.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -681,5 +682,84 @@ describe('source guards', () => {
       'these pages wrap a CTA\'s actions slot in an element other than Fragment, ' +
         'which defeats the gap between the buttons: use <Fragment slot="actions">',
     );
+  });
+});
+
+/**
+ * A plain Markdown link has to *look* like a link.
+ *
+ * This shipped broken: `shell.css` styles a prose link through `.article
+ * a.inline`, nothing was adding that class, and so every `[text](url)` in the
+ * site rendered in body colour with no underline — a link that worked and gave
+ * no sign it was one. A full green test run said nothing, because the anchor was
+ * correct in every respect the suite checked. Hence both halves below: the
+ * plugin's own behaviour, and the invariant it exists to hold in the build.
+ */
+describe('prose links', () => {
+  /** Runs the plugin over a hast fragment and hands back the anchors. */
+  const anchors = tree => {
+    rehypeInlineLinks()(tree);
+    const found = [];
+    const walk = node => {
+      for (const child of node.children ?? []) {
+        if (child.tagName === 'a') found.push(child);
+        walk(child);
+      }
+    };
+    walk(tree);
+    return found;
+  };
+
+  const anchor = properties => ({ type: 'element', tagName: 'a', properties, children: [] });
+
+  test('a bare Markdown link is given the class its styling needs', () => {
+    const [link] = anchors({
+      type: 'root',
+      children: [
+        { type: 'element', tagName: 'p', properties: {}, children: [anchor({ href: '/guides' })] },
+      ],
+    });
+    assert.deepEqual(link.properties.className, ['inline']);
+  });
+
+  test('an anchor that already carries a class is left as the author wrote it', () => {
+    const [link] = anchors({
+      type: 'root',
+      children: [anchor({ href: '/guides', className: ['button'] })],
+    });
+    assert.deepEqual(link.properties.className, ['button']);
+  });
+
+  test('a footnote marker stays a marker, not underlined prose', () => {
+    const [ref, backref] = anchors({
+      type: 'root',
+      children: [
+        anchor({ href: '#user-content-fn-1', dataFootnoteRef: true }),
+        anchor({ href: '#user-content-fnref-1', dataFootnoteBackref: true }),
+      ],
+    });
+    assert.equal(ref.properties.className, undefined);
+    assert.equal(backref.properties.className, undefined);
+  });
+
+  test('every paragraph link in the build carries its styling', t => {
+    if (!existsSync(htmlPath)) return t.skip('this distribution has no component gallery');
+    const html = readFileSync(htmlPath, 'utf8');
+    /* `.article` is the prose container — a <main>, not an <article> element. */
+    const article = html.match(/<main class="article"[\s\S]*?<\/main>/)?.[0];
+    assert.ok(article, 'the page has no .article container to inspect');
+
+    /* Scoped to <p> on purpose. An anchor in a paragraph came from Markdown link
+       syntax and nothing else, so it is the one place where a missing class is
+       unambiguously the bug this guards. Anchors elsewhere in the article — the
+       page-actions menu, a Card, the footer — are component-owned and styled
+       through their parent's selector, with no class of their own to assert on. */
+    const links = [...article.matchAll(/<p>([\s\S]*?)<\/p>/g)].flatMap(paragraph => [
+      ...paragraph[1].matchAll(/<a\s([^>]*)>/g),
+    ]);
+
+    assert.ok(links.length > 0, 'no paragraph on the page links anywhere, which cannot be right');
+    const unstyled = links.map(match => match[1]).filter(a => !/class="[^"]*\binline\b/.test(a));
+    assert.deepEqual(unstyled, [], 'a prose link is missing .inline, so it renders as plain text');
   });
 });
