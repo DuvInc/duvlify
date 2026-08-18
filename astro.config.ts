@@ -4,6 +4,7 @@ import { unified } from '@astrojs/markdown-remark';
 import { basePath, theme } from './src/docs.config';
 import { rehypeCodeChrome, shikiCodeMeta } from './src/lib/rehype-code-chrome';
 import { rehypeImages } from './src/lib/rehype-images';
+import { rehypeInlineLinks } from './src/lib/rehype-inline-links';
 import { rehypeWrapTables } from './src/lib/rehype-wrap-tables';
 import { remarkMermaid } from './src/lib/remark-mermaid';
 import { remarkVideoEmbed } from './src/lib/remark-video-embed';
@@ -104,7 +105,7 @@ export default defineConfig({
      */
     processor: unified({
       remarkPlugins: [remarkMermaid, remarkVideoEmbed],
-      rehypePlugins: [rehypeCodeChrome, rehypeWrapTables, rehypeImages],
+      rehypePlugins: [rehypeCodeChrome, rehypeWrapTables, rehypeImages, rehypeInlineLinks],
     }),
   },
 
