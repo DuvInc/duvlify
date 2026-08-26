@@ -11,3 +11,16 @@
 # published at the old path, so the old path has to keep resolving — this file is
 # the whole reason a restructure does not have to break existing links.
 /guides/diagrams-and-code  /reference/code-and-diagrams  301
+
+# Sitemap name guessing. Crawlers ask for names this site does not use:
+# /sitemap_index.xml is the convention of the largest WordPress SEO plugins, so
+# it is the name a bot guesses before reading robots.txt — which does name the
+# real one, on its last line. Answering the guess costs one 301; the alternative
+# is restructuring a sitemap this small around an index it has no need for.
+#
+# Deliberately short. Only the two spellings that a crawler has actually been
+# observed requesting on a sibling site are here — a longer list of plausible
+# names would be guesses about guesses, and every unused rule is a line that
+# outlives the reason it was added.
+/sitemap_index.xml  /sitemap.xml  301
+/sitemap-index.xml  /sitemap.xml  301

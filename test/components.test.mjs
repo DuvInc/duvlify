@@ -246,6 +246,70 @@ describe('the site-wide banner', () => {
  * made once, is invisible in review, and is one grep away from never recurring.
  */
 describe('source guards', () => {
+  test('every _redirects rule points at something the build produced', () => {
+    /*
+     * The companion to the `_headers` guard below, for the file whose failure is
+     * louder and no more visible from here.
+     *
+     * `_redirects` exists so that a restructure does not break a published URL.
+     * A rule whose target has since been renamed keeps redirecting — to a 404,
+     * which is strictly worse than the 404 the rule was added to prevent: the
+     * old URL now reports a permanent move to a page that is not there, and
+     * `curl` on the old path returns 301 and looks healthy. Nothing in the build
+     * output, and nothing in Cloudflare, mentions it.
+     *
+     * Only local targets are judged. An off-site destination cannot be checked
+     * against `dist/`, and a rule with a `:placeholder` or a `*` in it is a
+     * pattern rather than a path — both are skipped rather than guessed at.
+     */
+    if (!existsSync(distDir)) return;
+
+    /* Stripped from every target before it is looked up, because the two sides
+       disagree about it on a subpath deployment. `_redirects` is evaluated by
+       Cloudflare against the incoming request, so its paths carry `basePath`,
+       while `dist/` is written without it — the same asymmetry the Worker
+       handles by stripping the prefix before `ASSETS.fetch()`. Without this the
+       guard would report every rule of a site served under a subpath as broken,
+       which is worse than not having it: a fork's first CI run would fail on
+       correct configuration. */
+    const basePath = (readFileSync(path.join(SRC, 'docs.config.ts'), 'utf8')
+      .match(/export const basePath = '([^']*)'/) ?? [, ''])[1];
+
+    const rules = readFileSync(path.join(ROOT, 'public', '_redirects'), 'utf8')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line && !line.startsWith('#'))
+      .map(line => line.split(/\s+/))
+      .filter(([from, to]) => from && to);
+
+    /* Astro builds in directory format with `trailingSlash: 'never'`, so a page
+       target is a directory holding index.html, while /sitemap.xml and friends
+       are files. Accept either, and let a bare extension answer for itself. */
+    const built = target => {
+      const withoutBase =
+        basePath && target.startsWith(`${basePath}/`) ? target.slice(basePath.length) : target;
+      const relative = withoutBase.replace(/^\//, '');
+      if (!relative) return true;
+      return (
+        existsSync(path.join(distDir, relative, 'index.html')) ||
+        existsSync(path.join(distDir, `${relative}.html`)) ||
+        existsSync(path.join(distDir, relative))
+      );
+    };
+
+    const broken = rules
+      .filter(([, to]) => to.startsWith('/') && !/[:*]/.test(to))
+      .filter(([, to]) => !built(to))
+      .map(([from, to]) => `${from} -> ${to}`);
+
+    assert.deepEqual(
+      broken,
+      [],
+      'these _redirects rules send a published URL to a path this build does not ' +
+        'contain, so the old link answers 301 and then 404',
+    );
+  });
+
   test('every _headers rule matches something the build produced', () => {
     /*
      * A `_headers` rule that matches nothing is invisible. Cloudflare does not

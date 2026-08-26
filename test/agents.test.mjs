@@ -601,3 +601,77 @@ describe('WebMCP bridge', () => {
     assert.deepEqual(await readRpcResponse(asStream), payload);
   });
 });
+
+/**
+ * The two files that have to agree about semantic retrieval.
+ *
+ * `agents.retrieval` and `agents.aiSearchInstance` live in src/docs.config.ts;
+ * the `AI_SEARCH` binding and its `instance_name` live in wrangler.jsonc. Both
+ * files already say in prose that they must match — and nothing checked it,
+ * which is the whole problem, because this particular disagreement has no
+ * symptom.
+ *
+ * A missing or misnamed binding does not fail the upload, does not 500, and does
+ * not empty the results: `retrieve()` catches it and serves the lexical index
+ * instead, deliberately, so that a misconfiguration degrades rather than breaks.
+ * That fallback is right. What it also does is make the two states
+ * indistinguishable from the outside — a site whose semantic index was never
+ * bound answers every search, plausibly, forever, with the floor implementation.
+ * The `search-timing` log names the backend on every request, so the evidence
+ * exists, but only for someone already looking; nothing brings them to look.
+ *
+ * So the check belongs here, before a deploy, where the disagreement is still
+ * two strings in two files rather than a quality regression nobody attributes.
+ *
+ * Asserted in one direction only. An `AI_SEARCH` binding left in place while
+ * `retrieval` is 'lexical' is a dead binding and probably an oversight too, but
+ * it costs nothing at runtime and a fork switching to the floor implementation
+ * should not have its CI fail over a line it has no reason to touch.
+ */
+describe('retrieval configuration', () => {
+  /* The `agents` object alone: `enabled` and `retrieval` are common enough words
+     that a regex over the whole file would eventually match something else. */
+  const configSource = readFileSync(path.join(ROOT, 'src', 'docs.config.ts'), 'utf8');
+  /* Terminated on a line-initial `}` rather than on `};`, because this object
+     closes with `} as const;` and matching the punctuation instead of the shape
+     is how a reader of this file silently gets an empty string. */
+  const agentsBlock = configSource.match(/^export const agents = \{$([\s\S]*?)^\}/m)?.[1] ?? '';
+  const agentsEnabled = /^\s*enabled:\s*true\b/m.test(agentsBlock);
+  const retrieval = agentsBlock.match(/^\s*retrieval:\s*'([^']+)'/m)?.[1];
+  const instance = agentsBlock.match(/^\s*aiSearchInstance:\s*'([^']*)'/m)?.[1];
+
+  const wranglerSource = readFileSync(path.join(ROOT, 'wrangler.jsonc'), 'utf8');
+  /* Read field by field rather than by parsing the file: wrangler.jsonc carries
+     comments and JSON.parse would need them stripped, and a stripper is more
+     code with more ways to be wrong than the two fields actually being read. */
+  const binding = wranglerSource.match(
+    /"binding":\s*"AI_SEARCH"[^}]*"instance_name":\s*"([^"]*)"/,
+  )?.[1];
+
+  test('docs.config.ts names a retrieval backend this suite knows', () => {
+    assert.ok(
+      retrieval === 'lexical' || retrieval === 'ai-search',
+      `agents.retrieval reads ${retrieval ?? 'as unset'} — the assertions below cannot judge it`,
+    );
+  });
+
+  test('an ai-search deployment declares the binding it retrieves through', t => {
+    if (!agentsEnabled || retrieval !== 'ai-search') {
+      t.skip(`retrieval is '${retrieval}'${agentsEnabled ? '' : ' and agents are off'}`);
+      return;
+    }
+    assert.ok(
+      binding !== undefined,
+      "agents.retrieval is 'ai-search' but wrangler.jsonc declares no AI_SEARCH binding — " +
+        'every search on this deployment would silently serve the lexical index instead',
+    );
+    assert.equal(
+      binding,
+      instance,
+      'the AI Search instance is named twice and the two names disagree: ' +
+        `wrangler.jsonc binds "${binding}", agents.aiSearchInstance says "${instance}". ` +
+        'scripts/index-sync.mjs uploads the corpus to the second while the Worker ' +
+        'queries the first, so the index that gets built is not the index that gets read',
+    );
+  });
+});
