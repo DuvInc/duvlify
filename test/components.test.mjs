@@ -264,6 +264,17 @@ describe('source guards', () => {
      */
     if (!existsSync(distDir)) return;
 
+    /* Stripped from every target before it is looked up, because the two sides
+       disagree about it on a subpath deployment. `_redirects` is evaluated by
+       Cloudflare against the incoming request, so its paths carry `basePath`,
+       while `dist/` is written without it — the same asymmetry the Worker
+       handles by stripping the prefix before `ASSETS.fetch()`. Without this the
+       guard would report every rule of a site served under a subpath as broken,
+       which is worse than not having it: a fork's first CI run would fail on
+       correct configuration. */
+    const basePath = (readFileSync(path.join(SRC, 'docs.config.ts'), 'utf8')
+      .match(/export const basePath = '([^']*)'/) ?? [, ''])[1];
+
     const rules = readFileSync(path.join(ROOT, 'public', '_redirects'), 'utf8')
       .split('\n')
       .map(line => line.trim())
@@ -275,7 +286,9 @@ describe('source guards', () => {
        target is a directory holding index.html, while /sitemap.xml and friends
        are files. Accept either, and let a bare extension answer for itself. */
     const built = target => {
-      const relative = target.replace(/^\//, '');
+      const withoutBase =
+        basePath && target.startsWith(`${basePath}/`) ? target.slice(basePath.length) : target;
+      const relative = withoutBase.replace(/^\//, '');
       if (!relative) return true;
       return (
         existsSync(path.join(distDir, relative, 'index.html')) ||
