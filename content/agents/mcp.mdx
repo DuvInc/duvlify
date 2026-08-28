@@ -26,8 +26,17 @@ chunk granularity, which no per-page metadata field could ever express.
 
 ## WebMCP
 
-Cloudflare's hosted bridge is the recommended route when the domain is a
-Cloudflare zone. In the dashboard, go to **Agent Readiness → Labs → Enable
+There are two ways to register these tools with an in-browser agent, and
+duvlify.dev runs the first.
+
+Set `agents.webmcpBridge` to `'on'` and this repository registers them
+itself, from
+[`src/components/WebMcpBridge.astro`](https://github.com/DuvInc/duvlify/blob/main/src/components/WebMcpBridge.astro).
+This is the default here, and it is the **only** option for a deployment
+under a subpath or on a domain that is not a Cloudflare zone.
+
+The alternative is Cloudflare's hosted bridge, which costs nothing to
+maintain. In the dashboard, go to **Agent Readiness → Labs → Enable
 WebMCP**, then under *Tool packs* check **Site MCP server** only.
 
 The interface says "Leave every pack unchecked to use the default set". The
@@ -41,11 +50,18 @@ generic documentation MCP. It finds this site's server at `<origin>/mcp`,
 which is why the MCP endpoint lives on the site's Worker rather than on one
 of Cloudflare's own.
 
+It finds that server by convention, not configuration: the pack requests
+`tools/list` from `<origin>/mcp` and relays whatever comes back, so nothing
+about your tools is ever declared to Cloudflare.
+
+That origin is hard-coded, which is the catch. A site served from `/docs`
+has its MCP server at `<origin>/docs/mcp`, where the pack never looks, so it
+registers no tools of yours at all. Subpath deployments must use the
+repository's own bridge. See [Deploying](/guides/deployment).
+
 Where there is no zone, such as a `workers.dev` deployment or a fork without
-a Cloudflare domain, that dashboard screen does not exist. In that case, set
-`agents.webmcpBridge` to `'on'`, and this repository registers the tools
-itself from
-[`src/components/WebMcpBridge.astro`](https://github.com/DuvInc/duvlify/blob/main/src/components/WebMcpBridge.astro).
+a Cloudflare domain, that dashboard screen does not exist either.
+
 Never run both methods together, or the tools would be registered twice.
 
 The browser API was renamed from `navigator.modelContext` to
@@ -78,6 +94,21 @@ The test suite knew about them; the bridge did not, because the suite built
 its own request instead of using the shipped one. This is the lesson worth
 keeping: a test that reimplements the thing it is testing stays green
 through the bug.
+
+A third defect outlived both, and it is the reason the two endpoints take a
+prefix argument rather than being written bare. `/mcp/tools` and `/mcp` were
+absolute paths. At the empty `basePath` this repository ships they are
+correct, so duvlify.dev worked — but under a subpath deployment they resolve
+against the origin root, where nothing answers. A fork serving its
+documentation from `/docs` registered zero tools while looking entirely
+healthy, because `loadTools` returns an empty list when the route is
+unreachable and said nothing about it. It now warns, and the component
+passes `site.basePath` to both calls.
+
+This one could not be spelled `withBase(…)` like every other framework-level
+path. `src/lib/webmcp.ts` imports nothing on purpose — that is what lets a
+test load it under Node's type stripping — so the base has to arrive as an
+argument, and `test/publication.test.mjs` asserts the component supplies it.
 
 The handful of lines left in the component are still uncovered by tests.
 There is no `modelContext` object in Node, and stubbing one would only prove
