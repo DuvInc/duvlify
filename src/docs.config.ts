@@ -515,15 +515,23 @@ export const agents = {
   /**
    * The in-browser bridge that republishes these tools to a WebMCP agent.
    *
-   *   'off'  Cloudflare's hosted bridge handles it — the "Site MCP server" pack
-   *          under Agent Readiness → Labs. Recommended wherever the domain is a
-   *          Cloudflare zone, because it costs nothing to maintain.
-   *   'on'   this repository registers the tools itself. For a deployment with
-   *          no zone, where that dashboard toggle does not exist.
+   *   'on'   this repository registers the tools itself, from
+   *          `src/components/WebMcpBridge.astro`. Required for a subpath
+   *          deployment and for any domain that is not a Cloudflare zone.
+   *   'off'  Cloudflare's hosted bridge handles it instead — the "Site MCP
+   *          server" pack under Agent Readiness → Labs. Costs nothing to
+   *          maintain, but only works when the documentation is served from the
+   *          origin root: that pack looks for the site's MCP server at `/mcp`
+   *          and the path is hard-coded, so a site under `/docs` gets a bridge
+   *          that finds nothing.
    *
    * Never both: the tools would be registered twice.
+   *
+   * duvlify.dev runs `'on'`, though its domain is a zone and either would work.
+   * The bridge is part of what this project demonstrates, so the site runs the
+   * code it ships rather than a dashboard toggle a reader cannot inspect.
    */
-  webmcpBridge: 'off' as 'off' | 'on',
+  webmcpBridge: 'on' as 'off' | 'on',
 
   /**
    * Requests per minute per IP, per tool family. Enforced by the Workers rate

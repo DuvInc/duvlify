@@ -572,6 +572,28 @@ describe('framework-level links go through withBase', () => {
     });
   }
 
+  /* The WebMCP bridge is the one case that cannot be spelled withBase(…).
+     `src/lib/webmcp.ts` imports nothing on purpose — that is what lets a test
+     load it under Node's type stripping — so it takes the base as an argument
+     and the component supplies it. Both call sites need it: the endpoints were
+     bare absolute paths for longer than anything else here, because the bridge
+     runs only in a browser with the WebMCP API and no test has one. A fork
+     deployed under /docs registered zero tools, silently, until someone read
+     its live HTML. */
+  test('src/components/WebMcpBridge.astro passes the base path to the bridge', () => {
+    const source = readFileSync(path.join(ROOT, 'src', 'components', 'WebMcpBridge.astro'), 'utf8');
+    assert.match(
+      source,
+      /loadTools\(\s*site\.basePath\s*\)/,
+      'loadTools() is called without site.basePath, so a subpath deployment registers no tools',
+    );
+    assert.match(
+      source,
+      /callTool\(\s*tool\.name\s*,\s*args\s*,\s*site\.basePath\s*\)/,
+      'callTool() is called without site.basePath, so a subpath deployment cannot invoke a tool',
+    );
+  });
+
   test('src/lib/structured-data.ts wraps the organisation logo', () => {
     const source = readFileSync(path.join(ROOT, 'src', 'lib', 'structured-data.ts'), 'utf8');
     assert.match(

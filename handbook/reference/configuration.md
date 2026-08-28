@@ -2,7 +2,7 @@
 title: "Configuration"
 description: "Every setting lives in src/docs.config.ts, in five exports for identity, search, theme, navigation, and agent surfaces."
 canonical: "https://duvlify.dev/reference/configuration"
-updated: "2026-08-18"
+updated: "2026-08-28"
 ---
 
 # Configuration
@@ -190,7 +190,7 @@ export const agents = {
   defaultLimit: 8,
   maxLimit: 25,
   feedback: { webhook: undefined, fields: [ … ], context: [ … ] },
-  webmcpBridge: 'off',      // 'on' where there is no Cloudflare zone
+  webmcpBridge: 'on',       // 'off' delegates to Cloudflare's hosted bridge
   rateLimit: { search: 30, read: 90, write: 2 },
 };
 ```

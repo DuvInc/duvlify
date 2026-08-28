@@ -17,6 +17,25 @@
  *   2. Given that header, the SDK answers in SSE. `response.json()` throws on
  *      it. Fixing only the first defect would have moved the failure, not
  *      removed it.
+ *
+ * A third defect outlived both, for the same reason — no browser test — and was
+ * found by comparing this bridge against a fork's deployed one:
+ *
+ *   3. `/mcp/tools` and `/mcp` were written as bare absolute paths, and nothing
+ *      supplied a prefix. At the empty `basePath` this repository ships they are
+ *      correct, so duvlify.dev worked and the defect stayed latent; any subpath
+ *      deployment of this engine would have resolved them against the origin
+ *      root, where nothing answers, and registered no tools at all. A fork
+ *      serving its documentation from `/docs` had already repaired it locally,
+ *      which is how the gap became visible here.
+ *
+ * Both paths now carry a caller-supplied prefix, which the component fills from
+ * `site.basePath`; `test/publication.test.mjs` guards that it does. That prefix
+ * is also why the two paths are still written bare below rather than wrapped in
+ * `withBase` like every other framework-level path. This module deliberately
+ * imports nothing — that is what lets a test load it under Node's type
+ * stripping, with no bundler — so it cannot reach `docs.config.ts`, where
+ * `withBase` lives. The base has to arrive as an argument.
  */
 
 /** A tool as published by `/mcp/tools`, in the shape `registerTool` expects. */
@@ -58,10 +77,25 @@ export async function readRpcResponse(response: Response): Promise<unknown> {
   return JSON.parse(payloads[payloads.length - 1]);
 }
 
-/** The tool descriptors this site publishes, or none if the route is unreachable. */
-export async function loadTools(origin = ''): Promise<ToolDescriptor[]> {
-  const response = await fetch(`${origin}/mcp/tools`, { headers: { Accept: 'application/json' } });
-  if (!response.ok) return [];
+/**
+ * The tool descriptors this site publishes, or none if the route is unreachable.
+ *
+ * `prefix` is everything that precedes `/mcp`: `site.basePath` in the browser,
+ * so a subpath deployment reaches its own endpoint, and a whole origin in the
+ * tests, which point this at a Worker running on a port.
+ *
+ * The empty list is deliberate — a documentation page still has to render when
+ * its own MCP endpoint is down — but it used to be returned in complete silence,
+ * which is how defect 3 above survived a full deployment. The warning costs
+ * nothing in the browser that has no agent, because nothing calls this there.
+ */
+export async function loadTools(prefix = ''): Promise<ToolDescriptor[]> {
+  const url = `${prefix}/mcp/tools`;
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    console.warn(`WebMCP bridge: ${url} answered ${response.status}, so no tools were registered.`);
+    return [];
+  }
   const body = (await response.json()) as { tools?: ToolDescriptor[] };
   return body.tools ?? [];
 }
@@ -77,9 +111,9 @@ export async function loadTools(origin = ''): Promise<ToolDescriptor[]> {
 export async function callTool(
   name: string,
   args: Record<string, unknown>,
-  origin = '',
+  prefix = '',
 ): Promise<string> {
-  const response = await fetch(`${origin}/mcp`, {
+  const response = await fetch(`${prefix}/mcp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: MCP_ACCEPT },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),

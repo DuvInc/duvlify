@@ -26,6 +26,7 @@
 ---
 
 <script>
+  import { site } from '../docs.config';
   import { callTool, loadTools } from '../lib/webmcp';
 
   interface ModelContext {
@@ -45,10 +46,12 @@
   if (target) {
     void (async () => {
       try {
-        for (const tool of await loadTools()) {
+        /* Both calls need site.basePath: the endpoints are same-origin, but
+           a subpath deployment does not serve them at the origin root. */
+        for (const tool of await loadTools(site.basePath)) {
           target.registerTool({
             ...tool,
-            execute: args => callTool(tool.name, args),
+            execute: args => callTool(tool.name, args, site.basePath),
           });
         }
       } catch {
