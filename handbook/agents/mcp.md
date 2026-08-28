@@ -2,7 +2,7 @@
 title: "The manifest, WebMCP and limits"
 description: "The page outline agents read for line offsets, the in-browser WebMCP bridge and when to run it yourself, the rate limits, and how the surfaces are tested."
 canonical: "https://duvlify.dev/agents/mcp"
-updated: "2026-08-18"
+updated: "2026-08-28"
 ---
 
 # The manifest, WebMCP and limits
@@ -101,11 +101,13 @@ A third defect outlived both, and it is the reason the two endpoints take a
 prefix argument rather than being written bare. `/mcp/tools` and `/mcp` were
 absolute paths. At the empty `basePath` this repository ships they are
 correct, so duvlify.dev worked — but under a subpath deployment they resolve
-against the origin root, where nothing answers. A fork serving its
-documentation from `/docs` registered zero tools while looking entirely
-healthy, because `loadTools` returns an empty list when the route is
-unreachable and said nothing about it. It now warns, and the component
-passes `site.basePath` to both calls.
+against the origin root, where nothing answers, and any subpath deployment
+of this engine would have registered no tools at all.
+
+Nothing would have said so, either: `loadTools` returns an empty list when
+the route is unreachable, and the component swallowed the rest in a bare
+`catch`, so a broken bridge and a browser without an agent looked identical.
+It now warns, and the component passes `site.basePath` to both calls.
 
 This one could not be spelled `withBase(…)` like every other framework-level
 path. `src/lib/webmcp.ts` imports nothing on purpose — that is what lets a

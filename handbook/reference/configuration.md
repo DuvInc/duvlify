@@ -2,7 +2,7 @@
 title: "Configuration"
 description: "Every setting lives in src/docs.config.ts, in five exports for identity, search, theme, navigation, and agent surfaces."
 canonical: "https://duvlify.dev/reference/configuration"
-updated: "2026-08-18"
+updated: "2026-08-28"
 ---
 
 # Configuration

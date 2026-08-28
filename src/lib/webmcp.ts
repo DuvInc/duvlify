@@ -19,14 +19,23 @@
  *      removed it.
  *
  * A third defect outlived both, for the same reason — no browser test — and was
- * found only by reading a fork's live HTML:
+ * found by comparing this bridge against a fork's deployed one:
  *
- *   3. `/mcp/tools` and `/mcp` were written as bare absolute paths. At the empty
- *      `basePath` this repository ships they are correct, so duvlify.dev worked;
- *      under a subpath deployment they resolve against the origin root, where
- *      nothing answers. A fork serving its documentation from `/docs` registered
- *      zero tools while looking perfectly healthy. Both now go through
- *      `withBase`, and `test/publication.test.mjs` guards them there.
+ *   3. `/mcp/tools` and `/mcp` were written as bare absolute paths, and nothing
+ *      supplied a prefix. At the empty `basePath` this repository ships they are
+ *      correct, so duvlify.dev worked and the defect stayed latent; any subpath
+ *      deployment of this engine would have resolved them against the origin
+ *      root, where nothing answers, and registered no tools at all. A fork
+ *      serving its documentation from `/docs` had already repaired it locally,
+ *      which is how the gap became visible here.
+ *
+ * Both paths now carry a caller-supplied prefix, which the component fills from
+ * `site.basePath`; `test/publication.test.mjs` guards that it does. That prefix
+ * is also why the two paths are still written bare below rather than wrapped in
+ * `withBase` like every other framework-level path. This module deliberately
+ * imports nothing — that is what lets a test load it under Node's type
+ * stripping, with no bundler — so it cannot reach `docs.config.ts`, where
+ * `withBase` lives. The base has to arrive as an argument.
  */
 
 /** A tool as published by `/mcp/tools`, in the shape `registerTool` expects. */
