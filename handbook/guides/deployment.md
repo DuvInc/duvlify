@@ -19,6 +19,13 @@ npm run deploy       # build + index:sync + wrangler deploy
 npm run deploy:fast  # build + wrangler deploy, no reindex
 ```
 
+Both commands start with `npm run check:deployable`, which refuses to continue
+unless you are on `main`, with a clean working tree, at exactly `origin/main`.
+Code that skipped the pull request and its CI run does not get published by a
+stray command. If your production branch has another name, set
+`DEPLOY_BRANCH=production`. The check is skipped when `CI` or `WORKERS_CI` is
+set, so a Workers Builds project that runs `npm run deploy` is not affected.
+
 `deploy` runs the semantic index upload between the build and the deploy. This
 way, a content change cannot ship with a stale index behind it. Two
 consequences follow:
