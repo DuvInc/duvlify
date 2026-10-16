@@ -174,11 +174,11 @@ const searchTool: ToolDefinition = {
   name: 'search',
   description:
     `Search the ${site.name} documentation and return the most relevant passages, grouped by the page they come from. ` +
-    `Use this before answering any question about ${site.name} — it searches the current published documentation directly, ` +
+    `Use this before answering any question about ${site.name}. It searches the current published documentation directly, ` +
     'which is more reliable than recalling it. Pages are ordered by relevance; passages within a page are in reading order. ' +
     'Each passage reports its line range within the page, so you can tell whether you are seeing a small part of a long ' +
     'page and should call `fetch` for the rest. ' +
-    'An empty result means nothing matched closely, not that the topic is missing — the response says what to do next, ' +
+    'An empty result means nothing matched closely, not that the topic is missing. The response says what to do next, ' +
     'usually `list_pages` followed by `fetch`.',
   cost: 'search',
   inputSchema: {
@@ -251,7 +251,7 @@ const searchTool: ToolDefinition = {
         pages: [],
         note:
           `No passage in the ${site.name} documentation matched this query closely enough to be worth quoting. ` +
-          'This does not mean the topic is absent — the wording may simply differ. ' +
+          'This does not mean the topic is absent. The wording may simply differ. ' +
           'Try `list_pages` to see what the documentation covers, then `fetch` the pages that look relevant; ' +
           'that works when a phrasing-based search does not. Rephrasing the query with the terms the ' +
           'documentation itself would use is also worth one attempt.',
@@ -341,7 +341,7 @@ const listPagesTool: ToolDefinition = {
   description:
     `List the pages of the ${site.name} documentation, with optional filters. ` +
     'Use it to see what the documentation covers, to confirm a page exists before citing it, ' +
-    'or to find what changed recently. It does not search page contents — use `search` for that.',
+    'or to find what changed recently. It does not search page contents. Use `search` for that.',
   cost: 'read',
   inputSchema: {
     type: 'object',
@@ -406,7 +406,7 @@ function feedbackSchema(): Record<string, unknown> {
 const reportIssueTool: ToolDefinition = {
   name: 'report_issue',
   description:
-    `Report a problem with a page of the ${site.name} documentation — something inaccurate, out of date, missing or ambiguous. ` +
+    `Report a problem with a page of the ${site.name} documentation: something inaccurate, out of date, missing or ambiguous. ` +
     'Use it when you find a genuine defect while answering, not for questions. The report reaches the documentation team; ' +
     'nothing is published and you get no reply.',
   cost: 'write',
@@ -481,7 +481,7 @@ const reportIssueTool: ToolDefinition = {
       return { delivered: false, message: 'The report could not be delivered. Nothing else to do.' };
     }
 
-    return { delivered: true, message: 'Thank you — the report reached the documentation team.' };
+    return { delivered: true, message: 'Thank you. The report reached the documentation team.' };
   },
 };
 

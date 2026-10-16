@@ -51,7 +51,7 @@ const {
   structuredData,
 } = Astro.props;
 
-const fullTitle = `${title} — ${site.titleSuffix}`;
+const fullTitle = `${title} - ${site.titleSuffix}`;
 const indexable = Boolean(canonical) && !noindex;
 
 const cardUrl = new URL(image ?? withBase(seo.defaultImage), Astro.site ?? Astro.url).href;
@@ -87,13 +87,13 @@ const robots = indexable
 <meta property="og:image" content={cardUrl} />
 <meta property="og:image:width" content={String(seo.imageWidth)} />
 <meta property="og:image:height" content={String(seo.imageHeight)} />
-<meta property="og:image:alt" content={imageAlt ?? `${title} — ${site.name} documentation`} />
+<meta property="og:image:alt" content={imageAlt ?? `${title} - ${site.name} documentation`} />
 
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />
 <meta name="twitter:image" content={cardUrl} />
-<meta name="twitter:image:alt" content={imageAlt ?? `${title} — ${site.name} documentation`} />
+<meta name="twitter:image:alt" content={imageAlt ?? `${title} - ${site.name} documentation`} />
 {seo.twitterHandle && <meta name="twitter:site" content={`@${seo.twitterHandle}`} />}
 
 {published && <meta property="article:published_time" content={published.toISOString()} />}

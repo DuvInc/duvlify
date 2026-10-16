@@ -58,7 +58,7 @@ export const GET: APIRoute = ({ site }) => {
       ? [
           '',
           '# This documentation is also callable, not just readable:',
-          `#   ${new URL(withBase('/mcp'), site).href}        an MCP server — search, fetch, list_pages`,
+          `#   ${new URL(withBase('/mcp'), site).href}        an MCP server: search, fetch, list_pages`,
           ...(agents.http ? [`#   ${new URL(withBase('/api/docs'), site).href}   the same tools over plain HTTP`] : []),
         ]
       : []),

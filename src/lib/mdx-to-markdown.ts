@@ -282,7 +282,7 @@ const treeEntry = (suffix: string): Handler => (node, children) => {
 const colorItem: Handler = node => {
   const name = attribute(node, 'name') ?? '';
   const value = attribute(node, 'value');
-  return [listItem([paragraph([strong(name), ...(value ? [text(' — '), code(value)] : [])])])];
+  return [listItem([paragraph([strong(name), ...(value ? [text(': '), code(value)] : [])])])];
 };
 
 const handlers: Record<string, Handler> = {

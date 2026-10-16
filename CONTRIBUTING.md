@@ -7,7 +7,7 @@ always welcome, and a large one is worth agreeing on first.
 
 ## Getting set up
 
-Node 22.18 or newer — Astro itself asks only for 22.12, but the test suite
+Node 22.18 or newer. Astro itself asks only for 22.12, but the test suite
 imports TypeScript sources directly, and Node strips the types without a flag
 only from 22.18. `.nvmrc` pins the major, so `nvm use` gets you the same
 version CI runs.
@@ -70,6 +70,75 @@ already listening there (another project's `wrangler dev` is the usual culprit,
 since they all pick from the same small range), every suite in that file fails
 with a 60 second timeout. The error says so and names the port. Run it elsewhere
 with `AGENT_TEST_PORT=8892 npm test`.
+
+## Engineering rules
+
+The ten rules that matter most when you write code here, for people and for AI
+agents alike. Several are already enforced by a check; the table after the list
+says which.
+
+1. **The smallest change that solves the problem.** Delete dead code before you
+   add new code. Migrate every caller and remove the old API in the same pull
+   request, rather than leaving a compatibility layer that becomes permanent.
+2. **Name the shape of the data first.** Decide the central type (a union, a
+   table, a state machine) before writing logic, and keep one source of truth.
+   Navigation, publication and identity each have exactly one place that answers.
+3. **Validate at the boundary, trust inside.** Frontmatter, configuration,
+   request bodies in the Worker, environment variables and API responses are
+   parsed once, into a named type, where they enter. An `as` on external data is
+   a crash that has not happened yet.
+4. **An error never becomes a plausible value.** Do not default a failed read to
+   something that looks right. Fail with a message that names the file, the field
+   or the function to fix.
+5. **Operations are idempotent.** For anything that writes (`index:sync`,
+   `manual:snapshot`, a deploy), answer two questions: what if it runs twice, and
+   what if the previous run died halfway. Running it again must converge.
+6. **Prove it on the real artifact.** "It compiles" is not evidence. Run the
+   build, read the output file, boot the Worker, look at the page in a browser in
+   desktop, mobile and dark mode. Say in the pull request what you did not verify.
+7. **Test behaviour, not internals.** A test fails when the behaviour breaks and
+   survives a refactor. Do not assert the order of calls to an internal helper.
+8. **A lesson becomes a structure.** A rule you have had to write down twice
+   belongs in a test, a type or a CI step. Prose is for judgement only, and a rule
+   that can be skipped without anything failing will be skipped.
+9. **Small, verifiable steps.** One concern per pull request, one commit per unit
+   that checks on its own, the failing test before the fix.
+10. **Only reviewed code is deployed.** Production is built from `main` after a
+    pull request and a green CI run, never from a feature branch or an unsaved
+    working tree.
+
+## How the rules are enforced
+
+| Rule | Enforced by |
+| :--- | :--- |
+| Types, tests and the built outputs pass before merge (6) | CI job `test` (`npm ci`, `npm test`, `manual:check`), required by the `main: PR + CI` ruleset |
+| `main` only changes through a reviewed pull request (9, 10) | The two `main` rulesets: pull request required, force-push and deletion blocked, squash merges only |
+| Only an up-to-date `main` is deployed by hand (10) | `scripts/assert-deployable.mjs`, the first step of `npm run deploy` and `deploy:fast`, tested in `test/deploy-guard.test.mjs` |
+| A build never ships the placeholder origin (4) | `scripts/check-origin.mjs` inside `npm run deploy`, and a warning at the end of every build |
+| Mismatched pages, navigation or frontmatter fail the build (3, 4) | `src/content.config.ts` and `src/lib/navigation.ts`, which throw with the file name |
+| The published outputs agree with each other (6, 7) | `test/publication.test.mjs`, `test/components.test.mjs`, `test/agents.test.mjs` |
+| `handbook/` matches `content/` (1, 8) | `npm run manual:check` in CI |
+| No em dash in published English copy (8) | `test/copy-style.test.mjs` |
+| Choosing the data shape, the right abstraction, a useful comment (2, 1) | Judgement and review only |
+
+## Traps already paid for
+
+- **A stale `dist/` lies.** A local `npm run manual:check` passes against an old
+  `dist/` while CI, building clean, fails. Rebuild before trusting it.
+- **`updated:` in a page comes from the last commit that touched the file.**
+  Squashing or rewriting history re-dates every page, so history is not rewritten
+  on `main`. After committing a change to `content/`, run `npm run manual:snapshot`
+  again and amend, because the committed date is what CI compares.
+- **A frontmatter `description` is capped at 170 characters and must be quoted if
+  it contains `: `.** Otherwise the YAML fails to parse and the build stops.
+- **Hand-written absolute paths break a subpath deployment.** Framework-level
+  paths (feeds, share images, `/llms.txt`, icons) go through `withBase()`, and
+  `test/publication.test.mjs` keeps a list of them: add new ones to it.
+- **The placeholder origin is invisible.** A build with the wrong `SITE_URL`
+  renders perfectly and points every crawler at a host nobody owns, which is why
+  there are two checks for it.
+- **Another project's dev server on port 8791** makes the agent suite time out for
+  60 seconds. Use `AGENT_TEST_PORT`.
 
 ## Changes that need a conversation first
 

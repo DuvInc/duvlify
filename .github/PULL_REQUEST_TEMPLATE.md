@@ -13,7 +13,7 @@
 - [ ] Commits are signed off (`git commit -s`); see CONTRIBUTING.md
 - [ ] Documentation in `content/` is updated in this same PR, if behaviour changed
 - [ ] If `content/` changed, `npm run manual:snapshot` was run and `handbook/` is
-      committed with it — CI checks the snapshot and fails on a stale one
+      committed with it. CI checks the snapshot and fails on a stale one
 - [ ] No new dependency, or it was discussed in an issue first
 - [ ] No published URL, output file, or agent response shape changed. If it
       did, it was discussed first, because those are contracts other people depend on

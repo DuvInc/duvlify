@@ -73,7 +73,7 @@ export const GET: APIRoute = async ({ site }) => {
       '<?xml version="1.0" encoding="UTF-8"?>',
       '<feed xmlns="http://www.w3.org/2005/Atom">',
       `  <id>${feedUrl}</id>`,
-      `  <title>${escape(siteConfig.name)} documentation — recently updated</title>`,
+      `  <title>${escape(siteConfig.name)} documentation: recently updated</title>`,
       `  <subtitle>${escape(siteConfig.description)}</subtitle>`,
       `  <link rel="self" type="application/atom+xml" href="${feedUrl}" />`,
       `  <link rel="alternate" type="text/html" href="${new URL(siteConfig.home, site).href}" />`,
