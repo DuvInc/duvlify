@@ -2,7 +2,7 @@
 title: "Deploying"
 description: "The build is static output. Deploy it to Cloudflare for every feature, or to any static host, with subdomain and subpath options and their costs."
 canonical: "https://duvlify.dev/guides/deployment"
-updated: "2026-08-18"
+updated: "2026-10-16"
 ---
 
 # Deploying

@@ -2,7 +2,7 @@
 title: "Components"
 description: "The complete component vocabulary, rendered on the page that documents it, including callouts, cards, steps, tabs, and trees."
 canonical: "https://duvlify.dev/reference/components"
-updated: "2026-08-18"
+updated: "2026-10-16"
 ---
 
 # Components
@@ -99,7 +99,7 @@ things for each.
 
 `Columns` follows the exact layout the author wrote. `CardGroup` never packs
 more than `cols`, but packs fewer once the column is too narrow for that many
-\~210px cards — which is the one case where four genuinely becomes three. Two
+\~210px cards, which is the one case where four genuinely becomes three. Two
 and three do not have that excuse: asked for two, a group renders two,
 whatever the container's width. Five cards at `cols={3}` below are the proof,
 run rather than described:
@@ -414,8 +414,8 @@ reading it sees a folder listing rather than component syntax.
 
 ## Colours
 
-- **Accent** — `{ light: '#16866a', dark: '#68b09e' }`
-- **Accent strong** — `#0f5e4a`
+- **Accent**: `{ light: '#16866a', dark: '#68b09e' }`
+- **Accent strong**: `#0f5e4a`
 
 `<Color.Item>` takes either one value or a `{ light, dark }` pair. It captions
 the swatch with exactly what you wrote, not a sanitised version of it. Use

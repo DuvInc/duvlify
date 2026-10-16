@@ -7,7 +7,7 @@ always welcome, and a large one is worth agreeing on first.
 
 ## Getting set up
 
-Node 22.18 or newer — Astro itself asks only for 22.12, but the test suite
+Node 22.18 or newer. Astro itself asks only for 22.12, but the test suite
 imports TypeScript sources directly, and Node strips the types without a flag
 only from 22.18. `.nvmrc` pins the major, so `nvm use` gets you the same
 version CI runs.

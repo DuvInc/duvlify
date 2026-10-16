@@ -53,7 +53,7 @@ export const GET: APIRoute = async ({ site }) => {
         : []),
       ...(agents.enabled
         ? [
-            `- [MCP server](${url(withBase('/mcp'))}): this documentation as tools an agent can call — search it, list its pages, fetch one as Markdown. Add the URL as a remote MCP server.`,
+            `- [MCP server](${url(withBase('/mcp'))}): this documentation as tools an agent can call: search it, list its pages, fetch one as Markdown. Add the URL as a remote MCP server.`,
             ...(agents.http
               ? [`- [HTTP API](${url(withBase('/api/docs'))}): the same tools as plain GET requests, for scripts. No authentication; see ${url(withBase('/api/docs/openapi.json'))} for the description.`]
               : []),

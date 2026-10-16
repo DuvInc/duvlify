@@ -7,7 +7,7 @@ They exist so that this folder survives the step every fork is told to take.
 [`README.md`](../README.md) says to replace `content/` with your own pages, and
 `content/` is where this documentation is published from. Without a copy here, a
 fork loses every explanation of how the thing it forked works, and the README's
-own links point at duvlify.dev — a host you do not control, describing a version
+own links point at duvlify.dev, a host you do not control, describing a version
 you have not forked.
 
 Nothing here is published. The site is built from `content/` into `dist/`, and
@@ -19,7 +19,7 @@ This folder is frozen, and it stays correct whatever you do to `content/`. That
 is the whole reason it exists.
 
 **Do not run `npm run manual:snapshot`.** That command regenerates this folder
-from whatever `content/` currently holds — in your repository, your own pages —
+from whatever `content/` currently holds (in your repository, your own pages)
 and deletes the files that no longer match. The manual you are reading would be
 what it deleted. The script refuses when it can tell that this has happened, but
 the protection you should rely on is not asking it to.
@@ -28,8 +28,8 @@ the protection you should rely on is not asking it to.
 quietly once it sees that this folder describes a different documentation set
 than your build.
 
-Delete the folder when you no longer need it. Nothing reads it — no build step,
-no test, no route — and the check passes on its absence.
+Delete the folder when you no longer need it. Nothing reads it: no build step,
+no test, no route. The check passes on its absence.
 
 ## If you maintain the framework itself
 
