@@ -1,5 +1,7 @@
 # Duvlify
 
+![duvlify: a dithered banner with the project name and its one-line summary](docs/hero.png)
+
 **Beautiful docs for humans. Native tools for agents.**
 
 A documentation framework you own end to end: write Markdown, get a fast static
