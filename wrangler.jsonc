@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "duvlify-docs",
   "compatibility_date": "2026-07-05",
+  "workers_dev": false,
+  "preview_urls": true,
 
   /**
    * Required by the MCP SDK, which uses `node:async_hooks` to carry request
