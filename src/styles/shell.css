@@ -204,6 +204,15 @@ h1, h2, h3, h4 { text-wrap: balance; }
    `pretty` wrap as before. */
 p, li, blockquote, figcaption, dd { text-wrap: pretty; }
 
+/* Short display text that is not a heading: the page summary, captions, the
+   CTA line, the banner and centred messages. Balanced, never a short last line. */
+.article-heading > :is(p, .article-summary > p),
+.frame-caption,
+.cta-text,
+.global-banner,
+.search-empty,
+.not-found p { text-wrap: balance; }
+
 /* The summary is a bare <p> for a prose page, and rendered Markdown inside
    `.article-summary` for an endpoint page, whose text comes from the OpenAPI
    description — CommonMark, like every description in a spec. One rule for both
