@@ -197,6 +197,13 @@ html {
      where a reader would break it anyway. Unsupported browsers just wrap. */
   text-wrap: balance;
 }
+
+/* Headings: even line lengths, never one word alone under a full line. */
+h1, h2, h3, h4 { text-wrap: balance; }
+/* Running text: the last line never holds a single word. Browsers without
+   `pretty` wrap as before. */
+p, li, blockquote, figcaption, dd { text-wrap: pretty; }
+
 /* The summary is a bare <p> for a prose page, and rendered Markdown inside
    `.article-summary` for an endpoint page, whose text comes from the OpenAPI
    description — CommonMark, like every description in a spec. One rule for both
