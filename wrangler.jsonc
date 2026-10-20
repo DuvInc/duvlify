@@ -75,10 +75,13 @@
    * see README.md. This binding is what protects a deployment that has no zone
    * yet, which is exactly the period when nobody is watching.
    */
+  // namespace_id is ACCOUNT-WIDE: two Workers with the same id share counters.
+  // 7001-7003 are this deployment's own; a fork picks ids no other Worker on its
+  // account uses (1001-1003 were shared with another docs site, same key format).
   "ratelimits": [
-    { "name": "RL_SEARCH", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
-    { "name": "RL_READ", "namespace_id": "1002", "simple": { "limit": 90, "period": 60 } },
-    { "name": "RL_WRITE", "namespace_id": "1003", "simple": { "limit": 2, "period": 60 } }
+    { "name": "RL_SEARCH", "namespace_id": "7001", "simple": { "limit": 30, "period": 60 } },
+    { "name": "RL_READ", "namespace_id": "7002", "simple": { "limit": 90, "period": 60 } },
+    { "name": "RL_WRITE", "namespace_id": "7003", "simple": { "limit": 2, "period": 60 } }
   ],
 
   /**
