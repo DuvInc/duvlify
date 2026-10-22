@@ -100,10 +100,11 @@ function resolveAuthorizations(spec: any, operation: any): ApiAuthorization[] {
 
   return [...names].map(key => {
     const scheme = resolveRef(spec, schemes[key]) ?? {};
+    const httpScheme = typeof scheme.scheme === 'string' ? scheme.scheme.toLowerCase() : undefined;
     return {
-      name: scheme.name ?? (scheme.scheme === 'bearer' ? 'Authorization' : key),
+      name: scheme.name ?? (httpScheme === 'bearer' ? 'Authorization' : key),
       location: scheme.in ?? 'header',
-      type: scheme.type === 'apiKey' ? 'API key' : scheme.scheme ?? scheme.type ?? 'credential',
+      type: scheme.type === 'apiKey' ? 'API key' : httpScheme ?? scheme.type ?? 'credential',
       required: true,
     };
   });

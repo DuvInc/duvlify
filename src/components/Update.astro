@@ -15,11 +15,13 @@ interface Props {
 }
 const { label, title, description, tags = [] } = Astro.props;
 const anchor = label || title ? slugify([label, title].filter(Boolean).join(': ')) : undefined;
+// Published date-only links keep their original target after the anchor change.
+const legacyAnchor = label && slugify(label) !== anchor ? slugify(label) : undefined;
 ---
 <div class="update">
   <div class="update-rail">
     {label && (anchor
-      ? <a class="update-label" href={`#${anchor}`}>{label}</a>
+      ? <a class="update-label" id={legacyAnchor} href={`#${anchor}`}>{label}</a>
       : <span class="update-label">{label}</span>)}
   </div>
   <div class="update-content" id={anchor}>

@@ -195,6 +195,7 @@ describe('component authoring contract', () => {
       html.includes('id="august-3-2026-what-changed"') && html.includes('href="#august-3-2026-what-changed"'),
       'an <Update> label was used verbatim as an id instead of being slugified',
     );
+    assert.ok(html.includes('id="august-3-2026"'), 'the published date-only changelog link stopped resolving');
   });
 });
 

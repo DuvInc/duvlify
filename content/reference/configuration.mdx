@@ -26,7 +26,7 @@ export const redirects: Readonly<Record<string, string>> = {
 Use paths without `basePath`, a trailing slash, or a `.md` suffix. The Worker
 returns a permanent HTTP 301 for both the HTML page and its Markdown twin,
 preserving query parameters and adding the deployment prefix. External
-destinations, loops, and chains fail the build. Point each old path directly
+destinations, missing target pages, loops, and chains fail the build. Point each old path directly
 at its final page, and remove the old content file so discovery lists only
 the current page.
 

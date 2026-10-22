@@ -209,9 +209,10 @@ A tooltip wraps inline text.
 ## August 3, 2026: What changed
 
 `<Update>` is the changelog entry: a dated block with optional tags, meant
-to stack down a release-notes page. The label becomes the anchor, in
-slugified form. This gives a date written for a reader a usable permalink
-too.
+to stack down a release-notes page. Its permalink combines the label and
+title, in slugified form, so two releases on the same day have distinct
+links. Existing date-only links still resolve. The Markdown copy keeps
+the date, title, and description too.
 
 ## Banners
 

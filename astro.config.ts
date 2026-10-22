@@ -3,6 +3,7 @@ import mdx from '@astrojs/mdx';
 import { unified } from '@astrojs/markdown-remark';
 import { basePath, theme, redirects } from './src/docs.config';
 import { createRedirectResolver } from './worker/redirects';
+import { assertRedirectTargets } from './scripts/check-redirects.mjs';
 import { rehypeCodeChrome, shikiCodeMeta } from './src/lib/rehype-code-chrome';
 import { rehypeImages } from './src/lib/rehype-images';
 import { rehypeInlineLinks } from './src/lib/rehype-inline-links';
@@ -136,5 +137,9 @@ export default defineConfig({
    */
 
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
-  integrations: [mdx(), warnOnPlaceholderOrigin()],
+  integrations: [
+    mdx(),
+    warnOnPlaceholderOrigin(),
+    { name: 'redirect-targets', hooks: { 'astro:build:done': ({ dir }) => assertRedirectTargets(redirects, dir) } },
+  ],
 });

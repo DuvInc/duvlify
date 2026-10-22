@@ -6,11 +6,13 @@ import { addressKey } from '../worker/client-address.ts';
 import { createRedirectResolver } from '../worker/redirects.ts';
 import { getApiReference } from '../src/lib/openapi-reference.ts';
 import { createServer } from 'node:http';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { pathToFileURL } from 'node:url';
+import { assertRedirectTargets } from '../scripts/check-redirects.mjs';
 
 test('changelog Markdown keeps the release date, title and summary', () => {
   const markdown = mdxToMarkdown('<Update title="Files API" label="2026-10-22" description="Upload a file as raw bytes.">\n\nRelease details.\n\n</Update>');
@@ -50,6 +52,19 @@ test('invalid moves fail before serving rather than redirecting outside the site
   ]) assert.throws(() => createRedirectResolver(moves, ''), /redirect/i);
 });
 
+test('a redirect may only target a page that was actually built', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'duvlify-redirects-'));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await mkdir(join(directory, 'guide'));
+  await writeFile(join(directory, 'index.html'), '<h1>Home</h1>');
+  await writeFile(join(directory, 'guide', 'index.html'), '<h1>Guide</h1>');
+  const root = pathToFileURL(`${directory}/`);
+  assert.doesNotThrow(() => assertRedirectTargets({ '/old': '/guide', '/welcome': '/' }, root));
+  assert.throws(() => assertRedirectTargets({ '/old': '/guied' }, root), /missing page.*guied/);
+  await mkdir(join(directory, 'draft.html'));
+  assert.throws(() => assertRedirectTargets({ '/old': '/draft' }, root), /missing page.*draft/);
+});
+
 const document = content => ({
   servers: [{ url: 'https://api.example.test/v1' }],
   paths: { '/files': { put: { requestBody: { content }, responses: { 204: { description: 'File stored.' } } } } },
@@ -85,7 +100,7 @@ test('request examples preserve Bearer authentication without adding it to API-k
       ...document(content),
       security: [{ bearer: [], apiKey: [] }],
       components: { securitySchemes: {
-        bearer: { type: 'http', scheme: 'bearer' },
+        bearer: { type: 'http', scheme: 'Bearer' },
         apiKey: { type: 'apiKey', in: 'header', name: 'X-Api-Key' },
       } },
     };
