@@ -2,7 +2,7 @@
 title: "Components"
 description: "The complete component vocabulary, rendered on the page that documents it, including callouts, cards, steps, tabs, and trees."
 canonical: "https://duvlify.dev/reference/components"
-updated: "2026-10-16"
+updated: "2026-10-22"
 ---
 
 # Components
