@@ -36,6 +36,15 @@ const BASE = `http://127.0.0.1:${PORT}${BASE_PATH}`;
 /** The origin itself, for the handful of paths that are never prefixed. */
 const ORIGIN = `http://127.0.0.1:${PORT}`;
 
+test('the homepage serves Markdown and advertises a reachable twin', async () => {
+  const response = await fetch(`${BASE}/`, { headers: { Accept: 'text/markdown' } });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /^text\/markdown/);
+  const twin = response.headers.get('link').match(/<([^>]+)>; rel="alternate"; type="text\/markdown"/)[1];
+  const original = new URL(twin);
+  assert.equal((await fetch(`${ORIGIN}${original.pathname}`)).status, 200);
+});
+
 let server;
 /** Pages picked out of the built manifest, so the suite fits any distribution. */
 let manifest, samplePage, otherPage, sampleTab;

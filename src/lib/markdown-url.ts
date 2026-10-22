@@ -1,16 +1,25 @@
 /**
  * The URL of a page's Markdown twin.
  *
- * Every page is also served as Markdown at its own URL plus `.md`, which works
- * for all 334 of them except the home page: its path is `/`, so appending gives
- * `/.md`. The route itself is emitted as `/index.md`, matching the content id,
- * so the special case belongs here rather than in each of the four places that
- * needed to build this string — the `<link rel="alternate">`, the page menu, the
- * structured-data `contentUrl`, and the client-side "Copy page" fetch. Three of
- * them had the bug.
+ * Most pages use their URL plus `.md`. The homepage uses `index.md`, including
+ * under a deployment prefix: `/docs` and `/docs/` both name `/docs/index.md`.
+ * Page actions, metadata, feeds and the Worker all use this resolver.
  *
  * Takes either an absolute URL or a root-relative path, and preserves which.
  */
-export function markdownUrl(base: string): string {
-  return base.endsWith('/') ? `${base}index.md` : `${base}.md`;
+import { basePath } from '../docs.config.ts';
+
+export function markdownUrl(base: string, homePath: string = basePath): string {
+  const url = new URL(base, 'https://markdown.invalid');
+  const pathname = url.pathname.replace(/\/$/, '');
+  const home = homePath.replace(/\/$/, '');
+  url.pathname = pathname === home ? `${home}/index.md` : `${pathname}.md`;
+  return /^https?:\/\//.test(base) ? url.href : `${url.pathname}${url.search}${url.hash}`;
+}
+
+/** A directory-backed page can store its twin as either spelling. */
+export function markdownPathsFor(path: string): string[] {
+  const direct = markdownUrl(path, '');
+  const index = `${path.replace(/\/$/, '')}/index.md`;
+  return direct === index ? [direct] : [direct, index];
 }

@@ -144,6 +144,10 @@ code.
 
 ## Testing
 
+The HTTP API and MCP tools share the same address-key rule: IPv4 addresses
+are counted individually, and IPv6 addresses are grouped by their `/64`
+network. Changing an IPv6 address inside that network does not reset a limit.
+
 [`test/agents.test.mjs`](https://github.com/DuvInc/duvlify/blob/main/test/agents.test.mjs) boots a real Worker and talks
 to it over HTTP, rather than importing the handlers directly. The parts most
 likely to break are not the pure functions. They are the ASSETS binding, the

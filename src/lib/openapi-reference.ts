@@ -6,7 +6,7 @@
  * derives the richer UI model used by the API code rail. The spec therefore
  * remains the single source of truth, and no endpoint page restates it.
  */
-import { openapiSpec as spec } from '../openapi.config';
+import { openapiSpec as spec } from '../openapi.config.ts';
 
 export interface ApiAuthorization {
   name: string;
@@ -59,14 +59,14 @@ interface ApiPageData {
   description: string;
 }
 
-function getSpec() {
-  return spec as any;
+function getSpec(document: unknown) {
+  return document as any;
 }
 
-export function getApiReference(data: ApiPageData): ApiReference | undefined {
+export function getApiReference(data: ApiPageData, document: unknown = spec): ApiReference | undefined {
   if (!data.apiMethod || !data.apiPath) return undefined;
 
-  const spec = getSpec();
+  const spec = getSpec(document);
   const method = data.apiMethod.toLowerCase();
   const pathItem = spec.paths?.[data.apiPath];
   const operation = pathItem?.[method];
@@ -76,7 +76,9 @@ export function getApiReference(data: ApiPageData): ApiReference | undefined {
 
   const server = operation.servers?.[0]?.url ?? pathItem.servers?.[0]?.url ?? spec.servers?.[0]?.url ?? '';
   const parameters = resolveParameters(spec, pathItem, operation);
-  const bodySchema = resolveRef(spec, operation.requestBody)?.content?.['application/json']?.schema;
+  const requestContent = resolveRef(spec, operation.requestBody)?.content ?? {};
+  const bodySchema = requestContent['application/json']?.schema;
+  const binary = !bodySchema && Boolean(requestContent['application/octet-stream']?.schema);
 
   return {
     method: data.apiMethod,
@@ -86,7 +88,7 @@ export function getApiReference(data: ApiPageData): ApiReference | undefined {
     description: operation.description ?? operation.summary ?? data.description,
     server,
     authorizations: resolveAuthorizations(spec, operation),
-    requests: requestExamples({ spec, operation, method, route: data.apiPath, server, parameters, bodySchema }),
+    requests: requestExamples({ spec, operation, method, route: data.apiPath, server, parameters, bodySchema, binary }),
     responses: resolveResponses(spec, operation),
   };
 }
@@ -170,7 +172,8 @@ function curlExample({ spec, operation, method, route, server, parameters, bodyS
   const lines = [`curl --request ${method.toUpperCase()} \\`, `  --url '${url}' \\`];
 
   for (const authorization of resolveAuthorizations(spec, operation)) {
-    lines.push(`  --header '${authorization.name}: <api-key>' \\`);
+    const credential = authorization.type === 'bearer' ? 'Bearer <api-key>' : '<api-key>';
+    lines.push(`  --header '${authorization.name}: ${credential}' \\`);
   }
 
   if (bodySchema) {
@@ -185,6 +188,7 @@ function curlExample({ spec, operation, method, route, server, parameters, bodyS
 
 function requestExamples(context: any): ApiRequestExample[] {
   const request = requestParts(context);
+  if (context.binary) return binaryRequestExamples(request);
   return [
     { id: 'curl', label: 'cURL', icon: 'bash', language: 'bash', code: curlExample(context) },
     { id: 'python', label: 'Python', icon: 'python', language: 'python', code: pythonExample(request) },
@@ -196,15 +200,15 @@ function requestExamples(context: any): ApiRequestExample[] {
   ];
 }
 
-function requestParts({ spec, operation, method, route, server, parameters, bodySchema }: any) {
+function requestParts({ spec, operation, method, route, server, parameters, bodySchema, binary }: any) {
   const query = parameters
     .filter((parameter: any) => parameter.in === 'query' && parameter.required)
     .map((parameter: any) => `${parameter.name}=<${parameter.name}>`)
     .join('&');
   const path = route.replace(/\{(\w+)\}/g, (_: string, name: string) => `<${name}>`);
   const headers = Object.fromEntries([
-    ...resolveAuthorizations(spec, operation).map(auth => [auth.name, '<api-key>']),
-    ...(bodySchema ? [['Content-Type', 'application/json']] : []),
+    ...resolveAuthorizations(spec, operation).map(auth => [auth.name, auth.type === 'bearer' ? 'Bearer <api-key>' : '<api-key>']),
+    ...(binary ? [['Content-Type', 'application/octet-stream']] : bodySchema ? [['Content-Type', 'application/json']] : []),
   ]);
   return {
     method: method.toUpperCase(),
@@ -212,6 +216,31 @@ function requestParts({ spec, operation, method, route, server, parameters, body
     headers,
     body: bodySchema ? exampleValue(spec, bodySchema, 0, new Set(), 'request') : undefined,
   };
+}
+
+/** Binary endpoints send local bytes rather than a JSON serialization. */
+function binaryRequestExamples({ method, url, headers }: { method: string; url: string; headers: Record<string, string> }): ApiRequestExample[] {
+  const curl = [
+    `curl --fail-with-body --request ${method} \\`,
+    `  --url '${url}' \\`,
+    ...Object.entries(headers).map(([name, value]) => `  --header '${name}: ${value}' \\`),
+    "  --data-binary '@file.bin'",
+  ].join('\n');
+  const javascript = [
+    'import { readFile } from "node:fs/promises";', '',
+    `const response = await fetch(${quote(url)}, {`,
+    `  method: ${quote(method)},`,
+    `  headers: ${pretty(headers).replace(/^/gm, '  ').trimStart()},`,
+    '  body: await readFile("file.bin"),',
+    '  redirect: "error",',
+    '});',
+    'if (!response.ok) throw new Error(`Upload failed: ${response.status}`);',
+    'console.log(await response.text());',
+  ].join('\n');
+  return [
+    { id: 'curl', label: 'cURL', icon: 'bash', language: 'bash', code: curl },
+    { id: 'javascript', label: 'JavaScript', icon: 'javascript', language: 'javascript', code: javascript },
+  ];
 }
 
 const pretty = (value: unknown) => JSON.stringify(value, null, 2);

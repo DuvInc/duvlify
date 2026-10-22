@@ -136,6 +136,11 @@ export const basePath = '' as '' | `/${string}`;
  */
 export const withBase = (path: `/${string}`) => `${basePath}${path}` as `/${string}`;
 
+/** Old page path to final page path, without basePath, trailing slash or .md.
+ * Example: '/guides/install': '/getting-started'. Both HTML and Markdown move.
+ */
+export const redirects: Readonly<Record<string, string>> = {};
+
 export const site = {
   name: 'Duvlify',
   /** See `basePath` above. Re-exported here so templates have one import. */

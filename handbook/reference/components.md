@@ -206,7 +206,7 @@ with an icon.
 
 A tooltip wraps inline text.
 
-**What changed**
+## August 3, 2026: What changed
 
 `<Update>` is the changelog entry: a dated block with optional tags, meant
 to stack down a release-notes page. The label becomes the anchor, in

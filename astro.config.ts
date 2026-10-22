@@ -1,7 +1,8 @@
 import { defineConfig, fontProviders } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import { unified } from '@astrojs/markdown-remark';
-import { basePath, theme } from './src/docs.config';
+import { basePath, theme, redirects } from './src/docs.config';
+import { createRedirectResolver } from './worker/redirects';
 import { rehypeCodeChrome, shikiCodeMeta } from './src/lib/rehype-code-chrome';
 import { rehypeImages } from './src/lib/rehype-images';
 import { rehypeInlineLinks } from './src/lib/rehype-inline-links';
@@ -19,6 +20,8 @@ import { PLACEHOLDER_ORIGIN, warnOnPlaceholderOrigin } from './scripts/check-ori
  * placeholder.
  */
 loadEnvFile(import.meta.dirname);
+// Reject invalid moves during the build, before a Worker can publish them.
+createRedirectResolver(redirects, basePath);
 
 export default defineConfig({
   /**
@@ -132,6 +135,6 @@ export default defineConfig({
    * runtime styles and the last large JavaScript payload at once.
    */
 
-  prefetch: { prefetchAll: false, defaultStrategy: 'hover' },
+  prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   integrations: [mdx(), warnOnPlaceholderOrigin()],
 });
