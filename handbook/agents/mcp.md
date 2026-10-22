@@ -2,7 +2,7 @@
 title: "The manifest, WebMCP and limits"
 description: "The page outline agents read for line offsets, the in-browser WebMCP bridge and when to run it yourself, the rate limits, and how the surfaces are tested."
 canonical: "https://duvlify.dev/agents/mcp"
-updated: "2026-10-16"
+updated: "2026-10-22"
 ---
 
 # The manifest, WebMCP and limits
@@ -143,6 +143,10 @@ repository, which is why it is documented here rather than committed as
 code.
 
 ## Testing
+
+The HTTP API and MCP tools share the same address-key rule: IPv4 addresses
+are counted individually, and IPv6 addresses are grouped by their `/64`
+network. Changing an IPv6 address inside that network does not reset a limit.
 
 [`test/agents.test.mjs`](https://github.com/DuvInc/duvlify/blob/main/test/agents.test.mjs) boots a real Worker and talks
 to it over HTTP, rather than importing the handlers directly. The parts most

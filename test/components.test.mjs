@@ -27,6 +27,15 @@ const sourceFiles = (dir = SRC) =>
 
 const relative = file => path.relative(ROOT, file);
 
+test('every API endpoint renders its response details once without an authored component', () => {
+  const manifest = JSON.parse(readFileSync(path.join(distDir, 'agent-manifest.json'), 'utf8'));
+  for (const page of manifest.pages.filter(page => page.type === 'api-endpoint')) {
+    const html = readFileSync(path.join(distDir, page.id, 'index.html'), 'utf8');
+    assert.equal([...html.matchAll(/<section[^>]*data-api-response-details/g)].length, 1, page.id);
+    assert.match(html, /data-api-central-response-panel=/, page.id);
+  }
+});
+
 /*
  * The unit tests below cover the logic that has no markup: what a component
  * accepts, and what it refuses. The build-output tests after them cover what
@@ -183,9 +192,10 @@ describe('component authoring contract', () => {
     /* The label reads "August 3, 2026"; the anchor has to be a fragment, or the
        permalink beside every entry points at nothing. */
     assert.ok(
-      html.includes('id="august-3-2026"') && html.includes('href="#august-3-2026"'),
+      html.includes('id="august-3-2026-what-changed"') && html.includes('href="#august-3-2026-what-changed"'),
       'an <Update> label was used verbatim as an id instead of being slugified',
     );
+    assert.ok(html.includes('id="august-3-2026"'), 'the published date-only changelog link stopped resolving');
   });
 });
 

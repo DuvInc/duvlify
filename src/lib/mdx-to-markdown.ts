@@ -157,6 +157,17 @@ function titled(...names: string[]): Handler {
   };
 }
 
+/** Releases need a heading and their summary in the machine-readable copy. */
+const update: Handler = (node, children) => {
+  const heading = [attribute(node, 'label'), attribute(node, 'title')].filter(Boolean).join(': ');
+  const summary = attribute(node, 'description');
+  return [
+    ...(heading ? [{ type: 'heading', depth: 2, children: phrase(heading) } as RootContent] : []),
+    ...(summary ? [paragraph(phrase(summary))] : []),
+    ...children,
+  ];
+};
+
 /** A fixed lead-in, for containers whose meaning is in the tag name itself. */
 function named(title: string): Handler {
   return (_node, children) => [label(title), ...children];
@@ -321,7 +332,7 @@ const handlers: Record<string, Handler> = {
   /* Containers with a title worth keeping */
   Accordion: titled('title'),
   Tab: titled('title'),
-  Update: titled('title', 'label'),
+  Update: update,
 
   CTA: cta,
   Button: button,

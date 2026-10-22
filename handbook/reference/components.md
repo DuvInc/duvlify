@@ -2,7 +2,7 @@
 title: "Components"
 description: "The complete component vocabulary, rendered on the page that documents it, including callouts, cards, steps, tabs, and trees."
 canonical: "https://duvlify.dev/reference/components"
-updated: "2026-10-16"
+updated: "2026-10-22"
 ---
 
 # Components
@@ -206,12 +206,13 @@ with an icon.
 
 A tooltip wraps inline text.
 
-**What changed**
+## August 3, 2026: What changed
 
 `<Update>` is the changelog entry: a dated block with optional tags, meant
-to stack down a release-notes page. The label becomes the anchor, in
-slugified form. This gives a date written for a reader a usable permalink
-too.
+to stack down a release-notes page. Its permalink combines the label and
+title, in slugified form, so two releases on the same day have distinct
+links. Existing date-only links still resolve. The Markdown copy keeps
+the date, title, and description too.
 
 ## Banners
 

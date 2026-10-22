@@ -2,7 +2,7 @@
 title: "API reference pages"
 description: "Point the build at an OpenAPI document, and endpoint pages render their parameters, schemas, response tabs, and request samples from it."
 canonical: "https://duvlify.dev/guides/api-reference"
-updated: "2026-08-18"
+updated: "2026-10-22"
 ---
 
 # API reference pages
@@ -104,6 +104,16 @@ exists, when to use it over another, and what a caller usually gets wrong.
 An endpoint page uses a wider three-track frame: navigation, prose, and a
 sticky right rail that holds the request and response examples. Below 1280px
 the rail column is hidden, and those components return to the article.
+
+Response descriptions and fields are rendered below the prose automatically.
+You don't need to add `ApiResponseDetails` to an endpoint page. On a regular
+page, you can still place `<ApiResponseDetails method="GET" path="/widgets" />`
+to show the responses for that operation.
+
+For a request body declared as `application/octet-stream`, the generated cURL
+and Node.js examples send the bytes of a local `file.bin`. Replace that filename
+with your own. JSON operations keep their seven language examples. When an
+operation accepts both formats, the examples use JSON.
 
 A prose page can opt into the same shape with `rightRail: custom` in
 frontmatter. Both layouts put prose in the middle with examples alongside, so

@@ -33,11 +33,16 @@
  * deploy on every content change. See worker/agent/.
  */
 
-import { agents, site } from '../src/docs.config';
+import { agents, site, redirects } from '../src/docs.config';
+import { markdownUrl, markdownPathsFor } from '../src/lib/markdown-url';
+import { addressKey } from './client-address';
+import { createRedirectResolver } from './redirects';
 import { API_CATALOG_PATH, handleApiCatalog } from './agent/catalog';
 import type { Env } from './agent/corpus';
 import { handleApi } from './agent/http';
 import { handleMcp, handleServerCard, handleToolList, type McpExecutionContext } from './agent/mcp';
+
+const redirectFor = createRedirectResolver(redirects, site.basePath);
 
 /**
  * Where the corpus index lives. Mirrors src/pages/llms.txt.ts.
@@ -90,10 +95,6 @@ const prefersMarkdown = (accept: string | null) =>
  */
 const isDocument = (pathname: string) => !/\.[^/]+$/.test(pathname) || pathname.endsWith('.md');
 
-/** Mirrors src/lib/markdown-url.ts, which builds the same pair at build time. */
-const markdownPathFor = (pathname: string) =>
-  pathname.endsWith('/') ? `${pathname}index.md` : `${pathname}.md`;
-
 /**
  * The two halves of a subpath deployment.
  *
@@ -111,7 +112,7 @@ const markdownPathFor = (pathname: string) =>
  * pays nothing for this.
  */
 const internal = (pathname: string) =>
-  site.basePath && pathname.startsWith(site.basePath)
+  site.basePath && (pathname === site.basePath || pathname.startsWith(`${site.basePath}/`))
     ? pathname.slice(site.basePath.length) || '/'
     : pathname;
 
@@ -149,7 +150,7 @@ function annotate(
   headers.append('Link', `<${absolute(LLMS_TXT)}>; rel="llms-txt"`);
   headers.append(
     'Link',
-    `<${absolute(markdownPathFor(pagePath))}>; rel="alternate"; type="text/markdown"`,
+    `<${absolute(markdownUrl(pagePath))}>; rel="alternate"; type="text/markdown"`,
   );
   headers.set('X-Llms-Txt', absolute(LLMS_TXT));
 
@@ -179,7 +180,7 @@ function annotate(
  * is not the point.
  */
 const clientKey = (request: Request) =>
-  request.headers.get('cf-connecting-ip') ?? 'local';
+  addressKey(request.headers.get('cf-connecting-ip'));
 
 export default {
   async fetch(request: Request, env: Env, ctx: McpExecutionContext): Promise<Response> {
@@ -187,6 +188,8 @@ export default {
     /* Everything below routes on the internal path — see `internal` above.
        Only `annotate` and the server card put the prefix back on. */
     const path = internal(url.pathname);
+    const moved = redirectFor(path, url.search);
+    if (moved) return Response.redirect(new URL(moved, url.origin).href, 301);
 
     /*
      * The agent handlers match on the URL they are given: the MCP SDK is
@@ -237,21 +240,30 @@ export default {
     if (!isDocument(path)) return env.ASSETS.fetch(assetRequest(request, url, path));
 
     if (path.endsWith('.md')) {
-      const response = await env.ASSETS.fetch(assetRequest(request, url, path));
+      let response = await env.ASSETS.fetch(assetRequest(request, url, path));
+      let resolvedPath = path;
+      if (response.status === 404 && !path.endsWith('/index.md')) {
+        const indexPath = `${path.slice(0, -3)}/index.md`;
+        const index = await env.ASSETS.fetch(assetRequest(request, url, indexPath));
+        if (index.ok) {
+          response = index;
+          resolvedPath = indexPath;
+        }
+      }
       if (!response.ok) return response;
       return annotate(response, {
         origin: url.origin,
-        pagePath: published(pagePathFor(path)),
+        pagePath: published(pagePathFor(resolvedPath)),
         asMarkdown: true,
       });
     }
 
     if (prefersMarkdown(request.headers.get('accept'))) {
-      const markdown = await env.ASSETS.fetch(new URL(markdownPathFor(path), url.origin));
-      /* A page with no Markdown twin — the 404, a redirect stub — falls through
-         to HTML rather than answering 404 to a request the site can satisfy. */
-      if (markdown.ok) {
-        return annotate(markdown, { origin: url.origin, pagePath: published(path), asMarkdown: true });
+      for (const candidate of markdownPathsFor(path)) {
+        const markdown = await env.ASSETS.fetch(new URL(candidate, url.origin));
+        if (markdown.ok) {
+          return annotate(markdown, { origin: url.origin, pagePath: published(path), asMarkdown: true });
+        }
       }
     }
 

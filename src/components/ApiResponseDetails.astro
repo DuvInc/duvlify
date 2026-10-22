@@ -3,12 +3,13 @@
 import HeadingAnchor from './HeadingAnchor.astro';
 import Icon from './Icon.astro';
 import ApiSchemaField from './ApiSchemaField.astro';
-import { getApiReference } from '../lib/openapi-reference';
+import { getApiReference, type ApiReference } from '../lib/openapi-reference';
 import { renderSpecMarkdown } from '../lib/spec-markdown';
 
-interface Props { method: string; path: string }
-const { method, path } = Astro.props;
-const api = getApiReference({ apiMethod: method, apiPath: path, description: '' });
+type Props = { reference: ApiReference; method?: never; path?: never }
+  | { method: string; path: string; reference?: never };
+const props = Astro.props;
+const api = props.reference ?? getApiReference({ apiMethod: props.method, apiPath: props.path, description: '' });
 const first = api?.responses[0];
 
 /* CommonMark, like every description in the specification — see lib/spec-markdown.ts. */

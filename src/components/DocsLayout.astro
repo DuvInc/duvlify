@@ -11,6 +11,7 @@
  */
 import Icon from './Icon.astro';
 import ApiReferencePanel from './ApiReferencePanel.astro';
+import ApiResponseDetails from './ApiResponseDetails.astro';
 import DocumentHead from './DocumentHead.astro';
 import Endpoint from './Endpoint.astro';
 import PageActions from './PageActions.astro';
@@ -205,6 +206,7 @@ const currentPath = Astro.url.pathname;
         {api && <Endpoint method={api.method} path={api.path} />}
         {api && <div class="api-inline-panel"><ApiReferencePanel api={api} /></div>}
         <slot />
+        {api && <ApiResponseDetails reference={api} />}
         {!api && !customRail && <PageFooter previous={previous} next={next} />}
       </main>
 

@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Every setting lives in src/docs.config.ts, in five exports for identity, search, theme, navigation, and agent surfaces.
+description: Configure identity, search, theme, navigation, redirects, and agent access from src/docs.config.ts.
 icon: sliders
 ---
 
@@ -11,7 +11,24 @@ navigation, or turn features on and off. If you find yourself editing those
 files to change a string, treat that as a bug in this configuration file, not
 something to work around.
 
-The configuration file has five exports.
+The main exports are described below.
+
+## `redirects`: renamed pages
+
+When a page moves, add its old and final paths to `redirects`:
+
+```ts
+export const redirects: Readonly<Record<string, string>> = {
+  '/guides/install': '/getting-started',
+};
+```
+
+Use paths without `basePath`, a trailing slash, or a `.md` suffix. The Worker
+returns a permanent HTTP 301 for both the HTML page and its Markdown twin,
+preserving query parameters and adding the deployment prefix. External
+destinations, missing target pages, loops, and chains fail the build. Point each old path directly
+at its final page, and remove the old content file so discovery lists only
+the current page.
 
 ## `site`: identity
 

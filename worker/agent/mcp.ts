@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { site } from '../../src/docs.config';
 import type { Env, RateLimiter } from './corpus';
 import { toolByName, ToolError, toolset, type ToolContext, type ToolDefinition } from './tools';
+import { addressKey } from '../client-address';
 
 /**
  * The MCP endpoint, served by the official SDK.
@@ -85,7 +86,7 @@ function buildServer(request: Request, env: Env) {
     origin: url.origin,
     userAgent: request.headers.get('user-agent') ?? 'unknown',
   };
-  const clientKey = request.headers.get('cf-connecting-ip') ?? 'local';
+  const clientKey = addressKey(request.headers.get('cf-connecting-ip'));
 
   const server = new McpServer({
     name: `${site.name} documentation`,
