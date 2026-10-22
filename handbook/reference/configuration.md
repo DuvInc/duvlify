@@ -2,7 +2,7 @@
 title: "Configuration"
 description: "Configure identity, search, theme, navigation, redirects, and agent access from src/docs.config.ts."
 canonical: "https://duvlify.dev/reference/configuration"
-updated: "2026-08-28"
+updated: "2026-10-22"
 ---
 
 # Configuration

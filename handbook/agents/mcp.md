@@ -2,7 +2,7 @@
 title: "The manifest, WebMCP and limits"
 description: "The page outline agents read for line offsets, the in-browser WebMCP bridge and when to run it yourself, the rate limits, and how the surfaces are tested."
 canonical: "https://duvlify.dev/agents/mcp"
-updated: "2026-10-16"
+updated: "2026-10-22"
 ---
 
 # The manifest, WebMCP and limits
