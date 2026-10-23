@@ -1287,7 +1287,9 @@ body[data-navigation-mode='unified-sidebar'] {
 .toc-list>a[data-depth="3"] {
   padding-left: 28px;
   font-size: 13px;
-  color: color-mix(in srgb, var(--muted) 88%, transparent);
+  /* `--muted` as is. Mixed toward transparent it fell to 4.11:1 on white at
+     13px, under the 4.5:1 that text this size needs. */
+  color: var(--muted);
 }
 .toc-list>a[data-depth="3"].active {
   color: var(--text);

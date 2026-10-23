@@ -81,6 +81,10 @@ Available tones: `info`, `note`, `success`, `tip`, `check`, `warning`, `danger`.
 </CardGroup>
 ```
 
+A card's title is an `h3`, right for cards under an `h2`. Cards placed straight
+after the page title skip a level, which screen readers and SEO audits flag.
+Put them under an `h2`, or set `headingLevel={2}` on each card.
+
 ### Two meanings of `cols`
 
 Both `<Columns>` and `<CardGroup>` take `cols`, but the prop means different

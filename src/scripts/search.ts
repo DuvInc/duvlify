@@ -16,16 +16,21 @@ import { rank, wordsOf, type Index } from './search-rank';
 
 const MAX_RESULTS = 20;
 
-/** Wraps every query word in <mark>, on already-escaped text. */
+/**
+ * Wraps every query word in <mark>.
+ *
+ * Splits the raw text on the words and escapes each piece afterwards. Matching
+ * on already-escaped text found "amp" inside `&amp;` and printed a broken
+ * entity with half of it highlighted.
+ */
 function highlight(text: string, query: string) {
-  const escaped = escapeHtml(text);
   const words = wordsOf(query).sort((a, b) => b.length - a.length);
-  if (!words.length) return escaped;
-  const pattern = new RegExp(
-    words.map(word => escapeHtml(word).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
-    'gi',
-  );
-  return escaped.replace(pattern, match => `<mark>${match}</mark>`);
+  if (!words.length) return escapeHtml(text);
+  const pattern = new RegExp(`(${words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return text
+    .split(pattern)
+    .map((piece, index) => (index % 2 ? `<mark>${escapeHtml(piece)}</mark>` : escapeHtml(piece)))
+    .join('');
 }
 
 export function initSearch(indexUrl: string) {

@@ -144,3 +144,15 @@ test('a response with no content has no body, not an empty object', () => {
   assert.equal(responses.find(r => r.status === '204').code, '');
   assert.notEqual(responses.find(r => r.status === '200').code, '');
 });
+
+test('the Markdown twin of an endpoint carries its reference', async () => {
+  const { apiMarkdown } = await import('../src/lib/api-markdown.ts');
+  const md = apiMarkdown(getApiReference(endpoint, spec));
+  for (const part of ['POST https://api.example.test/search/{index}', '## Authorizations', '## Path parameters',
+    '## Query parameters', '`limit` (`integer`, default: `20`, range: `1–100`)', '## Body', '`and`', '## Response', '**Example request**']) {
+    assert.ok(md.includes(part), `missing: ${part}`);
+  }
+  const deepMd = apiMarkdown(getApiReference({ apiMethod: 'GET', apiPath: '/deep', description: '' }, deepSpec));
+  assert.match(deepMd, /\*\*204\*\*: nothing\n\nNo response body\./);
+  assert.ok(deepMd.includes('`next.next.next`'), 'nested fields are named by their full path');
+});

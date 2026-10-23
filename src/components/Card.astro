@@ -27,8 +27,15 @@ interface Props {
   color?: string;
   /** Explicitly show or hide the arrow. Defaults to showing it for linked cards without a CTA. */
   arrow?: boolean;
+  /**
+   * The heading level of the title. 3 by default, which is right for cards
+   * under an H2. Cards placed straight after the page's H1 skip a level, which
+   * screen readers and SEO audits flag (`heading-order`): set 2 there.
+   */
+  headingLevel?: 2 | 3 | 4;
 }
-const { title, description, href, horizontal, img, cta, icon, arrow } = Astro.props;
+const { title, description, href, horizontal, img, cta, icon, arrow, headingLevel = 3 } = Astro.props;
+const Heading = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
 const color = cssColor(Astro.props.color);
 const Tag = href ? 'a' : 'div';
 const showArrow = arrow ?? Boolean(href && !cta);
@@ -40,7 +47,7 @@ const showArrow = arrow ?? Boolean(href && !cta);
       <slot name="icon">{icon && <Icon name={icon} size={20} />}</slot>
     </div>
     <div class="card-text">
-      {title && <h3 class="card-title">{title}</h3>}
+      {title && <Heading class="card-title">{title}</Heading>}
       <div class="card-content">
         {description && <p>{description}</p>}
         <slot />

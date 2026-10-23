@@ -40,6 +40,7 @@ import { createRedirectResolver } from './redirects';
 import { API_CATALOG_PATH, handleApiCatalog } from './agent/catalog';
 import type { Env } from './agent/corpus';
 import { handleApi } from './agent/http';
+import { DISALLOW_ALL, isIndexableHost, withNoindex } from './indexing';
 import { handleMcp, handleServerCard, handleToolList, type McpExecutionContext } from './agent/mcp';
 
 const redirectFor = createRedirectResolver(redirects, site.basePath);
@@ -182,8 +183,7 @@ function annotate(
 const clientKey = (request: Request) =>
   addressKey(request.headers.get('cf-connecting-ip'));
 
-export default {
-  async fetch(request: Request, env: Env, ctx: McpExecutionContext): Promise<Response> {
+async function route(request: Request, env: Env, ctx: McpExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     /* Everything below routes on the internal path — see `internal` above.
        Only `annotate` and the server card put the prefix back on. */
@@ -271,5 +271,18 @@ export default {
     /* Only a page that exists has a Markdown twin to advertise. */
     if (response.status !== 200) return response;
     return annotate(response, { origin: url.origin, pagePath: published(path), asMarkdown: false });
+}
+
+export default {
+  async fetch(request: Request, env: Env, ctx: McpExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    /* A preview host must not be indexed beside the real site. See ./indexing.ts. */
+    if (isIndexableHost(url.hostname, env.INDEXABLE_HOSTS)) return route(request, env, ctx);
+    if (internal(url.pathname) === '/robots.txt') {
+      return new Response(DISALLOW_ALL, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Robots-Tag': 'noindex, nofollow' },
+      });
+    }
+    return withNoindex(await route(request, env, ctx));
   },
 };
