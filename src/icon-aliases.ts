@@ -19,6 +19,10 @@
  */
 export const iconAliases: Record<string, string> = {
   /* Same idea, different name in Lucide. */
+  /* Font Awesome Pro names, which neither free set carries. */
+  window: 'lucide:app-window',
+  'arrow-down-from-bracket': 'lucide:download',
+  'arrow-down-left-and-arrow-up-right-to-center': 'lucide:minimize-2',
   'circle-question': 'lucide:circle-help',
   'circle-xmark': 'lucide:circle-x',
   'pen-to-square': 'lucide:square-pen',

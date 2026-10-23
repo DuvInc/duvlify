@@ -96,6 +96,22 @@ This export sets the font, accent, and radius. The build injects these as CSS
 custom properties, so changing the accent is one line. The neutral palette
 and component styling live in `src/styles/`.
 
+Four more options shape how the brand reaches the content:
+
+- `theme.links` is `'accent-text'` (the default: accent-coloured, underlined) or
+  `'accent-underline'` (the link keeps the text colour, is set semibold, and only
+  the underline carries the accent, thickening on hover).
+- `theme.cardIcons` is `'neutral'` (follows the title) or `'accent'`.
+- `site.header.secondary` takes one link or an array of them, shown beside the
+  primary button.
+- `contentIds` is `'slugified'` (the default) or `'preserved'`. By default a file
+  path becomes a lowercase, punctuation-free URL. `'preserved'` keeps the path
+  exactly, case included, so a migrated site's URLs do not move.
+
+A code block's two layers are the tokens `--code-frame` and `--code-body`. Set
+them in a stylesheet loaded after the framework's, with a dark-mode counterpart
+under `[data-theme="dark"]`, to give the frame and the body any colours you like.
+
 `accent.strong` exists because `accent.base` usually cannot clear a 4.5:1
 contrast ratio against the accent *tints* used behind badges and method
 pills. It can only clear that ratio against the page background. Check both
@@ -146,6 +162,31 @@ as a plain section instead.
   and its position either way, and it becomes a folder again on its own as soon
   as a second page is published.
 </Callout>
+
+### Nested folders and section headings
+
+A group nests when you give it a `depth`. It sits inside the nearest group above
+it with a smaller depth, so a flat list describes a tree:
+
+```ts
+groups: [
+  { label: 'API', pages: ['api/overview'] },
+  { label: 'Databases', depth: 1, pages: ['api/databases/list'] },
+  { label: 'Records', depth: 2, pages: ['api/records/list'] },
+  { label: 'Webhooks', depth: 1, pages: ['api/webhooks'] },
+],
+```
+
+A nested group is always a folder. A group with `pages: []` that only holds
+other groups is valid, and is kept as long as something under it is published.
+The first group of a tab is depth 0 and each group is at most one level deeper
+than the one before it; the build fails otherwise. Put `sidebarOrder` on
+top-level groups only, since it moves a group together with everything nested in
+it.
+
+In `unified-sidebar` mode the tab bar is gone, and with it the tab's label. Set
+`sidebarLabel` on a tab to draw a heading above its groups, or `sidebarLabel: ''`
+for a blank spacer that separates two sections without naming either.
 
 ### Which folders start open
 
