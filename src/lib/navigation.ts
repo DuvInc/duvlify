@@ -11,7 +11,7 @@
 import { render } from 'astro:content';
 import { navigation, navigationLayout, site, type NavTab } from '../docs.config';
 import { toSections } from './plain-text';
-import { byId, getAllDocs, getPublishedDocs } from './published';
+import { byId, descriptionOf, getAllDocs, getPublishedDocs } from './published';
 
 export interface ResolvedPage {
   id: string;
@@ -55,6 +55,21 @@ export interface ResolvedTab {
   href: string;
   /** Every group in document order, nested ones included: read `depth` for the tree. */
   groups: ResolvedGroup[];
+}
+
+/**
+ * Where a page sits, for the second line of a search result.
+ *
+ * `Tab · Folder`, except where the tab says nothing: in `unified-sidebar` mode a
+ * tab often has a blank sidebar heading, or the same name as its folder, which
+ * reads "Softr API · Softr API". Then the folder stands alone.
+ */
+export function placeLabel(tab: ResolvedTab, group: ResolvedGroup): string {
+  const unified = navigationLayout.mode === 'unified-sidebar';
+  const name = unified && tab.groups[0]?.tabHeading !== undefined ? tab.groups[0].tabHeading : tab.label;
+  return !name.trim() || name.trim().toLowerCase() === group.label.trim().toLowerCase()
+    ? group.label
+    : `${name} · ${group.label}`;
 }
 
 /** A group and the groups nested under it: the tree the sidebar renders. */
@@ -179,7 +194,7 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
             href: hrefFor(id),
             label: entry.data.sidebarTitle || entry.data.title,
             title: entry.data.title,
-            description: entry.data.description,
+            description: descriptionOf(entry),
             icon: entry.data.icon,
             badge: entry.data.badge,
             apiMethod: entry.data.apiMethod,
@@ -326,7 +341,7 @@ export async function getSearchIndex() {
       return {
         h: page.href,
         t: page.title,
-        s: `${tab.label} · ${group.label}`,
+        s: placeLabel(tab, group),
         d: page.description,
         k: entry.data.pageType === 'api-endpoint' ? 'endpoint' : 'page',
         m: entry.data.apiMethod,
@@ -344,7 +359,7 @@ export async function getSearchIndex() {
       h: homePage.href,
       t: home.data.title,
       s: 'Home',
-      d: home.data.description,
+      d: descriptionOf(home),
       k: 'page',
       m: undefined,
       b: toSections(home.body ?? '', headings),
@@ -357,7 +372,7 @@ export async function getSearchIndex() {
       group.pages.slice(0, 1).map(page => ({
         h: page.href,
         t: page.title,
-        s: `${tab.label} · ${group.label}`,
+        s: placeLabel(tab, group),
         k: page.apiMethod ? 'endpoint' : 'page',
         m: page.apiMethod,
       })),

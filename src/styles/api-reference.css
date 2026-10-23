@@ -272,6 +272,12 @@
 .api-code-card .code-block-body {
   background: var(--code-body);
 }
+.api-no-body {
+  margin: 0;
+  padding: 16px 18px;
+  color: var(--c-mute);
+  font-size: 13px;
+}
 .api-code-card pre {
   max-height: 430px;
   padding: 16px 18px 18px;
@@ -416,6 +422,11 @@
 .api-schema-children {
   margin-bottom: 0;
 }
+/* The parent half of a nested field's path, quieter than the field's own name. */
+.api-schema-field .field-path {
+  color: var(--c-faint);
+  font-weight: 400;
+}
 .api-schema-child-field:last-child {
   border-bottom: 0;
   padding-bottom: 4px;
@@ -439,14 +450,20 @@
 .api-nav-method {
   flex: 0 0 34px;
   width: 34px;
-  padding: 2px 3px;
+  /* Centred by flex rather than by padding: a monospace cap with a 1.2 line
+     height sits a pixel high inside a padded box. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  padding: 0 3px;
   border-radius: 5px;
   background: var(--c-sunken-strong);
   color: var(--c-mute);
   font-family: var(--font-mono);
   font-size: 8px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1;
   text-align: center;
   letter-spacing: -.02em;
 }
@@ -459,6 +476,7 @@
 [data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='POST'] { background: rgb(56 106 245 / .18); color: #9bb4ff }
 [data-theme='dark'] :is(.api-nav-method, .api-method):is([data-method='PUT'],[data-method='PATCH']) { background: rgb(148 98 0 / .2); color: #f2c45e }
 [data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='DELETE'] { background: rgb(194 49 49 / .2); color: #ff9b9b }
+.nav-group a.active .api-nav-method { font-weight: 800 }
 .api-nav-group .nav-children {
   padding-left: 5px;
   margin-left: 7px;

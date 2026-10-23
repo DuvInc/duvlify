@@ -17,10 +17,18 @@ build stops and reports the file at fault.
 
 ## Required
 
-| Field         | Type           | Purpose                                                             |
-| ------------- | -------------- | ------------------------------------------------------------------- |
-| `title`       | string, min 2  | Page title, browser title, and the `#` heading of the Markdown twin |
-| `description` | string, 10–170 | Introductory summary and meta description                           |
+| Field   | Type          | Purpose                                                             |
+| ------- | ------------- | ------------------------------------------------------------------- |
+| `title` | string, min 2 | Page title, browser title, and the `#` heading of the Markdown twin |
+
+`description` is optional, 10 to 170 characters when given. It is the subtitle
+under the title and the meta description. A page without one shows no subtitle,
+and every metadata surface (meta tags, search, `llms.txt`, the agent manifest,
+the feed, the share card) uses the first paragraph of the body, cut at 160
+characters. That is what you want for imported pages that open with their own
+introduction, where a generated subtitle would repeat it. `metaDescription`
+sets a description for those surfaces only, without showing a subtitle, and
+`metaTitle` sets the whole `<title>` and `og:title`, with no site suffix.
 
 > **Note: Why 170 is a hard ceiling**
 >

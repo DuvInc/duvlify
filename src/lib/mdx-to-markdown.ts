@@ -29,6 +29,24 @@ type AnyContent = RootContent | PhrasingContent;
 /** Node types that only exist to serve the JSX runtime, never the reader. */
 const DISCARDED = new Set(['mdxjsEsm', 'mdxFlowExpression', 'mdxTextExpression']);
 
+/**
+ * The value of an expression that is one string literal and nothing else, or
+ * undefined. `{"a" + "b"}` is an expression, not a string: a quote of the
+ * literal's own kind inside it, unescaped, rules it out.
+ */
+export function stringLiteral(source: string | undefined): string | undefined {
+  const value = source?.trim() ?? '';
+  const quote = value[0];
+  if (value.length < 2 || !['"', "'", '`'].includes(quote) || value.at(-1) !== quote) return undefined;
+  const body = value.slice(1, -1);
+  for (let i = 0; i < body.length; i += 1) {
+    if (body[i] === '\\') { i += 1; continue; }
+    if (body[i] === quote) return undefined;
+  }
+  if (quote === '`' && body.includes('${')) return undefined;
+  return body.replace(/\\(.)/g, (_, char: string) => (({ n: '\n', t: '\t' }) as Record<string, string>)[char] ?? char);
+}
+
 /* ── mdast constructors ──────────────────────────────────────────────────── */
 
 const text = (value: string): PhrasingContent => ({ type: 'text', value });
@@ -402,7 +420,15 @@ function transformChildren(children: AnyContent[]): AnyContent[] {
   const output: AnyContent[] = [];
 
   for (const child of children) {
-    if (DISCARDED.has(child.type)) continue;
+    if (DISCARDED.has(child.type)) {
+      /* `{"https://<name>.example.com"}` is how MDX prints angle brackets: a
+         lone string literal, shown on the page. Kept as its text. Anything
+         computed, and comments, are still dropped. */
+      const literal = stringLiteral((child as { value?: string }).value);
+      if (literal !== undefined && child.type === 'mdxTextExpression') output.push(text(literal) as AnyContent);
+      else if (literal !== undefined && child.type === 'mdxFlowExpression') output.push(paragraph([text(literal)]) as AnyContent);
+      continue;
+    }
 
     if (child.type === 'mdxJsxFlowElement' || child.type === 'mdxJsxTextElement') {
       const element = child as JsxElement;

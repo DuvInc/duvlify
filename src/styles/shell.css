@@ -211,7 +211,7 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
 .cta-text,
 .global-banner,
 .search-empty,
-.not-found p { text-wrap: balance; }
+
 
 /* The summary is a bare <p> for a prose page, and rendered Markdown inside
    `.article-summary` for an endpoint page, whose text comes from the OpenAPI
@@ -1287,7 +1287,9 @@ body[data-navigation-mode='unified-sidebar'] {
 .toc-list>a[data-depth="3"] {
   padding-left: 28px;
   font-size: 13px;
-  color: color-mix(in srgb, var(--muted) 88%, transparent);
+  /* `--muted` as is. Mixed toward transparent it fell to 4.11:1 on white at
+     13px, under the 4.5:1 that text this size needs. */
+  color: var(--muted);
 }
 .toc-list>a[data-depth="3"].active {
   color: var(--text);
@@ -1951,29 +1953,49 @@ body[data-navigation-mode='unified-sidebar'] {
     padding-left: 10px;
   }
 }
-/* Not-found page. */
-.not-found {
-  min-height: 100vh;
-  display: grid;
-  place-content: center;
-  justify-items: center;
+/* Not-found page. It lives inside the docs layout, so these only style what the
+   404 adds to the article: the two actions, the suggestions and the section list. */
+.not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  padding: 24px;
-  text-align: center;
+  margin: 1.5rem 0 2.5rem;
 }
-.not-found h1 {
-  margin: 0;
-  font-size: clamp(2rem, 3.2vw, 2.5rem);
-  font-weight: 600;
-  line-height: 1.15;
+.not-found-actions .header-secondary {
+  cursor: pointer;
 }
-.not-found p {
-  margin: 0;
-  max-width: 46ch;
+.not-found-suggestions[hidden] {
+  display: none;
+}
+.not-found-cards {
+  display: grid;
+  gap: 8px;
+}
+.not-found-card {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--text);
+  text-decoration: none;
+}
+.not-found-card:hover {
+  background: var(--surface-2);
+}
+.not-found-card small {
   color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.not-found .header-primary {
-  margin-top: 8px;
+.not-found-browse ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0;
+  list-style: none;
 }
 
 /* Table-of-contents link list. The rail is a fixed-height column; only this part

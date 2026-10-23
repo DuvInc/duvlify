@@ -33,6 +33,12 @@ export interface Env {
    * template and this value is one deployment's own operational detail.
    */
   FEEDBACK_WEBHOOK?: string;
+  /**
+   * Comma-separated hosts that may be indexed, e.g. `docs.example.com`. Any other
+   * host (a preview URL) answers noindex. Unset: every host is indexable. See
+   * worker/indexing.ts.
+   */
+  INDEXABLE_HOSTS?: string;
 }
 
 export interface RateLimiter {

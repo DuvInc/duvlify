@@ -53,6 +53,9 @@ const LANGUAGE_LABELS: Record<string, string> = {
   diff: 'Diff',
 };
 
+/** Fence languages that mean "no language". */
+const PLAIN_LANGUAGES = new Set(['plain', 'plaintext', 'text', 'txt']);
+
 /**
  * Copies `title="…"` off the fence's info string onto the <pre>. Shiki is the
  * only stage that sees the raw meta, so it has to happen here.
@@ -107,9 +110,16 @@ export function rehypeCodeChrome() {
 
         child.properties.tabindex = 0;
 
+        /* A block with no language and no filename has nothing to name. Showing
+           "plaintext" or "Code" labels the absence of a label, so the header
+           stays (the copy button lives in it) with no text. A code group still
+           gets "Code" for its tab, through `data-tab-title`. */
+        const bare = !(typeof filename === 'string' && filename) && (!language || PLAIN_LANGUAGES.has(language));
+        const shown = bare ? '' : label;
+
         return element('div', { className: ['code-block'], 'data-tab-title': label }, [
           element('header', { className: ['code-block-header'] }, [
-            element('span', { className: ['code-block-filename'] }, [{ type: 'text', value: label }]),
+            element('span', { className: ['code-block-filename'] }, shown ? [{ type: 'text', value: shown }] : []),
           ]),
           element('div', { className: ['code-block-body'] }, [child]),
         ]);

@@ -12,123 +12,25 @@
  * inverted index (Pagefind) without touching the markup or the styling.
  */
 import { $, $$, escapeHtml } from './dom';
-
-interface Section {
-  /** Heading anchor, so a result can deep-link into the page. */
-  a?: string;
-  /** Heading text. Absent for a page's opening prose. */
-  h?: string;
-  /** Plain-text body under that heading. */
-  t: string;
-}
-interface Page {
-  h: string;
-  t: string;
-  s: string;
-  d: string;
-  k: 'page' | 'endpoint';
-  m?: string;
-  b: Section[];
-}
-interface QuickLink {
-  h: string;
-  t: string;
-  s: string;
-  k: 'page' | 'endpoint';
-  m?: string;
-}
-interface Index {
-  quick: QuickLink[];
-  pages: Page[];
-}
-
-interface Hit {
-  href: string;
-  title: string;
-  /** The second line of the result row: where it is, and/or what it says. */
-  meta: string;
-  score: number;
-  kind: 'page' | 'endpoint' | 'heading';
-  method?: string;
-}
+import { rank, wordsOf, type Index } from './search-rank';
 
 const MAX_RESULTS = 20;
+
 /**
- * A result line is one row of clipped text, so the match has to appear early in
- * it — enough words before to give context, and the rest of the budget after.
- * Centring the match instead pushes it past the clip on a narrow dialog.
+ * Wraps every query word in <mark>.
+ *
+ * Splits the raw text on the words and escapes each piece afterwards. Matching
+ * on already-escaped text found "amp" inside `&amp;` and printed a broken
+ * entity with half of it highlighted.
  */
-const SNIPPET_LEAD = 34;
-const SNIPPET_TRAIL = 150;
-
-/** Wraps every occurrence of `query` in <mark>, on already-escaped text. */
 function highlight(text: string, query: string) {
-  const escaped = escapeHtml(text);
-  if (!query) return escaped;
-  const pattern = new RegExp(escapeHtml(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-  return escaped.replace(pattern, match => `<mark>${match}</mark>`);
-}
-
-/** A window of body text opening just before the match, cut at word boundaries. */
-function snippetAround(text: string, at: number) {
-  let start = Math.max(0, at - SNIPPET_LEAD);
-  let end = Math.min(text.length, at + SNIPPET_TRAIL);
-  if (start > 0) start = text.indexOf(' ', start) + 1 || start;
-  if (end < text.length) end = text.lastIndexOf(' ', end) + 1 || end;
-  return `${start > 0 ? '…' : ''}${text.slice(start, end).trim()}${end < text.length ? '…' : ''}`;
-}
-
-function search(index: Index, rawQuery: string): Hit[] {
-  const query = rawQuery.toLowerCase();
-  const hits: Hit[] = [];
-
-  for (const page of index.pages) {
-    const title = page.t.toLowerCase();
-    let best: Hit | null = null;
-
-    /* A title match always wins, and points at the page itself. */
-    if (title.includes(query)) {
-      best = {
-        href: page.h,
-        title: page.t,
-        meta: `${page.s} · ${page.d}`,
-        score: title.startsWith(query) ? 100 : 80,
-        kind: page.k,
-        method: page.m,
-      };
-    }
-
-    for (const part of page.b) {
-      const heading = part.h?.toLowerCase() ?? '';
-      const anchor = part.a ? `${page.h}#${part.a}` : page.h;
-
-      if (heading.includes(query)) {
-        const score = heading.startsWith(query) ? 60 : 50;
-        if (!best || score > best.score) {
-          best = { href: anchor, title: part.h!, meta: `${page.t} · ${page.s}`, score, kind: 'heading' };
-        }
-        continue;
-      }
-
-      const at = part.t.toLowerCase().indexOf(query);
-      if (at >= 0 && (!best || best.score < 30)) {
-        best = {
-          href: anchor,
-          title: part.h ? `${page.t} · ${part.h}` : page.t,
-          /* The title line already says where this is, so the whole second line
-             goes to the sentence that matched. */
-          meta: snippetAround(part.t, at),
-          score: 30,
-          kind: page.k,
-          method: page.m,
-        };
-      }
-    }
-
-    if (best) hits.push(best);
-  }
-
-  return hits.sort((a, b) => b.score - a.score || a.title.localeCompare(b.title)).slice(0, MAX_RESULTS);
+  const words = wordsOf(query).sort((a, b) => b.length - a.length);
+  if (!words.length) return escapeHtml(text);
+  const pattern = new RegExp(`(${words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  return text
+    .split(pattern)
+    .map((piece, index) => (index % 2 ? `<mark>${escapeHtml(piece)}</mark>` : escapeHtml(piece)))
+    .join('');
 }
 
 export function initSearch(indexUrl: string) {
@@ -207,7 +109,7 @@ export function initSearch(indexUrl: string) {
       paint('Quick links', index.quick.map(link => row(link.h, link.t, link.s, '', link.k, link.m)));
       return;
     }
-    const hits = search(index, query);
+    const hits = rank(index, query, MAX_RESULTS);
     if (!hits.length) {
       message(`No results for <strong>${escapeHtml(query)}</strong>.`);
       return;

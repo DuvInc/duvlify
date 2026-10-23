@@ -3,7 +3,7 @@ import { seo, site as siteConfig, withBase } from '../docs.config';
 import { lastModifiedFor } from '../lib/last-modified';
 import { markdownUrl } from '../lib/markdown-url';
 import { getFlatPages, getHomePage } from '../lib/navigation';
-import { byId, getPublishedDocs } from '../lib/published';
+import { byId, descriptionOf, getPublishedDocs } from '../lib/published';
 
 /**
  * /updates.xml — the pages that changed most recently, newest first.
@@ -63,7 +63,7 @@ export const GET: APIRoute = async ({ site }) => {
       `    <link rel="alternate" type="text/html" href="${url}" />`,
       `    <link rel="alternate" type="text/markdown" href="${markdownUrl(url)}" />`,
       `    <updated>${modified.toISOString()}</updated>`,
-      `    <summary>${escape(entry.data.description)}</summary>`,
+      `    <summary>${escape(descriptionOf(entry))}</summary>`,
       '  </entry>',
     ].join('\n');
   });

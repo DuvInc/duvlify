@@ -1,5 +1,7 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 
+import { firstParagraph } from './plain-text';
+
 /**
  * Publication state, in one place.
  *
@@ -42,3 +44,16 @@ export const getAllDocs = () => getCollection('docs');
 /** Index a set of entries by id, for the joins navigation and the feeds do. */
 export const byId = (entries: DocEntry[]) =>
   new Map<string, DocEntry>(entries.map(entry => [entry.id, entry]));
+
+/**
+ * The description every metadata surface uses: the page's own, then its
+ * metadata-only one, then the first paragraph of its body. One function, so the
+ * meta tags, the search index, llms.txt, the agent manifest, the feed, the share
+ * card and the JSON-LD cannot give the same page different summaries.
+ *
+ * The visible subtitle is different on purpose: it shows only a description the
+ * page declares, never a derived one, which would repeat the paragraph right
+ * under it.
+ */
+export const descriptionOf = (entry: DocEntry): string =>
+  entry.data.description ?? entry.data.metaDescription ?? firstParagraph(entry.body ?? '');

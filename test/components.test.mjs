@@ -7,6 +7,20 @@ import { cssColor, cssCounter, cssCustomProperties } from '../src/lib/css-value.
 import { rehypeInlineLinks } from '../src/lib/rehype-inline-links.ts';
 import { slugify } from '../src/lib/slug.ts';
 
+/**
+ * A `_headers` rule as Cloudflare matches it: `:name` is one path segment and
+ * the trailing `*` is the rest of the path. Not only a trailing splat: a rule
+ * such as `/:section/images/*` is valid, and a test that only understood
+ * `/prefix/*` reported it as matching nothing.
+ */
+const headerRuleRegex = rule =>
+  new RegExp(
+    `^${rule
+      .split(/(:[A-Za-z_]\w*|\*)/)
+      .map(part => (part === '*' ? '.*' : part.startsWith(':') ? '[^/]+' : part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')))
+      .join('')}$`,
+  );
+
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const distDir = path.join(ROOT, 'dist');
@@ -356,19 +370,24 @@ describe('source guards', () => {
          indented header. `/*` is the catch-all and matches by definition. */
       .filter(line => line.startsWith('/') && line !== '/*');
 
-    const dead = rules.filter(rule => {
-      if (rule.endsWith('/*')) {
-        const prefix = rule.slice(0, -1);
-        return !built.some(file => file.startsWith(prefix));
-      }
-      return !built.includes(rule);
-    });
+    const dead = rules.filter(rule => !built.some(file => headerRuleRegex(rule).test(file)));
 
     assert.deepEqual(
       dead,
       [],
       'these _headers rules match no built file, so their headers are never sent',
     );
+  });
+
+  test('no _headers rule has a second splat, which Cloudflare silently ignores', () => {
+    // `_headers` allows one splat per rule. A second one is not an error: the
+    // rule just never applies, its files serve at `max-age=0` and nothing says
+    // so. A one-segment wildcard is spelled `:name`, as in /:section/images/x.
+    const rules = readFileSync(path.join(ROOT, 'public', '_headers'), 'utf8')
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('/'));
+    assert.deepEqual(rules.filter(rule => (rule.match(/\*/g) ?? []).length > 1), []);
   });
 
   test('every file the Worker never sees has an explicit cache rule', () => {
@@ -401,15 +420,11 @@ describe('source guards', () => {
       .map(line => line.trim())
       .filter(line => line.startsWith('/') && line !== '/*');
 
-    const covered = pattern => {
-      if (pattern.endsWith('/*')) {
-        const prefix = pattern.slice(0, -1);
-        return headerRules.some(
-          rule => rule === pattern || (rule.endsWith('/*') && rule.slice(0, -1) === prefix),
-        );
-      }
-      return headerRules.includes(pattern);
-    };
+    /* `run_worker_first` spells a one-segment wildcard as `*` mid-path, where
+       `_headers` needs a `:name` placeholder (a second splat is not allowed
+       there), so both are brought to one spelling before comparing. */
+    const shape = rule => rule.replace(/:[A-Za-z_]\w*/g, ':_').replace(/\/\*(?=\/)/g, '/:_');
+    const covered = pattern => headerRules.some(rule => shape(rule) === shape(pattern));
 
     const uncovered = excluded.filter(pattern => !covered(pattern));
 

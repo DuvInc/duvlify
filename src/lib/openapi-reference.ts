@@ -88,7 +88,7 @@ interface ApiPageData {
   apiPath?: string;
   apiOperationId?: string;
   apiTag?: string;
-  description: string;
+  description?: string;
 }
 
 function getSpec(document: unknown) {
@@ -117,7 +117,7 @@ export function getApiReference(data: ApiPageData, document: unknown = spec): Ap
     path: data.apiPath,
     operationId: data.apiOperationId ?? operation.operationId,
     tag: data.apiTag ?? operation.tags?.[0],
-    description: operation.description ?? operation.summary ?? data.description,
+    description: operation.description ?? operation.summary ?? data.description ?? '',
     server,
     authorizations: resolveAuthorizations(spec, operation),
     parameters: describeParameters(spec, parameters),
@@ -151,26 +151,34 @@ function resolveResponses(spec: any, operation: any): ApiResponseExample[] {
     const media = response.content?.[contentType] ?? {};
     const explicit = media.example ?? firstExample(media.examples);
     const value = explicit ?? exampleValue(spec, media.schema, 0, new Set(), 'response');
+    /* A response with no `content` (a 204, a bare 404) has no body. `{}` would
+       claim an empty object, which is a different answer. */
+    const hasBody = Object.keys(response.content ?? {}).length > 0;
     return {
       status,
       description: response.description ?? '',
       contentType,
-      code: JSON.stringify(value ?? {}, null, 2),
+      code: hasBody ? JSON.stringify(value ?? {}, null, 2) : '',
       fields: schemaFields(spec, media.schema),
     };
   });
 }
 
 /**
- * How many levels of nested fields are modelled. The page renders a field and
- * one level of children, so the model needs one more than that to know whether
- * a child has children of its own. Without a limit a schema that contains itself
- * (a filter holding a list of filters) recurses until the stack overflows and
- * the build dies with a RangeError instead of a page.
+ * How many levels of nested fields are modelled, as a hard stop.
+ *
+ * The real guard against a schema that contains itself (a filter holding a list
+ * of filters) is the trail below: a `$ref` already being expanded further up is
+ * not expanded again. This limit only bounds a pathological spec that is deep
+ * without repeating itself, and is generous enough that a real API never
+ * reaches it. Without both, the build dies with a RangeError instead of a page.
  */
-const MAX_FIELD_DEPTH = 3;
+const MAX_FIELD_DEPTH = 6;
 
-function schemaFields(spec: any, rawSchema: any, depth = 0): ApiSchemaField[] {
+/** The `$ref` a property points at, directly or as the items of an array. */
+const refOf = (raw: any): string | undefined => raw?.$ref ?? raw?.items?.$ref;
+
+function schemaFields(spec: any, rawSchema: any, depth = 0, trail: ReadonlySet<string> = new Set(refOf(rawSchema) ? [refOf(rawSchema)!] : [])): ApiSchemaField[] {
   if (depth >= MAX_FIELD_DEPTH) return [];
   const schema = materializeSchema(spec, rawSchema);
   const object = schema.type === 'array' ? materializeSchema(spec, schema.items) : schema;
@@ -178,6 +186,11 @@ function schemaFields(spec: any, rawSchema: any, depth = 0): ApiSchemaField[] {
   return Object.entries(object.properties ?? {}).map(([name, raw]: [string, any]) => {
     const field = materializeSchema(spec, raw);
     const nested = nestedSchema(spec, field);
+    const ref = refOf(raw);
+    /* Shown as a field, but not expanded: it is already open higher up. */
+    const children = ref && trail.has(ref)
+      ? []
+      : schemaFields(spec, nested, depth + 1, ref ? new Set(trail).add(ref) : trail);
     return {
       name,
       type: typeName(spec, field),
@@ -185,7 +198,7 @@ function schemaFields(spec: any, rawSchema: any, depth = 0): ApiSchemaField[] {
       required: required.has(name),
       deprecated: field.deprecated === true,
       constraints: constraintsOf(field),
-      children: schemaFields(spec, nested, depth + 1),
+      children,
     };
   });
 }
@@ -209,7 +222,6 @@ function constraintsOf(schema: any): ApiConstraint[] {
   if (length) out.push({ label: 'length', value: length });
   const items = range(schema.minItems, schema.maxItems, ' items');
   if (items) out.push({ label: 'items', value: items });
-  if (schema.format) out.push({ label: 'format', value: String(schema.format) });
   if (schema.pattern) out.push({ label: 'pattern', value: String(schema.pattern) });
   return out;
 }
@@ -263,6 +275,9 @@ function typeName(spec: any, rawSchema: any, depth = 0): string {
   }
   if (schema.additionalProperties === true) return 'Record<string, unknown>';
   if (schema.nullable && schema.type) return `${schema.type} | null`;
+  /* `enum<string>` and `string<date-time>`: the base type with what narrows it. */
+  if (Array.isArray(schema.enum) && schema.enum.length && schema.type) return `enum<${schema.type}>`;
+  if (schema.format && schema.type) return `${schema.type}<${schema.format}>`;
   return schema.type ?? 'object';
 }
 
@@ -418,7 +433,9 @@ function exampleValue(
   seen: Set<string>,
   mode: 'request' | 'response',
 ): any {
-  if (!rawSchema || depth > 5) return {};
+  /* Each `$ref`, array and object costs one level. `seen` already stops a
+     schema that contains itself, so this only bounds a pathological spec. */
+  if (!rawSchema || depth > 16) return {};
   if (rawSchema.example !== undefined) return rawSchema.example;
   if (rawSchema.default !== undefined) return rawSchema.default;
   if (rawSchema.enum?.length) return rawSchema.enum[0];

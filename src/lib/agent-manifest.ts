@@ -3,7 +3,7 @@ import { lastModifiedFor } from './last-modified';
 import { toPageMarkdown } from './markdown';
 import { getFlatPages, getHomePage } from './navigation';
 import { plainHeading } from './plain-text';
-import { byId, getPublishedDocs, type DocEntry } from './published';
+import { byId, descriptionOf, getPublishedDocs, type DocEntry } from './published';
 import { slugify } from './slug';
 import { seo } from '../docs.config';
 
@@ -206,7 +206,7 @@ export async function buildAgentManifest(site: URL | undefined): Promise<AgentMa
         id: row.id,
         url,
         title: entry.data.title,
-        description: entry.data.description,
+        description: descriptionOf(entry),
         type: entry.data.pageType === 'api-endpoint' ? 'api-endpoint' : 'page',
         tab: row.tab,
         ...(modified ? { updated: modified.toISOString().slice(0, 10) } : {}),

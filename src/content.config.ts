@@ -31,7 +31,14 @@ const docs = defineCollection({
      * naming a file whose source is what actually has to be shortened.
      * content/guides/internationalization.mdx covers the rest of that interaction.
      */
-    description: z.string().min(10).max(170),
+    description: z.string().min(10).max(170).optional(),
+    /**
+     * A description for the meta tags, feeds and search only, when the page
+     * should not show one as its subtitle. `description` wins when both are set.
+     */
+    metaDescription: z.string().min(10).max(170).optional(),
+    /** The full `<title>` and `og:title`, used as is with no site suffix. */
+    metaTitle: z.string().optional(),
     /** Shorter label for the sidebar, when the page title is too long for it. */
     sidebarTitle: z.string().optional(),
     /** Icon name from src/components/Icon.astro, shown beside the sidebar label. */

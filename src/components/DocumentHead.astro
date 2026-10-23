@@ -30,6 +30,8 @@ interface Props {
   canonical?: string;
   /** Keeps the page reachable but out of results. */
   noindex?: boolean;
+  /** The whole `<title>` and `og:title`, with no site suffix. */
+  metaTitle?: string;
   /** Share card. Defaults to the generated card for this page. */
   image?: string;
   imageAlt?: string;
@@ -44,6 +46,7 @@ const {
   description,
   canonical,
   noindex = false,
+  metaTitle,
   image,
   imageAlt,
   published,
@@ -51,7 +54,7 @@ const {
   structuredData,
 } = Astro.props;
 
-const fullTitle = `${title} - ${site.titleSuffix}`;
+const fullTitle = metaTitle ?? `${title} - ${site.titleSuffix}`;
 const indexable = Boolean(canonical) && !noindex;
 
 const cardUrl = new URL(image ?? withBase(seo.defaultImage), Astro.site ?? Astro.url).href;

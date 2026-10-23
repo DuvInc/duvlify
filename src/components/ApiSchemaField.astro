@@ -1,48 +1,46 @@
 ---
-/** A response-schema field rendered from the OpenAPI model. */
+/**
+ * A field of an OpenAPI schema, and every field nested under it.
+ *
+ * Recursive: a field with children renders one "Show child attributes"
+ * disclosure, and each child renders this component again, at any depth the
+ * model carries. The name shown is the full path (`data.fields.type`) with the
+ * parent part muted, so two objects that both have an `id` read as two
+ * different fields instead of two identical rows.
+ */
 import Icon from './Icon.astro';
 import type { ApiSchemaField as FieldModel } from '../lib/openapi-reference';
 import { renderSpecMarkdown } from '../lib/spec-markdown';
 
-interface Props { field: FieldModel }
-const { field } = Astro.props;
+interface Props {
+  field: FieldModel;
+  /** The dotted path of the parent, empty at the top level. */
+  parent?: string;
+}
+const { field, parent = '' } = Astro.props;
 
 /* Descriptions come from the specification, where they are CommonMark — see
-   lib/spec-markdown.ts. Resolved here rather than in the markup so the child
-   fields are rendered in one pass alongside the parent. */
+   lib/spec-markdown.ts. */
 const description = await renderSpecMarkdown(field.description);
-const children = await Promise.all(
-  field.children.map(async child => ({ child, description: await renderSpecMarkdown(child.description) })),
-);
+const path = parent ? `${parent}.${field.name}` : field.name;
 ---
-<div class="field api-schema-field">
+<div class:list={['field', 'api-schema-field', parent && 'api-schema-child-field']}>
   <div class="field-head">
-    <code class="field-name">{field.name}</code>
+    <code class="field-name">{parent && <span class="field-path">{parent}.</span>}{field.name}</code>
     <span class="field-pill">{field.type}</span>
     {field.required && <span class="field-pill required">required</span>}
     {field.deprecated && <span class="field-pill deprecated">deprecated</span>}
     {field.constraints.map(constraint => <span class="field-pill" title={constraint.label}>{constraint.label}: {constraint.value}</span>)}
   </div>
   {description && <div class="field-content" set:html={description} />}
-  {children.length > 0 && (
+  {field.children.length > 0 && (
     <details class="expandable api-schema-children">
       <summary>
         <span class="disclosure-caret" aria-hidden="true"><Icon name="chevronRight" size={11} /></span>
         <span>Show child attributes</span>
       </summary>
       <div class="expandable-body">
-        {children.map(({ child, description: childDescription }) => (
-          <div class="field api-schema-child-field">
-            <div class="field-head">
-              <code class="field-name">{child.name}</code>
-              <span class="field-pill">{child.type}</span>
-              {child.required && <span class="field-pill required">required</span>}
-              {child.deprecated && <span class="field-pill deprecated">deprecated</span>}
-              {child.constraints.map(constraint => <span class="field-pill" title={constraint.label}>{constraint.label}: {constraint.value}</span>)}
-            </div>
-            {childDescription && <div class="field-content" set:html={childDescription} />}
-          </div>
-        ))}
+        {field.children.map(child => <Astro.self field={child} parent={path} />)}
       </div>
     </details>
   )}

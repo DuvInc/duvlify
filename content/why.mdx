@@ -152,14 +152,17 @@ crawler receives finished HTML on the first request rather than an empty shell.
   page instead of competing with it. Blocking the `.md` twins in `robots.txt` was
   the earlier approach, before that header existed; a test now asserts the block
   is gone.
-- **No structured data is claimed that a page does not earn.** Endpoint pages
-  are typed as `APIReference` only because `seo.apiReferenceTabs` names their tab.
-  A page that merely *illustrates* an endpoint stays a `TechArticle`, because
+- **No structured data is claimed that a page does not earn.** A page rendered
+  from the OpenAPI document (`pageType: api-endpoint`) is typed `APIReference`,
+  and `seo.apiReferenceTabs` adds the pages around them. A page that merely
+  *illustrates* an endpoint stays a `TechArticle`, because
   structured data that overstates a page earns a manual action rather than a rich
   result.
 - **No AI crawler is blocked by default.** Documentation exists to be found and
   quoted. A site whose content *is* the product would set
-  `seo.contentSignals` differently.
+  `seo.contentSignals` differently. Lighthouse lists the `Content-Signal` line
+  in `robots.txt` as an unknown directive, which costs a few points of its SEO
+  score. The directive is real and Lighthouse does not know it yet: keep it.
 
 ## What you trade for this control
 

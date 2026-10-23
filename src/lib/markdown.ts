@@ -1,5 +1,8 @@
 import type { CollectionEntry } from 'astro:content';
 import { lastModifiedFor } from './last-modified';
+import { descriptionOf } from './published';
+import { apiMarkdown } from './api-markdown';
+import { getApiReference } from './openapi-reference';
 import { mdxToMarkdown } from './mdx-to-markdown';
 
 /**
@@ -30,12 +33,13 @@ export function toPageMarkdown(
   { url, frontmatter = false }: PageMarkdownOptions = {},
 ) {
   const modified = lastModifiedFor(entry);
+  const api = entry.data.pageType === 'api-endpoint' ? getApiReference(entry.data) : undefined;
 
   const header = frontmatter
     ? [
         '---',
         `title: ${quote(entry.data.title)}`,
-        `description: ${quote(entry.data.description)}`,
+        `description: ${quote(descriptionOf(entry))}`,
         ...(url ? [`canonical: ${quote(url)}`] : []),
         ...(modified ? [`updated: ${quote(modified.toISOString().slice(0, 10))}`] : []),
         '---',
@@ -68,6 +72,8 @@ export function toPageMarkdown(
     ...(url && !frontmatter ? ['', `Source: ${url}`] : []),
     '',
     mdxToMarkdown(entry.body ?? ''),
+    /* An endpoint page's reference lives in the spec, not the body. */
+    ...(api ? ['', apiMarkdown(api)] : []),
     '',
   ].join('\n');
 }

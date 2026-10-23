@@ -85,7 +85,11 @@ const firstRequest = api.requests[0];
             data-content-type={response.contentType}
             hidden={response.status !== firstStatus}
           >
-            <div class="code-block-body"><pre tabindex="0"><code>{response.code}</code></pre></div>
+            <div class="code-block-body">
+              {response.code
+                ? <pre tabindex="0"><code>{response.code}</code></pre>
+                : <p class="api-no-body">No response body</p>}
+            </div>
           </div>
         ))}
       </section>

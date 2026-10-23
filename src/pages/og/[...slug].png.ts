@@ -2,7 +2,7 @@ import type { CollectionEntry } from 'astro:content';
 import type { APIRoute } from 'astro';
 import { primeCard } from '../../lib/og-card';
 import { getFlatPages } from '../../lib/navigation';
-import { byId, getPublishedDocs } from '../../lib/published';
+import { byId, descriptionOf, getPublishedDocs } from '../../lib/published';
 
 /**
  * One share card per page, drawn from the page's own title and section, so a
@@ -14,7 +14,7 @@ import { byId, getPublishedDocs } from '../../lib/published';
 const cardFor = (entry: CollectionEntry<'docs'>, eyebrow: string) => ({
   title: entry.data.title,
   eyebrow,
-  description: entry.data.description,
+  description: descriptionOf(entry),
 });
 
 export async function getStaticPaths() {
