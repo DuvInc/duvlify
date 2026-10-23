@@ -40,6 +40,10 @@ export interface ResolvedGroup {
   defaultOpen: boolean;
   icon?: string;
   sidebarOrder?: number;
+  /** 0 for a top-level section. See `NavGroup.depth`. */
+  depth: number;
+  /** Set on the first group of a tab: the heading the unified sidebar draws above it. */
+  tabHeading?: string;
   pages: ResolvedPage[];
 }
 
@@ -49,7 +53,33 @@ export interface ResolvedTab {
   icon: string;
   /** The tab's first page — where clicking the tab lands. */
   href: string;
+  /** Every group in document order, nested ones included: read `depth` for the tree. */
   groups: ResolvedGroup[];
+}
+
+/** A group and the groups nested under it: the tree the sidebar renders. */
+export interface GroupNode {
+  group: ResolvedGroup;
+  children: GroupNode[];
+}
+
+/**
+ * Splits a flat group list into top-level blocks: each depth-0 group with the
+ * groups nested under it. Sorting by `sidebarOrder` moves whole blocks, never a
+ * nested group away from its parent.
+ */
+export function sortBlocks(groups: ResolvedGroup[], sort: boolean): ResolvedGroup[] {
+  const blocks: ResolvedGroup[][] = [];
+  for (const group of groups) {
+    if (group.depth === 0 || !blocks.length) blocks.push([group]);
+    else blocks.at(-1)!.push(group);
+  }
+  if (sort) {
+    blocks.sort((a, b) =>
+      (a[0].sidebarOrder ?? Number.MAX_SAFE_INTEGER) - (b[0].sidebarOrder ?? Number.MAX_SAFE_INTEGER),
+    );
+  }
+  return blocks.flat();
 }
 
 /**
@@ -110,13 +140,26 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
       throw new Error(`docs.config.ts tab "${tab.label}" has no pages.`);
     }
 
-    const groups = tab.groups
+    let previousDepth = -1;
+    tab.groups.forEach(group => {
+      const depth = group.depth ?? 0;
+      if (!Number.isInteger(depth) || depth < 0 || depth > previousDepth + 1) {
+        throw new Error(
+          `docs.config.ts group "${group.label}" in tab "${tab.label}" has depth ${depth}, ` +
+            `but the group before it has depth ${previousDepth}. A group may be at most one level deeper than the one above it, and the first is 0.`,
+        );
+      }
+      previousDepth = depth;
+    });
+
+    const resolved = tab.groups
       .map(group => ({
         label: group.label,
         folder: group.folder ?? false,
         defaultOpen: group.defaultOpen ?? navigationLayout.expandFolders === 'all',
         icon: group.icon,
         sidebarOrder: group.sidebarOrder,
+        depth: group.depth ?? 0,
         pages: group.pages.flatMap(id => {
           if (!onDisk.has(id)) {
             throw new Error(
@@ -128,6 +171,9 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
           /* A draft leaves no trace in the sidebar. */
           if (!entry) return [];
           referenced.add(id);
+          /* A hidden page is listed to say where it lives and still leaves no
+             trace: not in the sidebar, the search, the neighbours or any feed. */
+          if (entry.data.hidden) return [];
           return [{
             id,
             href: hrefFor(id),
@@ -141,8 +187,16 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
         }),
       }))
       /* A group whose every page is a draft is not an empty section to render;
-         it is a section that does not exist yet. */
-      .filter(group => group.pages.length > 0)
+         it is a section that does not exist yet. A group that only holds other
+         groups is not empty: it is kept while anything nested under it is. */
+      .filter((group, index, all) => {
+        if (group.pages.length > 0) return true;
+        for (const next of all.slice(index + 1)) {
+          if (next.depth <= group.depth) break;
+          if (next.pages.length > 0) return true;
+        }
+        return false;
+      })
       /*
        * A folder holding one page is not a folder. It renders as a disclosure
        * the reader has to open to find a single item, which is a worse version
@@ -160,9 +214,23 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
        * resolved flag, so a page in a collapsed folder stops claiming a folder
        * it is no longer in.
        */
-      .map(group => (group.folder && group.pages.length < 2 ? { ...group, folder: false } : group));
+      .map((group, index, all) => {
+        /* Anything with a group nested under it, or nested itself, is a folder. */
+        const hasChildren = all[index + 1]?.depth > group.depth;
+        if (hasChildren || group.depth > 0) return { ...group, folder: true };
+        return group.folder && group.pages.length < 2 ? { ...group, folder: false } : group;
+      });
+    /* Dropping an emptied group can strand a nested one deeper than its new
+       neighbour. Close the gap so the tree stays valid. */
+    let level = -1;
+    const groups: ResolvedGroup[] = resolved.map(group => {
+      const depth = Math.min(group.depth, level + 1);
+      level = depth;
+      return depth === group.depth ? group : { ...group, depth };
+    });
+    if (tab.sidebarLabel !== undefined && groups[0]) groups[0] = { ...groups[0], tabHeading: tab.sidebarLabel };
 
-    const first = groups[0]?.pages[0];
+    const first = groups.find(group => group.pages.length)?.pages[0];
     /* Same reasoning one level up: a fully drafted tab disappears rather than
        rendering as a tab that leads nowhere. */
     if (!first) return [];
@@ -181,7 +249,7 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
      public document for routes, SEO, the sitemap and the Markdown corpus.
      Drafts are absent from `published`, so they are never orphans. */
   const orphans = [...published.values()]
-    .filter(entry => !referenced.has(entry.id) && !isHomePage(entry.id))
+    .filter(entry => !referenced.has(entry.id) && !isHomePage(entry.id) && !entry.data.hidden)
     .map(entry => entry.id);
   if (orphans.length) {
     throw new Error(
@@ -232,13 +300,9 @@ export async function getPageContext(id: string) {
 /** Every page in sidebar order, with the tab and group it belongs to. */
 export async function getFlatPages() {
   const tabs = await getNavigation();
-  const groups = tabs.flatMap(tab => tab.groups.map(group => ({ tab, group })));
-  if (navigationLayout.mode === 'unified-sidebar') {
-    groups.sort((a, b) =>
-      (a.group.sidebarOrder ?? Number.MAX_SAFE_INTEGER) -
-      (b.group.sidebarOrder ?? Number.MAX_SAFE_INTEGER),
-    );
-  }
+  const owner = new Map<ResolvedGroup, ResolvedTab>(tabs.flatMap(tab => tab.groups.map(group => [group, tab] as const)));
+  const ordered = sortBlocks(tabs.flatMap(tab => tab.groups), navigationLayout.mode === 'unified-sidebar');
+  const groups = ordered.map(group => ({ tab: owner.get(group)!, group }));
   return groups.flatMap(({ tab, group }) =>
     group.pages.map(page => ({ page, group, tab })),
   );

@@ -2,6 +2,8 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
+import { contentIds } from './docs.config';
+
 /**
  * A page declares only what it is. Where it sits in the sidebar — and therefore
  * its category, its section label and its neighbours — comes from
@@ -9,7 +11,15 @@ import { z } from 'astro/zod';
  * is served at /guides/x.
  */
 const docs = defineCollection({
-  loader: glob({ base: './content', pattern: '**/*.{md,mdx}' }),
+  loader: glob({
+    base: './content',
+    pattern: '**/*.{md,mdx}',
+    /* See `contentIds` in docs.config.ts: Astro's default id lowercases the path. */
+    ...(contentIds === 'preserved' && {
+      generateId: ({ entry, data }: { entry: string; data: Record<string, unknown> }) =>
+        data.slug ? String(data.slug) : entry.replace(/\.mdx?$/, '').replace(/\/index$/, ''),
+    }),
+  }),
   schema: z.object({
     title: z.string().min(2),
     /**
@@ -54,6 +64,15 @@ const docs = defineCollection({
      */
     noindex: z.boolean().default(false),
     /**
+     * Published and routed, but not part of the site's map: out of the sidebar,
+     * the previous and next links, search, the sitemap, llms.txt and the feeds,
+     * and noindexed. The build does not demand it be listed in docs.config.ts,
+     * and drops it from the sidebar when it is. For a page reached by a direct
+     * link only: a landing page for one campaign, a legacy URL kept alive, a
+     * page migrated from a tool that had the same switch.
+     */
+    hidden: z.boolean().default(false),
+    /**
      * Overrides the last-modified date, which otherwise comes from the file's
      * last commit. Set it when a change was substantive and the commit history
      * does not reflect that — a typo fix should not reset a page's freshness.
@@ -61,7 +80,12 @@ const docs = defineCollection({
     updated: z.coerce.date().optional(),
     /** First publication date, when it differs meaningfully from the last edit. */
     published: z.coerce.date().optional(),
-  }),
+  }).transform(data => ({
+    ...data,
+    /* A hidden page is a noindex page: every surface that broadcasts a page
+       already filters on `noindex`, so folding it in here keeps one rule. */
+    noindex: data.noindex || data.hidden,
+  })),
 });
 
 export const collections = { docs };

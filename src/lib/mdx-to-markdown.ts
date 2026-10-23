@@ -299,6 +299,7 @@ const colorItem: Handler = node => {
 const handlers: Record<string, Handler> = {
   /* API reference */
   Endpoint: node => [paragraph([code(`${attribute(node, 'method') || 'GET'} ${attribute(node, 'path') || ''}`.trim())])],
+  ApiRequestDetails: node => [paragraph([text(`Parameters and request body for ${attribute(node, 'method') || 'GET'} ${attribute(node, 'path') || ''} are defined in /openapi.yaml.`)])],
   ApiResponseDetails: node => [paragraph([text(`Responses for ${attribute(node, 'method') || 'GET'} ${attribute(node, 'path') || ''} are defined in /openapi.yaml.`)])],
   ParamField: field,
   ResponseField: field,

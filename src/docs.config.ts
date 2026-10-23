@@ -1,6 +1,12 @@
 /**
  * The one file to edit when rebranding or restructuring the documentation.
  *
+ * Imports from here need an explicit extension (`./generated/nav.ts`, and
+ * `with { type: 'json' }` for a JSON file). The test suite loads this file
+ * through Node's type stripping, which does not resolve extensionless paths the
+ * way Astro's bundler does; the build would accept `./generated/nav`, the tests
+ * would not.
+ *
  * Nothing here is duplicated anywhere else:
  *   - `site`       identity, header links, footer. No brand string lives in markup.
  *   - `theme`      brand font, accent colour, radius scale. Injected as CSS custom
@@ -31,9 +37,26 @@ export interface NavGroup {
    */
   defaultOpen?: boolean;
   icon?: string;
-  /** Optional global sidebar position for generated navigation sources. */
+  /** Optional global sidebar position for generated navigation sources. Set it on top-level groups only. */
   sidebarOrder?: number;
-  /** Page ids, in sidebar order. */
+  /**
+   * How deep this group sits. 0 (the default) is a top-level section.
+   *
+   * A group nests inside the nearest group above it in the list with a smaller
+   * depth, so a flat list expresses a tree:
+   *
+   *   { label: 'API' }                       // depth 0
+   *   { label: 'Databases', depth: 1 }       // inside API
+   *   { label: 'Records', depth: 2 }         // inside Databases
+   *   { label: 'Webhooks', depth: 1 }        // back inside API
+   *
+   * A nested group is always a folder. A group that holds only other groups,
+   * with no pages of its own (`pages: []`), is valid and renders as a folder of
+   * folders. Depths are checked: the first group of a tab is depth 0 and each
+   * group is at most one level deeper than the one before it.
+   */
+  depth?: number;
+  /** Page ids, in sidebar order. May be empty when the group only holds nested groups. */
   pages: string[];
 }
 
@@ -41,6 +64,14 @@ export interface NavTab {
   id: string;
   label: string;
   icon: string;
+  /**
+   * In `unified-sidebar` mode the tab bar is gone, and with it the tab's label.
+   * This puts a heading above the tab's groups in the sidebar: the text given,
+   * or, when it is the empty string, a blank spacer that separates two sections
+   * without naming either. Left undefined, nothing is drawn, as before.
+   * Ignored in `category-tabs` mode, where the tab bar is the label.
+   */
+  sidebarLabel?: string;
   groups: NavGroup[];
 }
 
@@ -74,6 +105,30 @@ export const navigationLayout = {
   mode: 'category-tabs' as NavigationMode,
   expandFolders: 'all' as FolderExpansion,
 } as const;
+
+/**
+ * How a file under content/ becomes a page id, and so a URL.
+ *
+ *   slugified  Astro's default: each path segment is lowercased and stripped of
+ *              punctuation, so `Guides/Intro to Duvlify.mdx` is served at
+ *              `/guides/intro-to-duvlify`. What every site here has used so far.
+ *   preserved  The path exactly as written, case and all, so `Guides/Intro.mdx`
+ *              is `/Guides/Intro`. For migrating a site whose URLs must not
+ *              move, since links already point at them. A frontmatter `slug`
+ *              still wins, and `folder/index.mdx` is `folder` in both.
+ *
+ * Changing this renames the URL of every file whose name it affects. A site
+ * whose files are already lowercase kebab-case sees no difference.
+ */
+export const contentIds = 'slugified' as 'slugified' | 'preserved';
+
+export interface HeaderLink {
+  label: string;
+  href: string;
+}
+
+/** See `theme.links`. */
+export type LinkStyle = 'accent-text' | 'accent-underline';
 
 /**
  * The three tones an announcement can take, shared by the site-wide banner and
@@ -208,7 +263,8 @@ export const site = {
     dismissible: true,
   } as SiteBanner | undefined,
   header: {
-    secondary: { label: 'GitHub', href: 'https://github.com/DuvInc/duvlify' },
+    /** One link, or an array of them, shown beside the primary button. */
+    secondary: { label: 'GitHub', href: 'https://github.com/DuvInc/duvlify' } as HeaderLink | HeaderLink[],
     primary: { label: 'Get started', href: `${basePath}/getting-started` },
   },
   footer: {
@@ -331,8 +387,10 @@ export const seo = {
   contentSignals: { search: 'yes', 'ai-input': 'yes', 'ai-train': 'yes' },
 
   /**
-   * Tabs whose pages document an API. Those get schema.org's `APIReference`
-   * type rather than `TechArticle`.
+   * Tabs whose pages document an API. Every page with `pageType: 'api-endpoint'`
+   * is already typed `APIReference`, in any tab. This list adds the pages around
+   * them (the introduction, authentication, errors) in the tabs that hold an API.
+   * Both get schema.org's `APIReference` type rather than `TechArticle`.
    *
    * Named here rather than inferred from the page's contents: a showcase that
    * *illustrates* an endpoint is not an API reference, and structured data that
@@ -616,6 +674,20 @@ export const theme = {
     backgroundDark: '',
     foregroundDark: '',
   },
+  /**
+   * How a link in running text looks.
+   *
+   *   accent-text       the link is the accent colour, underlined. The default.
+   *   accent-underline  the link keeps the text colour, set semibold, and only
+   *                     the underline carries the accent; it thickens on hover.
+   *                     Plenty of brands, and Mintlify's own default, do this.
+   */
+  links: 'accent-text' as LinkStyle,
+  /**
+   * The colour of a card's icon: `neutral` follows the title, `accent` the
+   * brand accent. A card's own `color` prop still wins.
+   */
+  cardIcons: 'neutral' as 'neutral' | 'accent',
   /** Radii step down as elements nest: shells, wells, then controls. */
   radius: {
     lg: '16px', md: '12px', sm: '8px', xs: '6px',

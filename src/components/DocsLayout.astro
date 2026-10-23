@@ -11,6 +11,7 @@
  */
 import Icon from './Icon.astro';
 import ApiReferencePanel from './ApiReferencePanel.astro';
+import ApiRequestDetails from './ApiRequestDetails.astro';
 import ApiResponseDetails from './ApiResponseDetails.astro';
 import DocumentHead from './DocumentHead.astro';
 import Endpoint from './Endpoint.astro';
@@ -20,7 +21,7 @@ import Brand from './Brand.astro';
 import SidebarNavigation from './SidebarNavigation.astro';
 import AgentAccess from './AgentAccess.astro';
 import GlobalBanner from './GlobalBanner.astro';
-import { agents, navigationLayout, site } from '../docs.config';
+import { agents, navigationLayout, site, type HeaderLink } from '../docs.config';
 import { renderSpecMarkdown } from '../lib/spec-markdown';
 import type { ApiReference } from '../lib/openapi-reference';
 import type { ResolvedPage, ResolvedTab, ResolvedGroup } from '../lib/navigation';
@@ -55,6 +56,9 @@ interface Props {
   };
 }
 const { title, description, headings, api, rightRail = 'toc', seo, context } = Astro.props;
+
+/* One link or several: a navbar often carries two or three beside the primary button. */
+const secondaryLinks: HeaderLink[] = [site.header.secondary].flat();
 
 /*
  * A page that puts its own components in the right rail borrows the endpoint
@@ -109,7 +113,7 @@ const currentPath = Astro.url.pathname;
         )}
       </div>
       <div class="header-actions">
-        <a class="header-secondary" href={site.header.secondary.href}>{site.header.secondary.label}</a>
+        {secondaryLinks.map(link => <a class="header-secondary" href={link.href}>{link.label}</a>)}
         <a class="header-primary" href={site.header.primary.href}>
           {site.header.primary.label} <Icon name="arrow" size={14} />
         </a>
@@ -178,7 +182,7 @@ const currentPath = Astro.url.pathname;
               strongest step. Hidden above the drawer's breakpoint, where the
               same two links are in the topbar itself. */}
           <div class="drawer-actions">
-            <a class="header-secondary" href={site.header.secondary.href}>{site.header.secondary.label}</a>
+            {secondaryLinks.map(link => <a class="header-secondary" href={link.href}>{link.label}</a>)}
             <a class="header-primary" href={site.header.primary.href}>
               {site.header.primary.label} <Icon name="arrow" size={14} />
             </a>
@@ -206,6 +210,7 @@ const currentPath = Astro.url.pathname;
         {api && <Endpoint method={api.method} path={api.path} />}
         {api && <div class="api-inline-panel"><ApiReferencePanel api={api} /></div>}
         <slot />
+        {api && <ApiRequestDetails reference={api} />}
         {api && <ApiResponseDetails reference={api} />}
         {!api && !customRail && <PageFooter previous={previous} next={next} />}
       </main>

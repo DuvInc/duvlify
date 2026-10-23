@@ -172,6 +172,18 @@
    */
   --c-lattice: rgb(12 10 9 / 0.09);
 
+  /*
+   * A code block's two layers: the frame around it and the body that holds the
+   * code. Opaque-or-not is the brand's call, so both are tokens rather than
+   * literals in the component. The defaults are what the block always looked
+   * like (a translucent well, a solid surface). A brand that wants a cool grey
+   * frame around a pure white body sets, for example,
+   * `--code-frame: #f4f6fa; --code-body: #ffffff`, in a stylesheet loaded after
+   * this one, with a dark-mode counterpart under `[data-theme="dark"]`.
+   */
+  --code-frame: var(--c-sunken);
+  --code-body: var(--surface);
+
   /* Component text ramp, strongest to faintest. */
   --c-title: #292524;
   --c-body: #44403c;

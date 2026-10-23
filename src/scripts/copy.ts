@@ -100,7 +100,7 @@ export function initLightbox() {
   const image = $<HTMLImageElement>('[data-lightbox-image]');
   if (!lightbox || !image) return;
 
-  $$<HTMLImageElement>('.frame-content > img, .mdx-content p > img').forEach(source =>
+  $$<HTMLImageElement>('.frame-content > img, .mdx-content p > img, .mdx-content picture > img').forEach(source =>
     source.addEventListener('click', () => {
       image.src = source.currentSrc || source.src;
       image.alt = source.alt;

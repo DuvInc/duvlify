@@ -1,0 +1,87 @@
+---
+/**
+ * What an endpoint takes, in the central reading column: authorizations, then
+ * path, query, header and cookie parameters, then the request body. Rendered
+ * ahead of the response, in the order a caller meets them.
+ *
+ * Everything comes from the OpenAPI document through `getApiReference`, the same
+ * model the code rail reads, so a parameter is described once, in the spec.
+ * The pills and the nested-field disclosure are the ones the response uses.
+ */
+import HeadingAnchor from './HeadingAnchor.astro';
+import ApiSchemaField from './ApiSchemaField.astro';
+import { getApiReference, type ApiParameter, type ApiReference } from '../lib/openapi-reference';
+import { renderSpecMarkdown } from '../lib/spec-markdown';
+
+type Props = { reference: ApiReference; method?: never; path?: never }
+  | { method: string; path: string; reference?: never };
+const props = Astro.props;
+const api = props.reference ?? getApiReference({ apiMethod: props.method, apiPath: props.path, description: '' });
+
+const TITLES = {
+  path: 'Path parameters',
+  query: 'Query parameters',
+  header: 'Header parameters',
+  cookie: 'Cookie parameters',
+} as const;
+
+const groups = (['path', 'query', 'header', 'cookie'] as const)
+  .map(location => ({ location, items: (api?.parameters ?? []).filter(parameter => parameter.location === location) }))
+  .filter(group => group.items.length);
+
+const render = (parameters: ApiParameter[]) =>
+  Promise.all(parameters.map(async parameter => ({ parameter, html: await renderSpecMarkdown(parameter.description) })));
+const rendered = await Promise.all(groups.map(async group => ({ ...group, rows: await render(group.items) })));
+const bodyDescription = api?.body ? await renderSpecMarkdown(api.body.description) : '';
+const hasAuthorizations = Boolean(api?.authorizations.length);
+---
+{api && (hasAuthorizations || rendered.length > 0 || api.body) && (
+  <section class="api-request-details" data-api-request-details>
+    {hasAuthorizations && (
+      <div class="api-request-section">
+        <HeadingAnchor level={2} id="authorizations">Authorizations</HeadingAnchor>
+        {api.authorizations.map(authorization => (
+          <div class="field">
+            <div class="field-head">
+              <code class="field-name">{authorization.name}</code>
+              <span class="field-pill">{authorization.type}</span>
+              <span class="field-pill">in {authorization.location}</span>
+              {authorization.required && <span class="field-pill required">required</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {rendered.map(group => (
+      <div class="api-request-section">
+        <HeadingAnchor level={2} id={`${group.location}-parameters`}>{TITLES[group.location]}</HeadingAnchor>
+        {group.rows.map(({ parameter, html }) => (
+          <div class="field">
+            <div class="field-head">
+              <code class="field-name">{parameter.name}</code>
+              <span class="field-pill">{parameter.type}</span>
+              {parameter.required && <span class="field-pill required">required</span>}
+              {parameter.deprecated && <span class="field-pill deprecated">deprecated</span>}
+              {parameter.constraints.map(constraint => <span class="field-pill" title={constraint.label}>{constraint.label}: {constraint.value}</span>)}
+            </div>
+            {html && <div class="field-content" set:html={html} />}
+          </div>
+        ))}
+      </div>
+    ))}
+
+    {api.body && (
+      <div class="api-request-section">
+        <div class="api-request-title-row">
+          <HeadingAnchor level={2} id="body">Body</HeadingAnchor>
+          <code class="api-request-content-type">{api.body.contentType}</code>
+          {api.body.required && <span class="field-pill required">required</span>}
+        </div>
+        {bodyDescription && <div class="api-central-response-description" set:html={bodyDescription} />}
+        {api.body.binary && <p class="api-central-response-description">The raw bytes of the file.</p>}
+        {api.body.fields.map(field => <ApiSchemaField field={field} />)}
+      </div>
+    )}
+  </section>
+)}

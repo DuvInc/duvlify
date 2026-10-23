@@ -1,0 +1,64 @@
+---
+/**
+ * One sidebar group, and the groups nested under it.
+ *
+ * Recursive: a folder renders its own links and then each child group, which is
+ * itself a folder (a nested group always is). A section with no folder chrome
+ * only exists at the top level, where `folder` is false.
+ */
+import Icon from './Icon.astro';
+import type { GroupNode } from '../lib/navigation';
+
+interface Props {
+  node: GroupNode;
+  currentPath: string;
+}
+
+const { node, currentPath } = Astro.props;
+const { group, children } = node;
+
+const holdsCurrent = (item: GroupNode): boolean =>
+  item.group.pages.some(page => page.href === currentPath) || item.children.some(holdsCurrent);
+
+const apiGroup = group.pages.some(page => page.apiMethod);
+const collapsible = group.folder || apiGroup || children.length > 0;
+/* The folder holding the current page is always open, whatever the
+   configuration says: a sidebar that hides the page being read has failed at
+   the one thing it is for. Every other folder follows
+   `navigationLayout.expandFolders`, already resolved onto the group. */
+const open = holdsCurrent(node) || group.defaultOpen;
+---
+
+{(() => {
+  const links = group.pages.map(page => (
+  <a class:list={[currentPath === page.href && 'active']} href={page.href}>
+    {page.icon && <Icon name={page.icon} size={16} />}
+    {page.apiMethod && (
+      <small class="api-nav-method" data-method={page.apiMethod}>
+        {page.apiMethod === 'DELETE' ? 'DEL' : page.apiMethod}
+      </small>
+    )}
+    <span>{page.label}</span>{page.badge && <em>{page.badge}</em>}
+  </a>
+));
+  return collapsible ? (
+  <details
+    class:list={['nav-group', 'nav-folder', apiGroup && 'api-nav-group', group.depth > 0 && 'nav-nested']}
+    open={open}
+  >
+    <summary>
+      <span>{group.icon && <Icon name={group.icon} size={16} />}{group.label}</span>
+      <Icon name="chevronDown" size={14} class="nav-folder-caret" />
+    </summary>
+    <div class="nav-children">
+      {links}
+      {children.map(child => <Astro.self node={child} currentPath={currentPath} />)}
+    </div>
+  </details>
+) : (
+  <section class="nav-group">
+    <h2>{group.icon && <Icon name={group.icon} size={14} />}{group.label}</h2>
+    {links}
+  </section>
+);
+})()}

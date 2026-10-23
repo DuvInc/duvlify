@@ -2,7 +2,7 @@
 title: "Frontmatter"
 description: "Every field a page can declare, what it controls, and which fields the build requires, as defined and enforced in src/content.config.ts."
 canonical: "https://duvlify.dev/reference/frontmatter"
-updated: "2026-08-18"
+updated: "2026-10-23"
 ---
 
 # Frontmatter
@@ -39,13 +39,17 @@ build stops and reports the file at fault.
 
 ## Publication
 
-| Field     | Type    | Purpose                                                                                                      |
-| --------- | ------- | ------------------------------------------------------------------------------------------------------------ |
-| `draft`   | boolean | Keeps the page in the repository and out of every output. See [Drafts](/guides/authoring#drafts)             |
-| `noindex` | boolean | Page stays reachable and in the sidebar, but out of search, the sitemap, the updates feed and the LLM corpus |
+| Field     | Type    | Purpose                                                                                                                             |
+| --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `draft`   | boolean | Keeps the page in the repository and out of every output. See [Drafts](/guides/authoring#drafts)                                    |
+| `noindex` | boolean | Page stays reachable and in the sidebar, but out of search, the sitemap, the updates feed and the LLM corpus                        |
+| `hidden`  | boolean | Page is published and routed, but out of the sidebar, search, the sitemap, the feeds and the previous and next links, and noindexed |
 
-These two fields are different. A draft page does not exist on the site. A
-`noindex` page exists, but the site never promotes it.
+These fields are different. A draft page does not exist on the site. A
+`noindex` page exists and is in the sidebar, but the site never promotes it. A
+`hidden` page exists and is reached by its link only: it is not in the sidebar
+even when `docs.config.ts` lists it, and the build does not insist that it be
+listed. Use it for a campaign landing page, or a legacy URL you keep alive.
 
 One file decides publication:
 [`src/lib/published.ts`](https://github.com/DuvInc/duvlify/blob/main/src/lib/published.ts).

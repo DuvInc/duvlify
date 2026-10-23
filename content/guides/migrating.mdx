@@ -27,6 +27,31 @@ authored for Mintlify usually renders unedited.
 while this site draws from Lucide. `src/icon-aliases.ts` maps the common ones,
 so `icon="rocket"` resolves either way.
 
+## What to check on an imported corpus
+
+A corpus written elsewhere hits a few rules that a hand-written one never does.
+
+- **URLs.** A file path becomes a lowercase URL by default, so `Start/Intro.mdx`
+  moves to `/start/intro`. Set `contentIds: 'preserved'` in `docs.config.ts` to
+  keep the path exactly. `folder/index.mdx` is the page `folder` either way.
+- **Pages with no sidebar entry.** The build fails on a published page that the
+  navigation does not list. If the old site published such pages by their link
+  only, give them `hidden: true`: they stay routed and noindexed and leave the
+  sidebar, search and sitemap.
+- **Deep sidebars.** `depth` nests groups, so a four-level tree carries across.
+- **Frontmatter limits.** `description` is capped at 170 characters and `title`
+  needs two. An imported page that runs over fails with the file named. Shorten
+  it at the source; the cap is what keeps search snippets from being cut.
+- **Undefined expressions.** MDX evaluates `{PAGE}` in prose, and fails the build
+  where another tool printed it as nothing. Escape it as `\{PAGE\}`.
+- **Icons.** An unknown icon name renders nothing, and the build now logs it.
+  Map the common Font Awesome Pro names in `src/icon-aliases.ts`.
+- **Images.** Content that points at `/images/x.png` in `public/` bypasses the
+  image pipeline. `npm run images:optimize` shrinks anything wider than 1,600px
+  and `npm run images:check` also fails on a file over 25 MiB, which Workers
+  assets refuse and the deploy reports poorly. Convert a screen recording from
+  GIF to MP4.
+
 ## What has to be done by hand
 
 | | |

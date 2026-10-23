@@ -20,6 +20,8 @@ const children = await Promise.all(
     <code class="field-name">{field.name}</code>
     <span class="field-pill">{field.type}</span>
     {field.required && <span class="field-pill required">required</span>}
+    {field.deprecated && <span class="field-pill deprecated">deprecated</span>}
+    {field.constraints.map(constraint => <span class="field-pill" title={constraint.label}>{constraint.label}: {constraint.value}</span>)}
   </div>
   {description && <div class="field-content" set:html={description} />}
   {children.length > 0 && (
@@ -35,6 +37,8 @@ const children = await Promise.all(
               <code class="field-name">{child.name}</code>
               <span class="field-pill">{child.type}</span>
               {child.required && <span class="field-pill required">required</span>}
+              {child.deprecated && <span class="field-pill deprecated">deprecated</span>}
+              {child.constraints.map(constraint => <span class="field-pill" title={constraint.label}>{constraint.label}: {constraint.value}</span>)}
             </div>
             {childDescription && <div class="field-content" set:html={childDescription} />}
           </div>

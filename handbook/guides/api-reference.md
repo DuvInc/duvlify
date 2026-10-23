@@ -2,7 +2,7 @@
 title: "API reference pages"
 description: "Point the build at an OpenAPI document, and endpoint pages render their parameters, schemas, response tabs, and request samples from it."
 canonical: "https://duvlify.dev/guides/api-reference"
-updated: "2026-10-22"
+updated: "2026-10-23"
 ---
 
 # API reference pages
@@ -105,10 +105,19 @@ An endpoint page uses a wider three-track frame: navigation, prose, and a
 sticky right rail that holds the request and response examples. Below 1280px
 the rail column is hidden, and those components return to the article.
 
-Response descriptions and fields are rendered below the prose automatically.
-You don't need to add `ApiResponseDetails` to an endpoint page. On a regular
-page, you can still place `<ApiResponseDetails method="GET" path="/widgets" />`
-to show the responses for that operation.
+Below the prose, the page documents what the operation takes and returns, all
+read from the spec: Authorizations, then Path, Query, Header and Cookie
+parameters, then the request Body, then the Response. Each field shows its type,
+whether it is required, and its default, allowed values and range when the spec
+declares them. A schema that contains itself (a filter holding a list of
+filters) is shown to two levels and then stops.
+
+You don't need to add `ApiRequestDetails` or `ApiResponseDetails` to an endpoint
+page. On a regular page you can still place
+`<ApiRequestDetails method="GET" path="/widgets" />` or
+`<ApiResponseDetails method="GET" path="/widgets" />` for that operation.
+An endpoint page is typed as schema.org `APIReference` whatever tab it is in;
+`seo.apiReferenceTabs` adds the pages around them.
 
 For a request body declared as `application/octet-stream`, the generated cURL
 and Node.js examples send the bytes of a local `file.bin`. Replace that filename

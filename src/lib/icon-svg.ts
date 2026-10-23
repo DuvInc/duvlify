@@ -27,6 +27,7 @@ export interface InlineIcon {
 }
 
 const cache = new Map<string, InlineIcon | null>();
+const warned = new Set<string>();
 
 /**
  * Looks a name up across the Iconify sets and returns ready-to-inline SVG.
@@ -58,6 +59,14 @@ export function resolveIcon(name: string, px: number): InlineIcon | null {
     const { body, attributes } = iconToSVG(data, { height: String(px) });
     resolved = { body, attributes: attributes as Record<string, string> };
     break;
+  }
+
+  /* Silent in the page, loud in the build: a blank where an icon was meant is
+     easy to miss in a review and obvious in a log. Once per name, since the
+     negative result is cached. */
+  if (!resolved && name && !warned.has(name)) {
+    warned.add(name);
+    console.warn(`[icons] unknown icon "${name}": it renders nothing. Add it to src/icon-aliases.ts or use a Lucide name.`);
   }
 
   cache.set(key, resolved);
