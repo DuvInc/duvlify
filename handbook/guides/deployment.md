@@ -2,7 +2,7 @@
 title: "Deploying"
 description: "The build is static output. Deploy it to Cloudflare for every feature, or to any static host, with subdomain and subpath options and their costs."
 canonical: "https://duvlify.dev/guides/deployment"
-updated: "2026-10-16"
+updated: "2026-10-23"
 ---
 
 # Deploying
@@ -135,6 +135,19 @@ The Worker renders nothing. Every byte still comes out of `dist` through the
   search crawlers read the Markdown without treating it as a duplicate of the
   page.
 - It provides the agent surfaces. See [Serving agents](/agents/overview).
+- It keeps preview hosts out of search engines, once you name your real host.
+  Set `INDEXABLE_HOSTS` (comma-separated) in the `vars` of `wrangler.jsonc`, for
+  example `"vars": { "INDEXABLE_HOSTS": "docs.example.com" }`, before you share a
+  preview URL. Any other host then answers `robots.txt` with `Disallow: /` and
+  sends `X-Robots-Tag: noindex, nofollow`. Left unset, every host is indexable.
+
+`run_worker_first` sends documents through the Worker and keeps assets off it,
+one excluded folder at a time. If your pages keep their images beside them, as
+content migrated from Mintlify, Docusaurus or Starlight does
+(`guides/images/x.png`), exclude that layout too, or every image costs a Worker
+invocation. Add `"!/*/images/*"` to `run_worker_first`, and give the same files
+a cache rule in `public/_headers` spelled `/:section/images/*`. `_headers` allows
+one `*` per rule, so `/*/images/*` would be silently ignored there.
 
 You can remove the Worker. Delete `main`, `assets.binding`, and
 `run_worker_first` from `wrangler.jsonc`, and the site serves as pure static

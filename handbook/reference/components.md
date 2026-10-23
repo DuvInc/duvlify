@@ -2,7 +2,7 @@
 title: "Components"
 description: "The complete component vocabulary, rendered on the page that documents it, including callouts, cards, steps, tabs, and trees."
 canonical: "https://duvlify.dev/reference/components"
-updated: "2026-10-22"
+updated: "2026-10-23"
 ---
 
 # Components
@@ -86,6 +86,10 @@ Without `href`, the card is a plain titled block.
   </Card>
 </CardGroup>
 ```
+
+A card's title is an `h3`, right for cards under an `h2`. Cards placed straight
+after the page title skip a level, which screen readers and SEO audits flag.
+Put them under an `h2`, or set `headingLevel={2}` on each card.
 
 ### Two meanings of `cols`
 
