@@ -13,7 +13,7 @@
  */
 import { theme, type CornerSmoothing } from '../docs.config';
 
-const { font, accent, headerPrimary, radius } = theme;
+const { font, accent, headerPrimary, radius, links, cardIcons } = theme;
 
 /** `theme.radius.smoothing` → the actual `corner-shape` value it stands for. */
 const CORNER_SHAPE: Record<CornerSmoothing, string> = {
@@ -81,6 +81,13 @@ const tokens = `
   --r-sm: ${radius.sm};
   --r-xs: ${radius.xs};
   --corner-shape: ${CORNER_SHAPE[radius.smoothing]};
+${links === 'accent-underline' ? `  --link-color: var(--c-title);
+  --link-weight: 600;
+  --link-underline: var(--accent-strong);
+  --link-thickness: 1px;
+  --link-thickness-hover: 2px;
+  --link-offset: 4px;` : ''}
+${cardIcons === 'accent' ? '  --card-icon-color: var(--accent-strong);' : ''}
 }
 /* :root[data-theme="dark"], not the bare attribute selector tokens.css uses,
    so this always wins that tie regardless of which style tag the page

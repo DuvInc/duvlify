@@ -550,6 +550,23 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
   gap: 8px;
   min-width: 0;
 }
+.nav-tab-heading {
+  margin: 22px 0 6px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.nav-tab-spacer {
+  height: 18px;
+}
+/* A folder inside a folder: its children are already indented by .nav-children,
+   so it only needs to drop the top-level folder's outer rhythm. */
+.nav-folder.nav-nested {
+  margin-bottom: 0;
+}
 .nav-folder-caret {
   flex: none;
   color: var(--muted);
@@ -1196,17 +1213,22 @@ body[data-navigation-mode='unified-sidebar'] {
    rather than merely dense. 14px over a 30px row still fits noticeably more
    links than the original 14px over 35px, just with a little less punishment. */
 .nav-group a {
-  min-height: 30px;
+  min-height: 34px;
   padding: 5px 10px;
   border-radius: var(--r-sm);
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  margin: 2px 0;
+  /* No margin between rows: a 2px margin left a 4px strip between two links
+     where nothing was hovered, so the hover background blinked off as the
+     pointer crossed it. The 30px row plus the 4px it used to leave is a 34px
+     pitch, which `min-height` keeps. */
+  margin: 0;
   border: 1px solid transparent;
   font-size: 14px;
   line-height: 1.4;
+  transition: background .15s ease, color .15s ease;
 }
 .category-switcher summary {
   box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
@@ -1414,8 +1436,14 @@ body[data-navigation-mode='unified-sidebar'] {
 }
 .article a.inline {
   text-decoration: underline;
-  text-underline-offset: 3px;
-  color: var(--accent-strong);
+  text-underline-offset: var(--link-offset, 3px);
+  text-decoration-thickness: var(--link-thickness, auto);
+  text-decoration-color: var(--link-underline, currentColor);
+  color: var(--link-color, var(--accent-strong));
+  font-weight: var(--link-weight, inherit);
+}
+.article a.inline:hover {
+  text-decoration-thickness: var(--link-thickness-hover, auto);
 }
 .eyebrow {
   margin-bottom: 12px;

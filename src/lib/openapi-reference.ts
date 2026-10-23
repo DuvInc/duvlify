@@ -23,12 +23,41 @@ export interface ApiResponseExample {
   fields: ApiSchemaField[];
 }
 
+/** What a schema constrains, as short labelled pills: default, allowed values, range. */
+export interface ApiConstraint {
+  label: string;
+  value: string;
+}
+
 export interface ApiSchemaField {
   name: string;
   type: string;
   description: string;
   required: boolean;
+  deprecated?: boolean;
+  constraints: ApiConstraint[];
   children: ApiSchemaField[];
+}
+
+export type ApiParameterLocation = 'path' | 'query' | 'header' | 'cookie';
+
+export interface ApiParameter {
+  name: string;
+  location: ApiParameterLocation;
+  type: string;
+  description: string;
+  required: boolean;
+  deprecated: boolean;
+  constraints: ApiConstraint[];
+}
+
+export interface ApiRequestBody {
+  required: boolean;
+  contentType: string;
+  description: string;
+  /** The body's top-level properties. Empty for a binary upload or a bare scalar. */
+  fields: ApiSchemaField[];
+  binary: boolean;
 }
 
 export interface ApiRequestExample {
@@ -47,6 +76,9 @@ export interface ApiReference {
   description: string;
   server: string;
   authorizations: ApiAuthorization[];
+  /** Path, query, header and cookie parameters, in that order. */
+  parameters: ApiParameter[];
+  body?: ApiRequestBody;
   requests: ApiRequestExample[];
   responses: ApiResponseExample[];
 }
@@ -88,6 +120,8 @@ export function getApiReference(data: ApiPageData, document: unknown = spec): Ap
     description: operation.description ?? operation.summary ?? data.description,
     server,
     authorizations: resolveAuthorizations(spec, operation),
+    parameters: describeParameters(spec, parameters),
+    body: describeBody(spec, operation, requestContent),
     requests: requestExamples({ spec, operation, method, route: data.apiPath, server, parameters, bodySchema, binary }),
     responses: resolveResponses(spec, operation),
   };
@@ -127,7 +161,17 @@ function resolveResponses(spec: any, operation: any): ApiResponseExample[] {
   });
 }
 
-function schemaFields(spec: any, rawSchema: any): ApiSchemaField[] {
+/**
+ * How many levels of nested fields are modelled. The page renders a field and
+ * one level of children, so the model needs one more than that to know whether
+ * a child has children of its own. Without a limit a schema that contains itself
+ * (a filter holding a list of filters) recurses until the stack overflows and
+ * the build dies with a RangeError instead of a page.
+ */
+const MAX_FIELD_DEPTH = 3;
+
+function schemaFields(spec: any, rawSchema: any, depth = 0): ApiSchemaField[] {
+  if (depth >= MAX_FIELD_DEPTH) return [];
   const schema = materializeSchema(spec, rawSchema);
   const object = schema.type === 'array' ? materializeSchema(spec, schema.items) : schema;
   const required = new Set<string>(object.required ?? []);
@@ -139,19 +183,83 @@ function schemaFields(spec: any, rawSchema: any): ApiSchemaField[] {
       type: typeName(spec, field),
       description: field.description ?? '',
       required: required.has(name),
-      children: schemaFields(spec, nested),
+      deprecated: field.deprecated === true,
+      constraints: constraintsOf(field),
+      children: schemaFields(spec, nested, depth + 1),
     };
   });
 }
 
-function typeName(spec: any, rawSchema: any): string {
+const show = (value: unknown) => (typeof value === 'string' ? value : JSON.stringify(value));
+
+/** Default, allowed values and bounds of a schema, as the pills a reader scans for. */
+function constraintsOf(schema: any): ApiConstraint[] {
+  const out: ApiConstraint[] = [];
+  if (schema.default !== undefined) out.push({ label: 'default', value: show(schema.default) });
+  if (Array.isArray(schema.enum) && schema.enum.length) {
+    out.push({ label: 'one of', value: schema.enum.map(show).join(', ') });
+  }
+  const range = (low: unknown, high: unknown, unit = '') =>
+    low !== undefined && high !== undefined ? `${low}–${high}${unit}`
+      : low !== undefined ? `≥ ${low}${unit}`
+      : high !== undefined ? `≤ ${high}${unit}` : undefined;
+  const bounds = range(schema.minimum, schema.maximum);
+  if (bounds) out.push({ label: 'range', value: bounds });
+  const length = range(schema.minLength, schema.maxLength, ' chars');
+  if (length) out.push({ label: 'length', value: length });
+  const items = range(schema.minItems, schema.maxItems, ' items');
+  if (items) out.push({ label: 'items', value: items });
+  if (schema.format) out.push({ label: 'format', value: String(schema.format) });
+  if (schema.pattern) out.push({ label: 'pattern', value: String(schema.pattern) });
+  return out;
+}
+
+const LOCATIONS: ApiParameterLocation[] = ['path', 'query', 'header', 'cookie'];
+
+function describeParameters(spec: any, parameters: any[]): ApiParameter[] {
+  return parameters
+    .filter(parameter => LOCATIONS.includes(parameter.in))
+    .map(parameter => {
+      const schema = materializeSchema(spec, parameter.schema);
+      return {
+        name: parameter.name,
+        location: parameter.in as ApiParameterLocation,
+        type: typeName(spec, schema),
+        description: parameter.description ?? schema.description ?? '',
+        /* A path parameter is required by definition, whatever the document says. */
+        required: parameter.in === 'path' || parameter.required === true,
+        deprecated: parameter.deprecated === true,
+        constraints: constraintsOf(schema),
+      };
+    })
+    .sort((a, b) => LOCATIONS.indexOf(a.location) - LOCATIONS.indexOf(b.location));
+}
+
+function describeBody(spec: any, operation: any, content: Record<string, any>): ApiRequestBody | undefined {
+  const body = resolveRef(spec, operation.requestBody);
+  if (!body) return undefined;
+  const contentType =
+    Object.keys(content).find(type => type === 'application/json') ?? Object.keys(content)[0] ?? 'application/json';
+  const schema = content[contentType]?.schema;
+  return {
+    required: body.required === true,
+    contentType,
+    description: body.description ?? '',
+    fields: schemaFields(spec, schema),
+    binary: contentType === 'application/octet-stream',
+  };
+}
+
+function typeName(spec: any, rawSchema: any, depth = 0): string {
+  /* `Node: { type: array, items: { $ref: Node } }` would otherwise never end. */
+  if (depth > 5) return 'object';
   const schema = materializeSchema(spec, rawSchema);
-  if (schema.type === 'array') return `${typeName(spec, schema.items)}[]`;
+  if (schema.type === 'array') return `${typeName(spec, schema.items, depth + 1)}[]`;
   if (schema.oneOf?.length || schema.anyOf?.length) {
-    return (schema.oneOf ?? schema.anyOf).map((item: any) => typeName(spec, item)).join(' | ');
+    return (schema.oneOf ?? schema.anyOf).map((item: any) => typeName(spec, item, depth + 1)).join(' | ');
   }
   if (schema.additionalProperties && typeof schema.additionalProperties === 'object') {
-    return `Record<string, ${typeName(spec, schema.additionalProperties)}>`;
+    return `Record<string, ${typeName(spec, schema.additionalProperties, depth + 1)}>`;
   }
   if (schema.additionalProperties === true) return 'Record<string, unknown>';
   if (schema.nullable && schema.type) return `${schema.type} | null`;

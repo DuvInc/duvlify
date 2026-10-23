@@ -45,13 +45,15 @@ function contentFiles(dir = CONTENT, prefix = '') {
     const next = path.join(dir, item.name);
     if (item.isDirectory()) return contentFiles(next, `${prefix}${item.name}/`);
     if (!/\.mdx?$/.test(item.name)) return [];
-    const id = `${prefix}${item.name.replace(/\.mdx?$/, '')}`;
+    /* Same rule as content.config.ts: `folder/index.mdx` is the page `folder`. */
+    const id = `${prefix}${item.name.replace(/\.mdx?$/, '')}`.replace(/\/index$/, '');
     const data = frontmatter(readFileSync(next, 'utf8'));
     return [{
       id,
       data,
       draft: data.draft === 'true',
       noindex: data.noindex === 'true',
+      hidden: data.hidden === 'true',
       isApiEndpoint: data.pageType === 'api-endpoint',
     }];
   });
@@ -109,7 +111,9 @@ const shareCard = id => (isHome(id) ? null : path.join(DIST, 'og', `${id}.png`))
 const listsUrl = (text, id) => {
   const tail = isHome(id) ? '' : id;
   return new RegExp(
-    `(^|["'\\s>(])https?://[^\\s"'<)]*/${tail}(\\.md|index\\.md)?(["'\\s<)]|$)`,
+    /* Anchored to the host and the deployment prefix, so the id `integrations`
+       does not match `/faq/integrations`, which is a different page. */
+    `(^|["'\\s>(])https?://[^/\\s"'<)]+${BASE_PATH}/${tail}(\\.md|index\\.md)?(["'\\s<)]|$)`,
     'm',
   ).test(text);
 };
@@ -197,6 +201,32 @@ describe('noindex pages', () => {
       assert.ok(!listsUrl(outputs.sitemap, page.id), `${page.id}: noindex page is in sitemap.xml`);
       assert.ok(!listsUrl(outputs.llms, page.id), `${page.id}: noindex page is in llms.txt`);
       assert.ok(!listsUrl(outputs.updates, page.id), `${page.id}: noindex page is in updates.xml`);
+    }
+  });
+});
+
+describe('hidden pages', () => {
+  test('are published and routed, but stay out of every listing', t => {
+    const hidden = pages.filter(page => page.hidden && !page.draft);
+    if (!hidden.length) return t.skip('no page in content/ sets hidden: true');
+
+    for (const page of hidden) {
+      assert.ok(existsSync(html(page.id)), `${page.id}: hidden page was not routed`);
+      assert.match(
+        readFileSync(html(page.id), 'utf8'),
+        /<meta name="robots" content="noindex/,
+        `${page.id}: hidden page is not noindex`,
+      );
+      assert.ok(!listsUrl(outputs.sitemap, page.id), `${page.id}: hidden page is in sitemap.xml`);
+      assert.ok(!listsUrl(outputs.llms, page.id), `${page.id}: hidden page is in llms.txt`);
+      assert.ok(!listsPath(outputs.searchIndex, page.id), `${page.id}: hidden page is in the search index`);
+      const other = pages.find(candidate => !candidate.hidden && !candidate.draft && !isHome(candidate.id));
+      if (other) {
+        assert.ok(
+          !readFileSync(html(other.id), 'utf8').includes(`href="${BASE_PATH}/${page.id}"`),
+          `${page.id}: hidden page is linked from the sidebar`,
+        );
+      }
     }
   });
 });

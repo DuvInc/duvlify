@@ -705,7 +705,10 @@ describe('source guards', () => {
     );
 
     /* And the prose, which is the copy a reader actually acts on. */
-    const claims = ['README.md', 'CONTRIBUTING.md', path.join('content', 'getting-started.mdx')];
+    /* A fork that replaces content/ has no getting-started page; the claim is
+       only checked in the files that exist. */
+    const claims = ['README.md', 'CONTRIBUTING.md', path.join('content', 'getting-started.mdx')]
+      .filter(file => existsSync(path.join(ROOT, file)));
     const wrong = claims.flatMap(file => {
       const stated = readFileSync(path.join(ROOT, file), 'utf8').match(/Node (\d+)(?:\.(\d+))?/);
       if (!stated) return [];

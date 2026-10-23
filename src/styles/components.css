@@ -487,7 +487,7 @@
 .card-text { min-width: 0 }
 /* font-size sizes a plain-text/emoji icon; an <Icon> SVG is sized by its own
    `size` prop instead and just inherits the colour via currentColor. */
-.card-icon:not(:empty) { margin-bottom: 16px; display: flex; align-items: center; color: var(--c-title); font-size: 20px; line-height: 1 }
+.card-icon:not(:empty) { margin-bottom: 16px; display: flex; align-items: center; color: var(--card-icon-color, var(--c-title)); font-size: 20px; line-height: 1 }
 .card-icon:empty { display: none }
 
 /* Header image, flush to the card's top edge and clipped by its radius. */
@@ -622,12 +622,12 @@ a.tile { cursor: pointer }
  * gets the same corners as one who wraps it in `<Frame>`, without having to
  * know that distinction exists.
  */
-.frame-content > img, .mdx-content p > img {
+.frame-content > img, .mdx-content p > img, .mdx-content picture > img {
   border-radius: var(--r-md);
   cursor: zoom-in;
   transition: opacity .15s ease;
 }
-.frame-content > img:hover, .mdx-content p > img:hover { opacity: .92 }
+.frame-content > img:hover, .mdx-content p > img:hover, .mdx-content picture > img:hover { opacity: .92 }
 /* An iframe has no intrinsic size the way an image does — `height: auto` alone
    collapses it to nothing — so a video embed needs its own rule fixing the
    aspect ratio, plus dropping the border the element still draws by default in
@@ -672,7 +672,7 @@ a.tile { cursor: pointer }
   overflow: hidden;
   border: 1px solid var(--c-border);
   border-radius: var(--r-lg);
-  background: var(--c-sunken);
+  background: var(--code-frame);
 }
 .code-block-header {
   display: flex;
@@ -742,7 +742,7 @@ a.tile { cursor: pointer }
 
 /* Same derivation as the header above, and as .code-tabs .code-block-body
    below — concentric with the outer block, inset by its 2px padding. */
-.code-block-body { border-radius: calc(var(--r-lg) - 2px); background: var(--surface); overflow: hidden }
+.code-block-body { border-radius: calc(var(--r-lg) - 2px); background: var(--code-body); overflow: hidden }
 .code-block pre { margin: 0; padding: 14px 16px; overflow: auto }
 .code-block pre:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -3px }
 

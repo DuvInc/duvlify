@@ -102,8 +102,39 @@ export async function oversized() {
 
 const kb = bytes => `${Math.round(bytes / 1024)} KB`;
 
+/**
+ * Cloudflare Workers static assets refuse any single file over 25 MiB, and the
+ * deploy fails without saying which one is to blame. A screen recording saved as
+ * a GIF is the usual culprit. Checked for every file under public/, not only
+ * images: the limit does not care what the bytes are.
+ */
+export const ASSET_LIMIT = 25 * 1024 * 1024;
+
+function allFiles(dir = PUBLIC) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap(item => {
+    const full = path.join(dir, item.name);
+    return item.isDirectory() ? allFiles(full) : [full];
+  });
+}
+
+/** Files under public/ that a Workers deploy would reject. */
+export function overAssetLimit() {
+  return allFiles()
+    .map(file => ({ file: path.relative(ROOT, file), bytes: statSync(file).size }))
+    .filter(item => item.bytes > ASSET_LIMIT);
+}
+
 async function main() {
   const check = process.argv.includes('--check');
+
+  const tooBig = overAssetLimit();
+  if (tooBig.length) {
+    console.log(`optimize-images: ${tooBig.length} file(s) over the 25 MiB Workers asset limit:\n`);
+    for (const item of tooBig) console.log(`  ${(item.bytes / 1024 / 1024).toFixed(1)} MiB  ${item.file}`);
+    console.log('\nConvert a recording to MP4, or host the file elsewhere. The deploy would fail on it.');
+    process.exitCode = 1;
+  }
+
   const found = await oversized();
 
   if (!found.length) {

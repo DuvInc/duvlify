@@ -8,6 +8,7 @@
  */
 import Accordion from './Accordion.astro';
 import AccordionGroup from './AccordionGroup.astro';
+import ApiRequestDetails from './ApiRequestDetails.astro';
 import ApiResponseDetails from './ApiResponseDetails.astro';
 import Badge from './Badge.astro';
 import Banner from './Banner.astro';
@@ -63,6 +64,7 @@ const TreeNamespace = Object.assign(Tree, { Folder: TreeFolder, File: TreeFile }
 export const mdxComponents = {
   Accordion,
   AccordionGroup,
+  ApiRequestDetails,
   ApiResponseDetails,
   Badge,
   Banner,

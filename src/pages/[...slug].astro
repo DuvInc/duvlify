@@ -67,8 +67,13 @@ const seo = {
         modified,
         /* Widened: the config is `as const`, so its literal tuple type would
            otherwise reject any tab id that isn't already in the list. */
-        isApiReference: !isHomePage(entry.id) &&
-          (seoConfig.apiReferenceTabs as readonly string[]).includes(context.activeTab.id),
+        /* An endpoint page is an API reference wherever it sits: a tab that
+           mixes endpoints with guides and a FAQ would otherwise type the
+           endpoints as articles. The tab list then adds the pages around them. */
+        isApiReference: !isHomePage(entry.id) && (
+          entry.data.pageType === 'api-endpoint' ||
+          (seoConfig.apiReferenceTabs as readonly string[]).includes(context.activeTab.id)
+        ),
       }),
 };
 ---

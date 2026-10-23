@@ -88,6 +88,10 @@ export function initSidebarScrollbar() {
 /**
  * Keeps the active sidebar link in view on load. With a long sidebar, the
  * current page can otherwise be scrolled out of sight on arrival.
+ *
+ * Only when the link is entirely out of view. A link half-hidden at the bottom
+ * edge is the one the reader just clicked, so scrolling to centre it moved the
+ * sidebar under the pointer on every such click.
  */
 export function revealActiveNavLink() {
   const viewport = $('[data-sidebar-viewport]');
@@ -95,6 +99,6 @@ export function revealActiveNavLink() {
   if (!viewport || !active) return;
   const link = active.getBoundingClientRect();
   const frame = viewport.getBoundingClientRect();
-  if (link.top >= frame.top && link.bottom <= frame.bottom) return;
+  if (link.bottom > frame.top && link.top < frame.bottom) return;
   viewport.scrollTop += link.top - frame.top - frame.height / 3;
 }

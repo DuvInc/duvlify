@@ -270,7 +270,7 @@
   margin-left: 0;
 }
 .api-code-card .code-block-body {
-  background: color-mix(in srgb, var(--surface) 92%, var(--c-sunken));
+  background: var(--code-body);
 }
 .api-code-card pre {
   max-height: 430px;
@@ -326,6 +326,42 @@
  * example rail. Both controls are synchronised by api-reference.ts. */
 .api-response-details {
   margin-top: 3rem;
+}
+/* What the endpoint takes: authorizations, parameters, body. Same rhythm as the
+   response block below it, each section under its own ruled heading. */
+.api-request-details {
+  margin-top: 3rem;
+}
+.api-request-section {
+  margin-bottom: 2.5rem;
+}
+.api-request-section > .anchored-heading,
+.api-request-title-row {
+  min-height: 48px;
+  border-bottom: 1px solid var(--c-border-soft);
+}
+.api-request-section > .anchored-heading {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+.api-request-title-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.api-request-title-row .anchored-heading {
+  margin: 0;
+}
+.api-request-content-type {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--c-mute);
+  font-size: 12px;
+}
+.api-request-section .field-pill[title='default'] {
+  font-variant-numeric: tabular-nums;
 }
 .api-response-title-row {
   display: flex;
@@ -394,7 +430,11 @@
   margin-top: 0;
 }
 
-/* Endpoint identity in the left rail. Fixed-width method chips let labels line
+/* One palette for every method badge: the sidebar, the page's endpoint row and
+   the search results. GET green, POST blue, PUT and PATCH amber, DELETE red.
+   The selectors below name both classes so the badge cannot differ between them.
+
+   Endpoint identity in the left rail. Fixed-width method chips let labels line
  * up while colors make a long resource group scannable at a glance. */
 .api-nav-method {
   flex: 0 0 34px;
@@ -410,15 +450,15 @@
   text-align: center;
   letter-spacing: -.02em;
 }
-.api-nav-method[data-method='GET'] { background: #ecfdf3; color: #18794e }
-.api-nav-method[data-method='POST'] { background: #eef4ff; color: #2a52c9 }
-.api-nav-method[data-method='PUT'],
-.api-nav-method[data-method='PATCH'] { background: #fff8e6; color: #946200 }
-.api-nav-method[data-method='DELETE'] { background: #fff0f0; color: #c23131 }
-[data-theme='dark'] .api-nav-method[data-method='GET'] { background: rgb(24 121 78 / .18); color: #77d5a7 }
-[data-theme='dark'] .api-nav-method[data-method='POST'] { background: rgb(56 106 245 / .18); color: #9bb4ff }
-[data-theme='dark'] .api-nav-method:is([data-method='PUT'],[data-method='PATCH']) { background: rgb(148 98 0 / .2); color: #f2c45e }
-[data-theme='dark'] .api-nav-method[data-method='DELETE'] { background: rgb(194 49 49 / .2); color: #ff9b9b }
+:is(.api-nav-method, .api-method)[data-method='GET'] { background: #ecfdf3; color: #18794e }
+:is(.api-nav-method, .api-method)[data-method='POST'] { background: #eef4ff; color: #2a52c9 }
+:is(.api-nav-method, .api-method)[data-method='PUT'],
+:is(.api-nav-method, .api-method)[data-method='PATCH'] { background: #fff8e6; color: #946200 }
+:is(.api-nav-method, .api-method)[data-method='DELETE'] { background: #fff0f0; color: #c23131 }
+[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='GET'] { background: rgb(24 121 78 / .18); color: #77d5a7 }
+[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='POST'] { background: rgb(56 106 245 / .18); color: #9bb4ff }
+[data-theme='dark'] :is(.api-nav-method, .api-method):is([data-method='PUT'],[data-method='PATCH']) { background: rgb(148 98 0 / .2); color: #f2c45e }
+[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='DELETE'] { background: rgb(194 49 49 / .2); color: #ff9b9b }
 .api-nav-group .nav-children {
   padding-left: 5px;
   margin-left: 7px;
