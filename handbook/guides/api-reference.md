@@ -109,8 +109,12 @@ Below the prose, the page documents what the operation takes and returns, all
 read from the spec: Authorizations, then Path, Query, Header and Cookie
 parameters, then the request Body, then the Response. Each field shows its type,
 whether it is required, and its default, allowed values and range when the spec
-declares them. A schema that contains itself (a filter holding a list of
-filters) is shown to two levels and then stops.
+declares them, and the type names the format or the enum (`string<date-time>`,
+`enum<string>`). Nested fields unfold at any depth, each named by its full path
+(`data.fields.type`) so two objects that both have an `id` stay distinct. A
+schema that contains itself, like a filter holding a list of filters, is
+expanded once and then stops, so the build does not run away. A response with no
+content, such as a 204, shows "No response body".
 
 You don't need to add `ApiRequestDetails` or `ApiResponseDetails` to an endpoint
 page. On a regular page you can still place
