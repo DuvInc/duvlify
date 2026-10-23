@@ -2,7 +2,7 @@
 title: "API reference pages"
 description: "Point the build at an OpenAPI document, and endpoint pages render their parameters, schemas, response tabs, and request samples from it."
 canonical: "https://duvlify.dev/guides/api-reference"
-updated: "2026-10-22"
+updated: "2026-10-23"
 ---
 
 # API reference pages

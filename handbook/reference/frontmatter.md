@@ -2,7 +2,7 @@
 title: "Frontmatter"
 description: "Every field a page can declare, what it controls, and which fields the build requires, as defined and enforced in src/content.config.ts."
 canonical: "https://duvlify.dev/reference/frontmatter"
-updated: "2026-08-18"
+updated: "2026-10-23"
 ---
 
 # Frontmatter
