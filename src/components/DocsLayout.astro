@@ -28,8 +28,10 @@ import type { ResolvedPage, ResolvedTab, ResolvedGroup } from '../lib/navigation
 
 /** Everything DocumentHead needs, assembled by the page (see [...slug].astro). */
 export interface PageSeo {
-  canonical: string;
+  /** Omitted on a page that must not be indexed, like the 404. */
+  canonical?: string;
   noindex?: boolean;
+  metaTitle?: string;
   image?: string;
   imageAlt?: string;
   published?: Date;
@@ -39,10 +41,15 @@ export interface PageSeo {
 
 interface Props {
   title: string;
+  /** For the meta tags. The subtitle under the title is `subtitle`. */
   description: string;
+  /** Shown under the title. Defaults to `description`; pass '' for none. */
+  subtitle?: string;
   headings: { id: string; label: string; depth: 2 | 3 }[];
   api?: ApiReference;
   rightRail?: 'toc' | 'custom';
+  /** False hides "Copy page" and the previous/next footer, for a page with no Markdown twin. */
+  pageActions?: boolean;
   seo: PageSeo;
   context: {
     tabs: ResolvedTab[];
@@ -55,7 +62,8 @@ interface Props {
     next?: ResolvedPage;
   };
 }
-const { title, description, headings, api, rightRail = 'toc', seo, context } = Astro.props;
+const { title, description, subtitle, headings, api, rightRail = 'toc', pageActions = true, seo, context } = Astro.props;
+const shownSubtitle = subtitle ?? description;
 
 /* One link or several: a navbar often carries two or three beside the primary button. */
 const secondaryLinks: HeaderLink[] = [site.header.secondary].flat();
@@ -203,16 +211,16 @@ const currentPath = Astro.url.pathname;
               frontmatter string, which stays plain text on purpose. */}
           {apiSummary
             ? <div class="article-summary" set:html={apiSummary} />
-            : <p>{api?.description || description}</p>}
-          {!api && !customRail && <PageActions currentPath={currentPath} className="inline-page-actions" />}
+            : (api?.description || shownSubtitle) && <p>{api?.description || shownSubtitle}</p>}
+          {pageActions && !api && !customRail && <PageActions currentPath={currentPath} className="inline-page-actions" />}
         </div>
-        {(api || customRail) && <PageActions currentPath={currentPath} className="api-page-actions" />}
+        {pageActions && (api || customRail) && <PageActions currentPath={currentPath} className="api-page-actions" />}
         {api && <Endpoint method={api.method} path={api.path} />}
         {api && <div class="api-inline-panel"><ApiReferencePanel api={api} /></div>}
         <slot />
         {api && <ApiRequestDetails reference={api} />}
         {api && <ApiResponseDetails reference={api} />}
-        {!api && !customRail && <PageFooter previous={previous} next={next} />}
+        {pageActions && !api && !customRail && <PageFooter previous={previous} next={next} />}
       </main>
 
       {api ? <ApiReferencePanel api={api} /> : customRail ? (
@@ -232,7 +240,7 @@ const currentPath = Astro.url.pathname;
         </aside>
       ) : (
       <aside class="toc" aria-label={headings.length > 0 ? 'On this page' : 'Page actions'}>
-        <PageActions currentPath={currentPath} />
+        {pageActions && <PageActions currentPath={currentPath} />}
         {/* A page whose body is all prose, or one built entirely from cards, has
             no subheadings to list. Rendering the label over an empty rail reads
             as something that failed to load, so both go together. The aside
@@ -252,7 +260,7 @@ const currentPath = Astro.url.pathname;
         )}
       </aside>
       )}
-      {(api || customRail) && (
+      {pageActions && (api || customRail) && (
         <div class="api-page-footer">
           <PageFooter previous={previous} next={next} />
         </div>

@@ -53,7 +53,7 @@ test('a schema that contains itself does not overflow the stack', () => {
   const api = getApiReference(endpoint, spec);
   const depth = field => 1 + Math.max(0, ...field.children.map(depth));
   for (const field of [...api.body.fields, ...api.responses[0].fields]) {
-    assert.ok(depth(field) <= 3, `${field.name} nests ${depth(field)} levels`);
+    assert.ok(depth(field) <= 6, `${field.name} nests ${depth(field)} levels`);
   }
 });
 
@@ -94,4 +94,53 @@ test('the request body is described, and an endpoint without one has none', () =
 test('authorizations are still resolved', () => {
   const [auth] = getApiReference(endpoint, spec).authorizations;
   assert.equal(auth.name, 'X-Key');
+});
+
+const deep = (levels, leaf) => levels === 0 ? leaf : { type: 'object', properties: { next: deep(levels - 1, leaf) } };
+const deepSpec = {
+  servers: [{ url: 'https://api.example.test' }],
+  paths: {
+    '/deep': {
+      get: {
+        responses: {
+          200: { description: 'ok', content: { 'application/json': { schema: deep(7, { type: 'string', format: 'date-time' }) } } },
+          204: { description: 'nothing' },
+        },
+      },
+    },
+  },
+};
+
+test('a deep schema that never repeats is shown level by level, up to the stop', () => {
+  const [field] = getApiReference({ apiMethod: 'GET', apiPath: '/deep', description: '' }, deepSpec).responses[0].fields;
+  const levels = f => 1 + (f.children[0] ? levels(f.children[0]) : 0);
+  assert.equal(levels(field), 6);
+});
+
+test('a $ref already open higher up is shown as a field and not expanded again', () => {
+  const [, , not] = getApiReference(endpoint, spec).body.fields;
+  assert.equal(not.name, 'not');
+  assert.deepEqual(not.children, []);
+});
+
+test('nested examples are not cut to {} at the old depth of five', () => {
+  const { code } = getApiReference({ apiMethod: 'GET', apiPath: '/deep', description: '' }, deepSpec).responses[0];
+  assert.match(code, /"2024-01-01T00:00:00Z"/);
+});
+
+test('formats and enums show in the type name', () => {
+  const api = getApiReference(endpoint, {
+    ...spec,
+    paths: { '/search/{index}': { post: { parameters: [
+      { name: 'at', in: 'query', schema: { type: 'string', format: 'date-time' } },
+      { name: 'mode', in: 'query', schema: { type: 'string', enum: ['a', 'b'] } },
+    ], responses: {} } } },
+  });
+  assert.deepEqual(api.parameters.map(p => p.type), ['string<date-time>', 'enum<string>']);
+});
+
+test('a response with no content has no body, not an empty object', () => {
+  const responses = getApiReference({ apiMethod: 'GET', apiPath: '/deep', description: '' }, deepSpec).responses;
+  assert.equal(responses.find(r => r.status === '204').code, '');
+  assert.notEqual(responses.find(r => r.status === '200').code, '');
 });

@@ -42,6 +42,10 @@ A corpus written elsewhere hits a few rules that a hand-written one never does.
 - **Frontmatter limits.** `description` is capped at 170 characters and `title`
   needs two. An imported page that runs over fails with the file named. Shorten
   it at the source; the cap is what keeps search snippets from being cut.
+- **Descriptions and titles.** `description` is optional, so a page that never
+  had one needs none; `metaTitle` keeps a custom `<title>` as it was. A `#`
+  heading in the body is listed in "On this page" as a section, with `##` as its
+  subsection.
 - **Undefined expressions.** MDX evaluates `{PAGE}` in prose, and fails the build
   where another tool printed it as nothing. Escape it as `\{PAGE\}`.
 - **Icons.** An unknown icon name renders nothing, and the build now logs it.

@@ -82,10 +82,16 @@ export const plainHeading = (markdown: string) =>
     .trim();
 
 /**
- * Splits a body into one section per h2, using the slugs Astro already
+ * Splits a body into one section per h2 and h3, using the slugs Astro already
  * computed for those headings so the anchors always agree with the page.
- * H3 content stays inside its parent H2 section: search remains useful without
- * producing an overly granular result list.
+ *
+ * H3s are sections of their own: content under `### Formula` had no title to
+ * match, so a search for "formula" could only find it by luck in a body.
+ *
+ * An `<Accordion title="…">` is a section too, titled by its attribute. It has
+ * no anchor of its own, so it links to the nearest heading above it, which is
+ * where the reader lands and finds the accordion. Closing the accordion hands
+ * the text after it back to that heading.
  */
 export function toSections(body: string, headings: { depth: number; slug: string; text: string }[]): Section[] {
   /* Every slug the renderer produced for a given text, in document order — not
@@ -96,7 +102,7 @@ export function toSections(body: string, headings: { depth: number; slug: string
      agent-manifest.ts, which hit this exact bug first. */
   const bySlug = new Map<string, string[]>();
   for (const heading of headings) {
-    if (heading.depth !== 2) continue;
+    if (heading.depth !== 2 && heading.depth !== 3) continue;
     const key = heading.text.trim();
     bySlug.set(key, [...(bySlug.get(key) ?? []), heading.slug]);
   }
@@ -104,6 +110,8 @@ export function toSections(body: string, headings: { depth: number; slug: string
   const sections: Section[] = [];
   const seen = new Map<string, number>();
   let current: Section = { t: '' };
+  /* The heading section an accordion sits in, to return to when it closes. */
+  let enclosing: Section | null = null;
   let buffer: string[] = [];
   let inFence = false;
 
@@ -115,9 +123,24 @@ export function toSections(body: string, headings: { depth: number; slug: string
 
   for (const line of body.split('\n')) {
     if (/^\s*(?:```|~~~)/.test(line)) inFence = !inFence;
-    const heading = inFence ? null : line.match(/^(##)\s+(.*)$/);
+    const heading = inFence ? null : line.match(/^(#{2,3})\s+(.*)$/);
+    const accordion = inFence ? null : line.match(/<Accordion\b[^>]*?\btitle="([^"]*)"/);
+    const closing = !inFence && enclosing && /<\/Accordion>/.test(line);
+    if (accordion) {
+      flush();
+      enclosing ??= current;
+      current = { h: accordion[1], a: enclosing.a, t: '' };
+      continue;
+    }
+    if (closing) {
+      flush();
+      current = { ...enclosing!, t: '' };
+      enclosing = null;
+      continue;
+    }
     if (heading) {
       flush();
+      enclosing = null;
       /* `plainHeading`, not an ad-hoc strip: the map is keyed by the *rendered*
          text, so `## [Guide](…)` and `## list_pages` must reduce to exactly
          what Astro rendered or the lookup misses and the hit loses its anchor. */
@@ -132,4 +155,26 @@ export function toSections(body: string, headings: { depth: number; slug: string
   flush();
 
   return sections.filter(section => section.t || section.h);
+}
+
+/**
+ * The first real paragraph of a body, as plain text cut at `max` characters on a
+ * word boundary. For a page that declares no description: every surface that
+ * needs a summary (meta tags, feeds, search, llms.txt) falls back to this, so
+ * they agree. Skips imports, headings, fences and component tags, which are
+ * structure and not prose.
+ */
+export function firstParagraph(body: string, max = 160): string {
+  const withoutFences = body.replace(/^(```|~~~)[\s\S]*?^\1\s*$/gm, '');
+  for (const block of withoutFences.split(/\n\s*\n/)) {
+    const trimmed = block.trim();
+    if (!trimmed || /^(import|export)\s/.test(trimmed) || /^#{1,6}\s/.test(trimmed) || /^</.test(trimmed)) continue;
+    const text = toPlainText(trimmed);
+    if (text.length < 20) continue;
+    if (text.length <= max) return text;
+    const cut = text.slice(0, max);
+    const space = cut.lastIndexOf(' ');
+    return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:.\-]+$/, '')}…`;
+  }
+  return '';
 }

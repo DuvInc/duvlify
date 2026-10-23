@@ -1,5 +1,6 @@
 import type { CollectionEntry } from 'astro:content';
 import { lastModifiedFor } from './last-modified';
+import { descriptionOf } from './published';
 import { mdxToMarkdown } from './mdx-to-markdown';
 
 /**
@@ -35,7 +36,7 @@ export function toPageMarkdown(
     ? [
         '---',
         `title: ${quote(entry.data.title)}`,
-        `description: ${quote(entry.data.description)}`,
+        `description: ${quote(descriptionOf(entry))}`,
         ...(url ? [`canonical: ${quote(url)}`] : []),
         ...(modified ? [`updated: ${quote(modified.toISOString().slice(0, 10))}`] : []),
         '---',

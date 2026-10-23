@@ -1,23 +1,94 @@
 ---
-import DocumentHead from '../components/DocumentHead.astro';
+/**
+ * The page a missing URL gets, kept inside the site: the header, the search and
+ * the sidebar are all there, so a reader who followed a stale link is one click
+ * from finding the page they meant.
+ *
+ * No canonical, so DocumentHead marks it noindex. No Markdown twin exists for it,
+ * so `pageActions` is off and "Copy page" does not appear.
+ *
+ * The suggestions are made in the browser, because the missing path is only
+ * known there (a static 404 is one file served for every address). The words of
+ * the path go through the same `rank()` as the search dialog, against the same
+ * static index.
+ */
+import DocsLayout from '../components/DocsLayout.astro';
 import Icon from '../components/Icon.astro';
 import { site } from '../docs.config';
+import { getNavigation } from '../lib/navigation';
+
+const tabs = await getNavigation();
+const context = { tabs, activeTab: tabs[0], breadcrumb: '' };
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    {/* No canonical, so DocumentHead marks this noindex. */}
-    <DocumentHead
-      title="Page not found"
-      description="The documentation page you asked for does not exist."
-    />
-  </head>
-  <body>
-    <main class="not-found">
-      <div class="eyebrow">404 ERROR</div>
-      <h1>This page wandered off.</h1>
-      <p>The documentation may have moved, or the link is taking a creative detour.</p>
-      <a class="header-primary" href={site.home}>Back to the docs <Icon name="arrow" size={14} /></a>
-    </main>
-  </body>
-</html>
+<DocsLayout
+  title="This page wandered off."
+  description="The documentation page you asked for does not exist."
+  subtitle="The page may have moved, or the link is taking a creative detour."
+  headings={[]}
+  pageActions={false}
+  seo={{}}
+  context={context}
+>
+  <div class="not-found-actions">
+    <button type="button" class="header-secondary" data-search-open>
+      <Icon name="search" size={15} /> Search the docs
+    </button>
+    <a class="header-primary" href={site.home}>Back to the docs <Icon name="arrow" size={14} /></a>
+  </div>
+
+  <section class="not-found-suggestions" data-suggestions hidden>
+    <h2>Did you mean</h2>
+    <div class="not-found-cards" data-suggestion-list></div>
+  </section>
+
+  <section class="not-found-browse">
+    <h2>Browse by section</h2>
+    <ul>
+      {tabs.map(tab => <li><a href={tab.href}>{tab.label}</a></li>)}
+    </ul>
+  </section>
+</DocsLayout>
+
+<script>
+  import { site } from '../docs.config';
+  import { rank, type Index } from '../scripts/search-rank';
+
+  /* The words of the missing path, with ids and numbers dropped: a path like
+     `/integrations/stripe/3481` should look for "integrations stripe". */
+  const words = location.pathname
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(word => word && !/\d/.test(word));
+
+  const section = document.querySelector<HTMLElement>('[data-suggestions]');
+  const list = document.querySelector<HTMLElement>('[data-suggestion-list]');
+
+  async function suggest() {
+    if (!section || !list || !words.length) return;
+    const response = await fetch(site.searchIndexPath);
+    if (!response.ok) return;
+    const index = (await response.json()) as Index;
+
+    /* Every word first; if nothing answers that, one fewer, down to one. */
+    for (let count = words.length; count >= 1; count -= 1) {
+      const hits = rank(index, words.slice(0, count).join(' '), 5);
+      if (!hits.length) continue;
+      list.replaceChildren(
+        ...hits.map(hit => {
+          const card = document.createElement('a');
+          card.className = 'not-found-card';
+          card.href = hit.href;
+          const title = document.createElement('strong');
+          title.textContent = hit.title;
+          const meta = document.createElement('small');
+          meta.textContent = hit.meta;
+          card.append(title, meta);
+          return card;
+        }),
+      );
+      section.hidden = false;
+      return;
+    }
+  }
+  void suggest().catch(() => {});
+</script>
