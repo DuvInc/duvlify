@@ -12,9 +12,24 @@
  * inverted index (Pagefind) without touching the markup or the styling.
  */
 import { $, $$, escapeHtml } from './dom';
-import { rank, wordsOf, type Index } from './search-rank';
+import type { Index } from './search-rank';
 
 const MAX_RESULTS = 20;
+
+/**
+ * The ranking module, fetched with the index rather than bundled with every
+ * page.
+ *
+ * The scorer is a few kilobytes that a reader who never opens search would
+ * otherwise download on every page. It is not deferred to the first keystroke:
+ * it rides along with the index, which is two orders of magnitude larger, so by
+ * the time the dialog has something to show it is always there.
+ *
+ * The words to highlight are the ones the reader typed, which is not the same
+ * question the ranker asks: it drops the words a question is made of, and the
+ * highlight should still be honest about what was searched.
+ */
+const wordsOfQuery = (query: string) => [...new Set(query.toLowerCase().split(/\s+/).filter(Boolean))];
 
 /**
  * Wraps every query word in <mark>.
@@ -24,7 +39,7 @@ const MAX_RESULTS = 20;
  * entity with half of it highlighted.
  */
 function highlight(text: string, query: string) {
-  const words = wordsOf(query).sort((a, b) => b.length - a.length);
+  const words = wordsOfQuery(query).sort((a, b) => b.length - a.length);
   if (!words.length) return escapeHtml(text);
   const pattern = new RegExp(`(${words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
   return text
@@ -40,6 +55,7 @@ export function initSearch(indexUrl: string) {
   if (!dialog || !input || !results) return { open: () => {} };
 
   let index: Index | null = null;
+  let ranking: typeof import('./search-rank') | null = null;
   let loading: Promise<Index | null> | null = null;
   let activeIndex = -1;
 
@@ -101,7 +117,7 @@ export function initSearch(indexUrl: string) {
 
   const render = () => {
     const query = input.value.trim();
-    if (!index || !template) {
+    if (!index || !template || !ranking) {
       message('Loading the index…');
       return;
     }
@@ -109,7 +125,7 @@ export function initSearch(indexUrl: string) {
       paint('Quick links', (index.quick ?? []).map(link => row(link.h, link.t, link.s, '', link.k ?? 'page', link.m)));
       return;
     }
-    const hits = rank(index, query, MAX_RESULTS);
+    const hits = ranking.rank(index, query, MAX_RESULTS);
     if (!hits.length) {
       message(`No results for <strong>${escapeHtml(query)}</strong>.`);
       return;
@@ -126,15 +142,18 @@ export function initSearch(indexUrl: string) {
   };
 
   const load = () => {
-    loading ??= fetch(indexUrl)
-      .then(response => (response.ok ? (response.json() as Promise<Index>) : null))
-      .catch(() => null)
-      .then(loaded => {
-        index = loaded;
-        if (!index) message('Search is unavailable right now.');
-        else render();
-        return index;
-      });
+    loading ??= Promise.all([
+      fetch(indexUrl)
+        .then(response => (response.ok ? (response.json() as Promise<Index>) : null))
+        .catch(() => null),
+      import('./search-rank').catch(() => null),
+    ]).then(([loaded, module]) => {
+      index = loaded;
+      ranking = module;
+      if (!index || !ranking) message('Search is unavailable right now.');
+      else render();
+      return index;
+    });
     return loading;
   };
 

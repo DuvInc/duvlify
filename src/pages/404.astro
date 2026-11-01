@@ -51,7 +51,7 @@ const context = { tabs, activeTab: tabs[0], breadcrumb: '' };
 
 <script>
   import { site } from '../docs.config';
-  import { rank, type Index } from '../scripts/search-rank';
+  import type { Index } from '../scripts/search-rank';
 
   /* The words of the missing path, with ids and numbers dropped: a path like
      `/integrations/stripe/3481` should look for "integrations stripe". */
@@ -65,7 +65,9 @@ const context = { tabs, activeTab: tabs[0], breadcrumb: '' };
 
   async function suggest() {
     if (!section || !list || !words.length) return;
-    const response = await fetch(site.searchIndexPath);
+    /* The ranking rides with the index rather than with every page: a reader who
+       never lands on a 404 should not download the scorer. */
+    const [{ rank }, response] = await Promise.all([import('../scripts/search-rank'), fetch(site.searchIndexPath)]);
     if (!response.ok) return;
     const index = (await response.json()) as Index;
 
