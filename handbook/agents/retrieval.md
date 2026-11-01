@@ -2,7 +2,7 @@
 title: "Retrieval"
 description: "Two retrieval backends: a lexical index built at compile time that needs no account, and Cloudflare AI Search for hybrid semantic search when you want it."
 canonical: "https://duvlify.dev/agents/retrieval"
-updated: "2026-08-18"
+updated: "2026-11-01"
 ---
 
 # Retrieval
@@ -15,16 +15,21 @@ The second needs an account, and it adds semantic matching.
 
 This backend scores the build's own search index inside the Worker. It needs
 no account setup, no provisioning, and no external call, so it works on the
-first deploy. It weights term frequency towards titles and headings. Two
-corrections matter more than the weights themselves. First, the score damps
-occurrence counts by section length, so a long API reference cannot outscore
-a short, on-topic paragraph. Second, it measures coverage across the whole
-page, because a question's terms are usually spread between a page's title
-and its body.
+first deploy.
 
-The backend also does light suffix stripping. Without it, "deployment" fails
-to match a page titled "Deploy your site", and the query lands on whichever
-page repeats the exact word most.
+It is the same ranking the search dialog uses: `src/scripts/search-rank.ts` is
+the only scorer in the repository, so an agent and a reader asking the same
+question land on the same page. A word matches at a word boundary and through
+a light stem, so "deployment" reaches "Deploy your site" while "api" stops
+matching "capital". Words a question is made of rather than about are dropped,
+and a word the corpus does not contain is corrected to a near one before the
+search runs.
+
+A page scores by the best place each word appears: the title above a heading,
+above the description, above the body. A word on most pages counts for little,
+so one distinctive word carries a query that also contains a common one. Pages
+holding every word come first, and when none does the pages holding most of
+them are returned in a lower tier rather than nothing.
 
 This backend works well for a few hundred pages, which covers most
 documentation sites.

@@ -106,7 +106,7 @@ export function initSearch(indexUrl: string) {
       return;
     }
     if (!query) {
-      paint('Quick links', index.quick.map(link => row(link.h, link.t, link.s, '', link.k, link.m)));
+      paint('Quick links', (index.quick ?? []).map(link => row(link.h, link.t, link.s, '', link.k ?? 'page', link.m)));
       return;
     }
     const hits = rank(index, query, MAX_RESULTS);
@@ -114,9 +114,14 @@ export function initSearch(indexUrl: string) {
       message(`No results for <strong>${escapeHtml(query)}</strong>.`);
       return;
     }
+    /* When a word was corrected, say which question was answered: silently
+       returning the results of "frontmatter" to someone who typed "frontmatr"
+       hides the fact that search guessed. */
+    const corrected = hits[0].corrected;
+    const count = `${hits.length} result${hits.length === 1 ? '' : 's'}`;
     paint(
-      `${hits.length} result${hits.length === 1 ? '' : 's'}`,
-      hits.map(hit => row(hit.href, hit.title, hit.meta, query, hit.kind, hit.method)),
+      corrected ? `${count} for ${corrected}` : count,
+      hits.map(hit => row(hit.href, hit.title, hit.meta, corrected ?? query, hit.kind, hit.method)),
     );
   };
 

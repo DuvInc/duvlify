@@ -1,4 +1,5 @@
 import { agents, site } from '../../src/docs.config';
+import { passages, type Page } from '../../src/scripts/search-rank';
 import type { Env } from './corpus';
 
 /**
@@ -35,13 +36,7 @@ export interface Passage {
 
 /** Shape of dist/search-index.json — see src/lib/navigation.ts. */
 interface SearchIndex {
-  pages: Array<{
-    h: string;
-    t: string;
-    s: string;
-    d: string;
-    b: Array<{ a?: string; h?: string; t: string }>;
-  }>;
+  pages: Page[];
 }
 
 let indexCache: Promise<SearchIndex | null> | null = null;
@@ -76,142 +71,37 @@ function loadSearchIndex(env: Env, origin: string): Promise<SearchIndex | null> 
   });
 }
 
-const STOP = new Set([
-  'the', 'a', 'an', 'and', 'or', 'of', 'to', 'in', 'is', 'it', 'for', 'on', 'with',
-  'how', 'do', 'i', 'can', 'my', 'what', 'when', 'where', 'this', 'that', 'be',
-  'are', 'from', 'by', 'as', 'at', 'if', 'not', 'you', 'your', 'we', 'does',
-]);
-
 /**
- * Crude English suffix stripping, so a query term matches its relatives.
+ * The page id is the href without its leading slash, minus `site.basePath`,
+ * which the href carries and the id never does.
  *
- * Without it "deployment" does not match a page titled "Deploy your site", and
- * the query lands on whichever page happens to repeat the exact word most —
- * which on a documentation site is reliably the API reference. Nothing here is
- * linguistics; it is the four suffixes that actually cost recall in technical
- * prose, applied only to words long enough that stripping cannot produce a
- * fragment that matches everything.
+ * Dropping the prefix here is not cosmetic. The id is the join key to the build
+ * manifest, so under a subpath deployment every lookup missed and search
+ * returned nothing at all, with no error to explain it: the index loaded, the
+ * scoring ran, and every hit was discarded for naming a page that did not
+ * exist.
  */
-function stem(word: string): string {
-  for (const suffix of ['ments', 'ment', 'tions', 'tion', 'ing', 'ers', 'er', 'es', 's']) {
-    if (word.length - suffix.length >= 4 && word.endsWith(suffix)) {
-      return word.slice(0, -suffix.length);
-    }
-  }
-  return word;
-}
-
-interface Term {
-  /** As typed, lowercased. */
-  word: string;
-  /** The stem, when it differs — a second, weaker thing to look for. */
-  root?: string;
-}
-
-function terms(query: string): Term[] {
-  const words = query
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}_.-]+/u)
-    .filter(word => word.length > 1 && !STOP.has(word));
-
-  return words.map(word => {
-    const root = stem(word);
-    return root !== word && root.length >= 4 ? { word, root } : { word };
-  });
-}
-
-/** Whether a haystack carries this term, exactly or through its stem. */
-const hits = (haystack: string, term: Term) =>
-  haystack.includes(term.word) || (term.root ? haystack.includes(term.root) : false);
-
-/** How many times, counting the stem only when the exact word is absent. */
-function count(haystack: string, term: Term): number {
-  const exact = haystack.split(term.word).length - 1;
-  if (exact) return exact;
-  return term.root ? haystack.split(term.root).length - 1 : 0;
+function pageIdOf(href: string): string {
+  const path = site.basePath && href.startsWith(site.basePath) ? href.slice(site.basePath.length) : href;
+  return path.replace(/^\//, '') || 'index';
 }
 
 /**
- * Scores one section of one page.
+ * Lexical retrieval: the shared ranking, asked for passages instead of pages.
  *
- * Two corrections matter more than the weights. Occurrences are damped by the
- * square root of the section's length, because otherwise a long API reference
- * section beats a short, exactly-on-topic paragraph purely by repeating a word;
- * and coverage is measured on the *page*, because a question's terms are often
- * spread across a page's title and body rather than gathered in one section.
+ * This used to be a second scorer living here, with its own stop words and its
+ * own stemming, which is how the agent and the search dialog came to answer the
+ * same query differently. `src/scripts/search-rank.ts` is now the only ranking
+ * in the repository; this maps its sections onto the ids the manifest uses.
  */
-function scoreSection(query: Term[], title: string, heading: string, body: string, pageCoverage: number): number {
-  const inTitle = title.toLowerCase();
-  const inHeading = heading.toLowerCase();
-  const inBody = body.toLowerCase();
-  /* Sections are capped at 4000 characters upstream, so this stays in a narrow
-     band; the point is only to stop length itself being a ranking signal. */
-  const damp = Math.sqrt(Math.max(body.length, 200) / 200);
-
-  let score = 0;
-  let covered = 0;
-
-  for (const term of query) {
-    let termScore = 0;
-    if (hits(inTitle, term)) termScore += 7;
-    if (hits(inHeading, term)) termScore += 6;
-    const occurrences = count(inBody, term);
-    if (occurrences) termScore += Math.min(occurrences, 5) / damp;
-    if (termScore) covered += 1;
-    score += termScore;
-  }
-
-  if (!score) return 0;
-
-  /* A section that answers the whole question outranks one that answers part of
-     it loudly. Squared so the gap widens as more of the query is matched. */
-  score *= (covered / query.length) ** 2 + 0.25;
-
-  /* And a section on a page that covers the question everywhere outranks an
-     equally good section on a page that mentions the topic once. */
-  score *= 1 + pageCoverage;
-
-  return score;
-}
-
 async function lexical(env: Env, origin: string, query: string, limit: number): Promise<Passage[]> {
   const index = await loadSearchIndex(env, origin);
   if (!index) return [];
 
-  const parsed = terms(query);
-  if (!parsed.length) return [];
-
-  const hitList: Array<{ pageId: string; anchor?: string; score: number }> = [];
-
-  for (const page of index.pages) {
-    /*
-     * `h` is the href, and the page id is that path without its leading slash —
-     * minus `site.basePath`, which the href carries and the id never does.
-     *
-     * Dropping the prefix here is not cosmetic. The id is the join key to the
-     * build manifest, so under a subpath deployment every lookup missed and
-     * search returned nothing at all, with no error to explain it: the index
-     * loaded, the scoring ran, and every hit was discarded for naming a page
-     * that did not exist.
-     */
-    const href = site.basePath && page.h.startsWith(site.basePath)
-      ? page.h.slice(site.basePath.length)
-      : page.h;
-    const pageId = href.replace(/^\//, '') || 'index';
-
-    /* Page-level coverage, computed once: the share of query terms the page
-       carries anywhere at all. */
-    const whole = `${page.t} ${page.d} ${page.b.map(section => `${section.h ?? ''} ${section.t ?? ''}`).join(' ')}`.toLowerCase();
-    const pageCoverage = parsed.filter(term => hits(whole, term)).length / parsed.length;
-
-    for (const section of page.b) {
-      const score = scoreSection(parsed, page.t, section.h ?? '', section.t ?? '', pageCoverage);
-      if (score > 0) hitList.push({ pageId, anchor: section.a, score });
-    }
-  }
-
-  hitList.sort((a, b) => b.score - a.score);
-  return hitList.slice(0, limit).map(hit => ({ pageId: hit.pageId, anchor: hit.anchor }));
+  return passages(index, query, limit).map(found => ({
+    pageId: pageIdOf(found.page.h),
+    anchor: found.section.a,
+  }));
 }
 
 /**

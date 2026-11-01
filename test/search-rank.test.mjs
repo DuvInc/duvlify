@@ -47,6 +47,77 @@ test('nothing matches an empty or unknown query', () => {
   assert.deepEqual(rank(index, 'zzzz'), []);
 });
 
+/* ---------------------------------------------------------------------------
+ * The rules added after the Pagefind comparison (2026-11), each one measured on
+ * this documentation and turned into a case here so a later change has to beat
+ * it deliberately.
+ * ------------------------------------------------------------------------- */
+
+const docs = {
+  quick: [],
+  pages: [
+    page('/reference/frontmatter', 'Frontmatter', 'Reference', 'Every page starts with it.', [
+      { h: 'Required', a: 'required', t: 'title and description are required.' },
+    ]),
+    page('/guides/deployment', 'Deploying', 'Guides', 'Ship the site.', [
+      { h: 'On Cloudflare', a: 'on-cloudflare', t: 'Use wrangler. Deploy the Worker.' },
+      { h: 'After the first deploy', a: 'after-the-first-deploy', t: 'Check the Cloudflare dashboard, then deploy again.' },
+    ]),
+    page('/agents/mcp', 'The manifest, WebMCP and limits', 'Agents', 'The surfaces agents read.', [
+      { h: 'WebMCP', a: 'webmcp', t: 'The in-browser bridge.' },
+    ]),
+    page('/guides/authoring', 'Authoring pages', 'Guides', 'Write pages.', [
+      { h: 'Add a page', a: 'add-a-page', t: 'Create the file in content/.' },
+    ]),
+    page('/api', 'API reference', 'API', 'Call the endpoints.', [{ t: 'Every endpoint needs a token.' }]),
+    page('/pricing', 'Pricing', 'Sales', 'Plans and invoices.', [{ t: 'Capital and revenue, per seat.' }]),
+  ],
+};
+
+test('a question is searched on the words that carry meaning', () => {
+  assert.equal(rank(docs, 'how do I add a page')[0].href, '/guides/authoring#add-a-page');
+});
+
+test('a word reaches its family through the stem', () => {
+  assert.equal(rank(docs, 'deployment')[0].href.split('#')[0], '/guides/deployment');
+});
+
+test('a word matches inside a camelCase identifier, from either side', () => {
+  assert.equal(rank(docs, 'mcp')[0].href, '/agents/mcp');
+  assert.equal(rank(docs, 'webmcp')[0].href, '/agents/mcp');
+});
+
+test('a word does not match inside another word', () => {
+  const urls = rank(docs, 'api').map(hit => hit.href.split('#')[0]);
+  assert.ok(urls.includes('/api'));
+  assert.ok(!urls.includes('/pricing'), '"api" must not match "capital"');
+});
+
+test('a mistyped word is corrected, and the hit says so', () => {
+  const [top] = rank(docs, 'frontmatr');
+  assert.equal(top.href.split('#')[0], '/reference/frontmatter');
+  assert.equal(top.corrected, 'frontmatter');
+});
+
+test('a query with a word the corpus does not use still answers with the rest', () => {
+  const hits = rank(docs, 'cloudflare wrangler kubernetes');
+  assert.ok(hits.length, 'two words out of three should still be an answer');
+  assert.equal(hits[0].href.split('#')[0], '/guides/deployment');
+});
+
+test('the deep link answers what the page title does not already say', () => {
+  assert.equal(rank(docs, 'deploy to cloudflare')[0].href, '/guides/deployment#on-cloudflare');
+});
+
+test('the agent and the reader get the same page for the same query', async () => {
+  const { passages } = await import('../src/scripts/search-rank.ts');
+  const [reader] = rank(docs, 'deploy to cloudflare');
+  const [agent] = passages(docs, 'deploy to cloudflare', 5);
+  assert.equal(agent.page.h, reader.href.split('#')[0]);
+  assert.ok(passages(docs, 'deploy to cloudflare', 5).some(passage => passage.section.a === 'on-cloudflare'));
+});
+
+
 test('H3s and accordion titles are sections of their own', () => {
   const body = [
     '## Field types', 'Intro.',
