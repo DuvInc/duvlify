@@ -448,6 +448,20 @@ describe('the agent routes do not disturb the site', () => {
     assert.equal(response.headers.get('content-type')?.split(';')[0], 'text/markdown');
   });
 
+  test('both /x.md and /x/index.md resolve a page twin', async () => {
+    const direct = await fetch(`${BASE}/${samplePage.id}.md`);
+    assert.equal(direct.status, 200);
+    assert.equal(direct.headers.get('content-type')?.split(';')[0], 'text/markdown');
+
+    const index = await fetch(`${BASE}/${samplePage.id}/index.md`);
+    assert.equal(index.status, 200);
+    assert.equal(index.headers.get('content-type')?.split(';')[0], 'text/markdown');
+
+    const textDirect = await direct.text();
+    const textIndex = await index.text();
+    assert.equal(textIndex, textDirect);
+  });
+
   test('the manifest is served and matches the built pages', async () => {
     const manifest = await (await fetch(`${BASE}/agent-manifest.json`)).json();
     assert.equal(manifest.version, 1);

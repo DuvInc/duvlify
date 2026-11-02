@@ -122,12 +122,14 @@ const published = (pathname: string) => `${site.basePath}${pathname}`;
 /**
  * An asset request, addressed the way the ASSETS binding expects.
  *
- * The original `Request` is passed through untouched at the root, because
- * rebuilding one needlessly would drop nothing today but is one more thing to
- * keep correct.
+ * If `pathname` differs from the incoming request's URL path (e.g. during a
+ * fallback lookup) or when deployed under a `basePath`, a new Request is
+ * constructed so the ASSETS binding fetches the intended path.
  */
 const assetRequest = (request: Request, url: URL, pathname: string) =>
-  site.basePath ? new Request(new URL(pathname, url.origin), request) : request;
+  site.basePath || pathname !== url.pathname
+    ? new Request(new URL(pathname, url.origin), request)
+    : request;
 
 const pagePathFor = (markdownPath: string) =>
   markdownPath.endsWith('/index.md')
@@ -242,12 +244,15 @@ async function route(request: Request, env: Env, ctx: McpExecutionContext): Prom
     if (path.endsWith('.md')) {
       let response = await env.ASSETS.fetch(assetRequest(request, url, path));
       let resolvedPath = path;
-      if (response.status === 404 && !path.endsWith('/index.md')) {
-        const indexPath = `${path.slice(0, -3)}/index.md`;
-        const index = await env.ASSETS.fetch(assetRequest(request, url, indexPath));
-        if (index.ok) {
-          response = index;
-          resolvedPath = indexPath;
+      if (response.status === 404) {
+        const fallback =
+          path.endsWith('/index.md') && path !== '/index.md'
+            ? `${path.slice(0, -'/index.md'.length)}.md`
+            : `${path.slice(0, -3)}/index.md`;
+        const candidate = await env.ASSETS.fetch(assetRequest(request, url, fallback));
+        if (candidate.ok) {
+          response = candidate;
+          resolvedPath = fallback;
         }
       }
       if (!response.ok) return response;

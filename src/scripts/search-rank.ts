@@ -144,7 +144,8 @@ const ASCII_WORD = /^[\x20-\x7e]+$/;
 const isWordChar = (char: string | undefined) => char !== undefined && WORD_CHAR.test(char);
 
 /**
- * Lower-cases, and opens a boundary at a camelCase hump.
+ * Lower-cases, opens a boundary at a camelCase hump, and normalises hyphens,
+ * underscores and slashes to spaces so compound terms like "Sign-in" match phrases.
  *
  * Without it the boundary rule hides the half of this documentation that is
  * written in identifiers: "MCP" is inside "WebMCP", "api" is inside "apiPath",
@@ -152,7 +153,11 @@ const isWordChar = (char: string | undefined) => char !== undefined && WORD_CHAR
  * before lower-casing is the whole trick: the capitals are the boundary, and
  * they are gone afterwards.
  */
-const fold = (text: string) => text.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+const fold = (text: string) =>
+  text
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[-_/]+/g, ' ')
+    .toLowerCase();
 
 /** The words of a query, lower-cased, with duplicates dropped. */
 export const wordsOf = (query: string): string[] => [...new Set(query.toLowerCase().split(/\s+/).filter(Boolean))];
@@ -251,12 +256,13 @@ function countOf(field: Field, term: Term): number {
   return root.exact + root.prefix;
 }
 
-/** Whether the whole phrase appears at a word boundary. */
+/** Whether the whole phrase appears at an exact word boundary. */
 function phraseQuality(field: Field, phrases: string[]): number {
   for (const phrase of phrases) {
+    if (!phrase.includes(' ')) continue;
     for (const text of field.folded === field.plain ? [field.folded] : [field.folded, field.plain]) {
       const found = occurrences(text, phrase);
-      if (found.exact + found.prefix > 0) return 1;
+      if (found.exact > 0) return 1;
     }
   }
   return 0;
@@ -466,8 +472,9 @@ function analyze(index: Index, rawQuery: string): Analysis {
     return root !== word && root.length >= 4 ? { word, root, idf } : { word, idf };
   });
 
-  const joined = [...new Set(words)].join(' ');
-  return { terms, phrases: raw === joined ? [joined] : [raw, joined], corrected };
+  const multiPhrases = [raw, [...new Set(words)].join(' ')].filter(phrase => phrase.includes(' '));
+  const phrases = [...new Set(multiPhrases)];
+  return { terms, phrases, corrected };
 }
 
 /* -------------------------------------------------------------- the scoring */
