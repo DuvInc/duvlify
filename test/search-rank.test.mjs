@@ -136,3 +136,20 @@ test('H3s and accordion titles are sections of their own', () => {
   assert.match(sections[2].t, /Aggregates/);
   assert.match(sections[3].t, /Back under/);
 });
+
+test('an exact phrase query outranks a shorter title that only carries one word inside an identifier', () => {
+  const authDocs = {
+    quick: [],
+    pages: [
+      page('/docusign', 'DocuSign integration', 'Integrations', 'Connect DocuSign.', [{ t: 'Set up your DocuSign integration.' }]),
+      page('/sms', 'Sign in with SMS Code', 'Authentication', 'Sign in with SMS.', [{ t: 'Send a one-time code to sign in.' }]),
+      page('/google', 'Google Sign-in', 'Authentication', 'Sign in with Google.', [{ t: 'Single sign-on with Google.' }]),
+    ],
+  };
+  const results = rank(authDocs, 'sign in');
+  assert.equal(results[0].href, '/google');
+  assert.equal(results[1].href, '/sms');
+  assert.equal(results[2].href, '/docusign');
+  assert.ok(results[0].score > results[2].score);
+  assert.ok(results[1].score > results[2].score);
+});
