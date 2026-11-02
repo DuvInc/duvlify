@@ -30,22 +30,32 @@
 
     /**
      * Documents only. Every request matched here costs a Worker invocation, so
-     * the fingerprinted bundle, the fonts, the share cards and the icons are
-     * excluded and keep being served straight off the asset path — they are the
+     * the fingerprinted bundle, the fonts and every image or video are excluded
+     * and keep being served straight off the asset path. They are the
      * overwhelming majority of requests and none of them has a Markdown twin to
      * announce. Negative patterns take precedence over positive ones.
+     *
+     * Media is excluded by extension, not by folder, so an image is off the
+     * Worker wherever it is kept, including a folder beside its page. `*`
+     * matches across slashes here. Each extension has the same rule in
+     * public/_headers; a test keeps the two lists in step.
+     *
+     * On a subpath (`basePath`), these patterns change: see "Subpath" in
+     * content/guides/deployment.mdx.
      */
     "run_worker_first": [
       "/*",
       "!/_astro/*",
-      "!/og/*",
-      "!/icons/*",
-      "!/favicon.svg",
-      "!/frame-demo.svg",
+      "!/*.png",
+      "!/*.webp",
+      "!/*.avif",
+      "!/*.jpg",
+      "!/*.jpeg",
+      "!/*.gif",
+      "!/*.mp4",
+      "!/*.webm",
+      "!/*.svg",
       "!/sitemap.xsl",
-      "!/og.png",
-      "!/og-home.png",
-      "!/screenshots/*",
       "!/search-index.json"
     ],
 

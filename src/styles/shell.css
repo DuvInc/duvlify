@@ -210,8 +210,7 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
 .frame-caption,
 .cta-text,
 .global-banner,
-.search-empty,
-
+.search-empty { text-wrap: balance; }
 
 /* The summary is a bare <p> for a prose page, and rendered Markdown inside
    `.article-summary` for an endpoint page, whose text comes from the OpenAPI

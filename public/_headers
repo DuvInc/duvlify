@@ -5,8 +5,10 @@
 # which is right for HTML — a docs edit should be live immediately — and wrong
 # for fingerprinted assets, which can be cached forever.
 #
-# Patterns allow one trailing splat only, so there is no way to target `*.md`
-# here; those routes rely on Wrangler's extension-based content type.
+# Patterns allow one splat per rule, anywhere in it, and it matches across
+# slashes: `/*.webp` is every WebP at any depth. A one-segment wildcard is
+# spelled `:name`. The `.md` twins need no rule: Wrangler types them from the
+# extension, and they keep the HTML pages' `max-age=0` on purpose.
 #
 # Paths here are the *built* paths, never prefixed with `site.basePath`, even on
 # a site served under a subpath. The Worker strips that prefix before it calls
@@ -32,9 +34,59 @@
   Permissions-Policy: camera=(), geolocation=(), microphone=()
   Cross-Origin-Opener-Policy: same-origin
 
+# Media, matched by extension so the rule follows the file wherever it lives:
+# `/screenshots/`, the share cards in `/og/`, the language marks in `/icons/`,
+# or a folder beside the page that shows it, which is where content migrated
+# from Mintlify, Docusaurus or Starlight keeps its images. A rule per folder
+# covers only the folders someone remembered to list; one site served 2,344
+# images from page folders at Cloudflare's `max-age=0` default, so every one of
+# them was revalidated on every view.
+#
+# None of these names is content-addressed: replacing a screenshot keeps its
+# name. So a day of freshness and a week of grace, never `immutable`, which
+# keeps a replaced image from staying wrong for long. SVG here is the favicon,
+# diagrams and icons, which change on a framework upgrade at most.
+#
+# These come before every more specific rule on purpose. Rules are applied in
+# file order and their headers combine, so a second `Cache-Control` would be
+# appended rather than replace this one. A later rule that needs a different
+# value removes this one first with `! Cache-Control`, as `/_astro/*` does.
+#
+# `wrangler.jsonc` excludes the same extensions from `run_worker_first`, so none
+# of these costs a Worker invocation. A test keeps the two lists in step.
+/*.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.webp
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.avif
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.jpg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.jpeg
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.gif
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.mp4
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.webm
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/*.svg
+  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
+
 # Content-addressed: the filename changes whenever the bytes do, so a repeat
 # visitor never revalidates the CSS, the JS bundle or the self-hosted fonts.
+# `! Cache-Control` first: an image imported into a page lands here too, and
+# would otherwise carry the media rule's value appended to this one.
 /_astro/*
+  ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
 
 # Fetched once per session, on the first search. Short freshness window plus a
@@ -42,44 +94,8 @@
 /search-index.json
   Cache-Control: public, max-age=300, stale-while-revalidate=604800
 
-/favicon.svg
-  Cache-Control: public, max-age=604800
-
-# Diagram markup in reference/code-and-diagrams, not fingerprinted because it is
-# referenced by a literal path rather than imported.
-/frame-demo.svg
-  Cache-Control: public, max-age=604800
-
 # Read by sitemap.xml's own `xml-stylesheet` instruction, once per crawler visit
 # rather than once per reader — a browser opening sitemap.xml directly is rare
 # enough not to design around.
 /sitemap.xsl
   Cache-Control: public, max-age=604800
-
-# Language marks for code-block headers, shipped with the engine rather than
-# authored per site, so they change on a framework upgrade and not otherwise.
-# A week of freshness, and not immutable, because the names are stable.
-/icons/*
-  Cache-Control: public, max-age=604800, stale-while-revalidate=604800
-
-# Share cards are regenerated whenever a page title changes, and their names are
-# not content-addressed, so they cannot be immutable. A day of freshness with a
-# long grace period keeps them effectively instant without pinning a stale card
-# to a renamed page.
-/og/*
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-
-/og.png
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-
-# The hand-made homepage card. Same story as the generated ones above: a stable
-# name whose bytes can change, so fresh for a day and served stale while the new
-# one comes in.
-/og-home.png
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
-
-# Content screenshots. Not content-addressed either — replacing one keeps its
-# name — so they get the share-card treatment rather than the fingerprinted
-# bundle's `immutable`.
-/screenshots/*
-  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
