@@ -102,7 +102,10 @@ export function initLightbox() {
 
   $$<HTMLImageElement>('.frame-content > img, .mdx-content p > img, .mdx-content picture > img').forEach(source =>
     source.addEventListener('click', () => {
-      image.src = source.currentSrc || source.src;
+      /* The original, never the narrow copy a phone loaded from `srcset`: the
+         lightbox exists to read the screenshot at full size. A <picture>
+         source (AVIF) has no `srcset` on the <img> and keeps currentSrc. */
+      image.src = source.srcset ? source.src : source.currentSrc || source.src;
       image.alt = source.alt;
       lightbox.showModal();
     }),

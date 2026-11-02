@@ -37,6 +37,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { basePath } from '../docs.config';
+import { responsiveAttributes } from './image-variants';
 import type { Element, Root } from 'hast';
 
 interface Parent {
@@ -184,9 +185,17 @@ function applyToJsx(node: JsxNode) {
   set('decoding', 'async');
 
   const src = named('src')?.value;
-  if (typeof src !== 'string' || named('width') || named('height')) return;
+  if (typeof src !== 'string') return;
   const size = intrinsicSize(src);
-  if (size) {
+
+  /* A narrower copy for phones, unless the author wrote their own srcset. */
+  const responsive = !named('srcSet') && !named('srcset') && responsiveAttributes(src, size?.width);
+  if (responsive) {
+    set('srcset', responsive.srcset);
+    set('sizes', responsive.sizes);
+  }
+
+  if (size && !named('width') && !named('height')) {
     set('width', size.width);
     set('height', size.height);
   }
@@ -197,9 +206,16 @@ function applyToElement(node: Element) {
   node.properties.decoding ??= 'async';
 
   const src = node.properties.src;
-  if (typeof src !== 'string' || node.properties.width || node.properties.height) return;
+  if (typeof src !== 'string') return;
   const size = intrinsicSize(src);
-  if (size) {
+
+  const responsive = !node.properties.srcSet && responsiveAttributes(src, size?.width);
+  if (responsive) {
+    node.properties.srcSet = responsive.srcset;
+    node.properties.sizes = responsive.sizes;
+  }
+
+  if (size && !node.properties.width && !node.properties.height) {
     node.properties.width = size.width;
     node.properties.height = size.height;
   }

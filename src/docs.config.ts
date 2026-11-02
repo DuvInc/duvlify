@@ -382,9 +382,14 @@ export const seo = {
    * machine-readable statement of intent available today, and it costs a line.
    *
    * Documentation exists to be found and quoted, so all three are `yes`. A site
-   * whose content is the product would answer differently.
+   * whose content is the product would answer differently. robots.txt carries
+   * the `Content-Signal` line only when one of these is `no`: all `yes` is what
+   * a crawler assumes anyway (see src/pages/robots.txt.ts).
    */
-  contentSignals: { search: 'yes', 'ai-input': 'yes', 'ai-train': 'yes' },
+  contentSignals: { search: 'yes', 'ai-input': 'yes', 'ai-train': 'yes' } as Record<
+    'search' | 'ai-input' | 'ai-train',
+    'yes' | 'no'
+  >,
 
   /**
    * Tabs whose pages document an API. Every page with `pageType: 'api-endpoint'`

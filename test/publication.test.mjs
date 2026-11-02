@@ -273,6 +273,48 @@ describe('agent discovery surfaces', () => {
     assert.ok(!/Disallow:.*\.md/.test(robots), 'robots.txt still blocks .md');
   });
 
+  test('robots.txt uses only directives a validator knows, unless a use is refused', () => {
+    /* Lighthouse counts any other directive as an error and takes 8 points off
+       the SEO score. `Content-Signal` is worth that only when it refuses
+       something; all `yes` repeats what every crawler assumes. */
+    const robots = readFileSync(path.join(DIST, 'robots.txt'), 'utf8');
+    const refuses = /contentSignals:\s*\{[^}]*'no'/.test(
+      readFileSync(path.join(ROOT, 'src', 'docs.config.ts'), 'utf8'),
+    );
+    const unknown = robots
+      .split('\n')
+      .filter(line => line.trim() && !line.startsWith('#'))
+      .map(line => line.split(':')[0].trim().toLowerCase())
+      .filter(directive => !['user-agent', 'allow', 'disallow', 'sitemap'].includes(directive));
+
+    assert.deepEqual(unknown, refuses ? ['content-signal'] : []);
+  });
+
+  test('a wide content image offers phones a narrow copy, and the copy exists', () => {
+    const home = readFileSync(path.join(DIST, 'index.html'), 'utf8');
+    const image = home.match(/<img[^>]*screenshots\/duvlify\.webp[^>]*>/)?.[0];
+    if (!image) return; // the homepage screenshot is this site's own content
+
+    const srcset = image.match(/srcset="([^"]+)"/)?.[1] ?? '';
+    assert.match(srcset, /\.800w\.webp 800w, \S+duvlify\.webp \d+w$/);
+    assert.match(image, /sizes="/, 'srcset without sizes makes the browser assume 100vw everywhere');
+
+    const copy = srcset.split(' ')[0].replace(BASE_PATH, '');
+    assert.ok(existsSync(path.join(DIST, copy)), `${copy} is referenced but was not generated`);
+  });
+
+  test('every bundled script is fetched after what paints the page', () => {
+    const home = readFileSync(path.join(DIST, 'index.html'), 'utf8');
+    const scripts = [...home.matchAll(/<script type="module"[^>]*\bsrc=[^>]*>/g)].map(match => match[0]);
+    assert.ok(scripts.length > 0);
+    assert.deepEqual(scripts.filter(tag => !tag.includes('fetchpriority="low"')), []);
+  });
+
+  test('the lightbox opens the original, not the narrow copy a phone loaded', () => {
+    const source = readFileSync(path.join(ROOT, 'src', 'scripts', 'copy.ts'), 'utf8');
+    assert.match(source, /image\.src = source\.srcset \? source\.src/);
+  });
+
   test('the OpenAPI description is served exactly when one is configured', () => {
     const spec = path.join(DIST, 'openapi.json');
 

@@ -18,26 +18,35 @@ import { hasOpenApiSpec, OPENAPI_PATH } from '../lib/openapi-spec';
  *    signal that was missing — so the block is gone and the Markdown is offered
  *    to everyone. A crawler that indexes it credits the HTML page.
  *
- * 2. Say out loud what the content may be used for, via Cloudflare's Content
- *    Signals. Not yet a standard — the IETF's AIPREF work is where that lands —
- *    but it is unambiguous, machine-readable, and costs one line.
+ * 2. Say what the content may not be used for, via Cloudflare's Content
+ *    Signals, when the site restricts anything. Not yet a standard (the IETF's
+ *    AIPREF work is where that lands), but machine-readable.
+ *
+ *    Only when something is `no`. A signal that says `yes` to every use states
+ *    what a crawler already assumes, so it changes no one's behaviour, while
+ *    Lighthouse reads the unknown directive as an error and takes 8 points off
+ *    the SEO score. Every documentation site keeps the default and loses
+ *    nothing by omitting the line; a site that answers `ai-train=no` gets it.
  */
 export const GET: APIRoute = ({ site }) => {
-  const signals = Object.entries(seo.contentSignals)
-    .map(([name, value]) => `${name}=${value}`)
-    .join(', ');
+  const entries = Object.entries(seo.contentSignals);
+  const restricts = entries.some(([, value]) => value === 'no');
+  const signals = entries.map(([name, value]) => `${name}=${value}`).join(', ');
 
   const lines = [
-    '# Content-Signal declares how this content may be used.',
-    '#   search:   build a search index, show links and snippets',
-    '#   ai-input: use as grounding for a generated answer',
-    '#   ai-train: use to train or fine-tune a model',
-    '# Documentation exists to be found and quoted, so all three are yes.',
-    '',
+    ...(restricts
+      ? [
+          '# Content-Signal declares how this content may be used.',
+          '#   search:   build a search index, show links and snippets',
+          '#   ai-input: use as grounding for a generated answer',
+          '#   ai-train: use to train or fine-tune a model',
+          '',
+        ]
+      : []),
     'User-agent: *',
     /* Inside the group, not above it: a directive before any User-agent line
        belongs to no group and is skipped by conforming parsers. */
-    `Content-Signal: ${signals}`,
+    ...(restricts ? [`Content-Signal: ${signals}`] : []),
     'Allow: /',
     '',
     '# Named explicitly rather than left to the wildcard above: several of these',

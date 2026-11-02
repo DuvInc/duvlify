@@ -160,9 +160,9 @@ crawler receives finished HTML on the first request rather than an empty shell.
   result.
 - **No AI crawler is blocked by default.** Documentation exists to be found and
   quoted. A site whose content *is* the product would set
-  `seo.contentSignals` differently. Lighthouse lists the `Content-Signal` line
-  in `robots.txt` as an unknown directive, which costs a few points of its SEO
-  score. The directive is real and Lighthouse does not know it yet: keep it.
+  `seo.contentSignals` differently. `robots.txt` carries a `Content-Signal`
+  line only when one of them is `no`: allowing every use is what crawlers
+  assume already, and Lighthouse would count the line as an error.
 
 ## What you trade for this control
 

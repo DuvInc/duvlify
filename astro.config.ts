@@ -6,6 +6,8 @@ import { createRedirectResolver } from './worker/redirects';
 import { assertRedirectTargets } from './scripts/check-redirects.mjs';
 import { rehypeCodeChrome, shikiCodeMeta } from './src/lib/rehype-code-chrome';
 import { rehypeImages } from './src/lib/rehype-images';
+import { imageVariants } from './src/lib/image-variants';
+import { lowPriorityScripts } from './src/lib/script-priority';
 import { rehypeInlineLinks } from './src/lib/rehype-inline-links';
 import { rehypeWrapTables } from './src/lib/rehype-wrap-tables';
 import { remarkMermaid } from './src/lib/remark-mermaid';
@@ -141,5 +143,7 @@ export default defineConfig({
     mdx(),
     warnOnPlaceholderOrigin(),
     { name: 'redirect-targets', hooks: { 'astro:build:done': ({ dir }) => assertRedirectTargets(redirects, dir) } },
+    imageVariants({ basePath }),
+    lowPriorityScripts(),
   ],
 });
