@@ -30,20 +30,21 @@ No hosted service sits between you and your site. No per-seat fee. No app
 framework loads in the visitor's browser. The output is plain HTML files, and
 you own every one of them.
 
+{/* headingLevel 2: these come straight after the page's H1, with no H2 above. */}
 <CardGroup cols={2}>
-  <Card title="Get started" href="/getting-started">
+  <Card title="Get started" href="/getting-started" headingLevel={2}>
     <Icon slot="icon" name="rocket" size={22} />
     Clone it, run one command, and see your site.
   </Card>
-  <Card title="Write a page" href="/guides/authoring">
+  <Card title="Write a page" href="/guides/authoring" headingLevel={2}>
     <Icon slot="icon" name="file" size={22} />
     Add frontmatter to a Markdown file. Its path becomes its URL.
   </Card>
-  <Card title="Serve AI agents" href="/agents/overview">
+  <Card title="Serve AI agents" href="/agents/overview" headingLevel={2}>
     <Icon slot="icon" name="bot" size={22} />
     One endpoint turns your docs into tools an agent can call.
   </Card>
-  <Card title="Deploy it" href="/guides/deployment">
+  <Card title="Deploy it" href="/guides/deployment" headingLevel={2}>
     <Icon slot="icon" name="globe" size={22} />
     Ship it on Cloudflare, or on any static host you already use.
   </Card>

@@ -21,6 +21,9 @@ const headerRuleRegex = rule =>
       .join('')}$`,
   );
 
+/** `/*.webp`: every file with that extension, at any depth. */
+const isExtensionRule = rule => /^\/\*\.[a-z0-9]+$/i.test(rule);
+
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SRC = path.join(ROOT, 'src');
 const distDir = path.join(ROOT, 'dist');
@@ -370,7 +373,12 @@ describe('source guards', () => {
          indented header. `/*` is the catch-all and matches by definition. */
       .filter(line => line.startsWith('/') && line !== '/*');
 
-    const dead = rules.filter(rule => !built.some(file => headerRuleRegex(rule).test(file)));
+    /* A rule by extension (`/*.avif`) is a policy for a kind of file, written
+       before any such file exists, so matching nothing is its normal state.
+       It also cannot carry the prefix mistake this test is for. */
+    const dead = rules
+      .filter(rule => !isExtensionRule(rule))
+      .filter(rule => !built.some(file => headerRuleRegex(rule).test(file)));
 
     assert.deepEqual(
       dead,
@@ -434,6 +442,40 @@ describe('source guards', () => {
       'these paths skip the Worker but have no _headers rule, so they serve at ' +
         "Cloudflare's max-age=0 default — add a Cache-Control rule for each",
     );
+
+    /* And the other way for media: a format given a cache rule but not
+       excluded still costs a Worker invocation on every request. */
+    const routedMedia = headerRules
+      .filter(isExtensionRule)
+      .filter(rule => !excluded.includes(rule));
+
+    assert.deepEqual(
+      routedMedia,
+      [],
+      'these formats have a _headers rule but still run the Worker first: ' +
+        'add "!<rule>" to run_worker_first in wrangler.jsonc',
+    );
+  });
+
+  test('no media rule is appended to the bundle\'s immutable Cache-Control', () => {
+    /*
+     * `_headers` rules combine in file order rather than the most specific one
+     * winning. An image imported into a page is emitted under `/_astro/`, so it
+     * matches both its extension rule and the bundle rule, and Cloudflare sends
+     * both values in one header: `max-age=31536000, immutable, max-age=86400`.
+     * Checked with `wrangler dev`: `! Cache-Control` removes what *earlier*
+     * rules set and nothing that comes after it.
+     */
+    const lines = readFileSync(path.join(ROOT, 'public', '_headers'), 'utf8')
+      .split('\n')
+      .map(line => line.trim());
+    const ruleAt = rule => lines.indexOf(rule);
+    const astro = ruleAt('/_astro/*');
+    const media = lines.filter(isExtensionRule);
+
+    assert.ok(astro >= 0, 'public/_headers has no /_astro/* rule');
+    assert.deepEqual(media.filter(rule => ruleAt(rule) > astro), [], 'these media rules come after /_astro/*');
+    assert.equal(lines[astro + 1], '! Cache-Control', '/_astro/* must detach the media rules first');
   });
 
   test('every content image is sized from the file it points at', () => {
@@ -634,6 +676,31 @@ describe('source guards', () => {
       [],
       'these custom properties are read but never declared, so the rules using them do nothing',
     );
+  });
+
+  test('no selector list is left open, to be adopted by the next rule', () => {
+    /*
+     * Delete the last selector of a list along with its declarations and the
+     * list is still valid CSS: it runs on into whatever rule comes next, and
+     * every selector in it takes that rule's declarations. Nothing fails.
+     *
+     * That is how the balanced-text list (summary, captions, CTA line, banner)
+     * lost `text-wrap: balance` and took the page summary's size, muted colour
+     * and 62ch measure instead. The filled CTA's text, which inherits its colour,
+     * turned grey on black: 3.94:1, under the 4.5:1 floor.
+     *
+     * A list in these stylesheets never spans a blank line, so a comma followed
+     * by one, once comments are gone, is a list that lost its end.
+     */
+    const open = readdirSync(path.join(SRC, 'styles'))
+      .filter(name => name.endsWith('.css'))
+      .filter(name =>
+        /,[ \t]*\n[ \t]*\n/.test(
+          readFileSync(path.join(SRC, 'styles', name), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''),
+        ),
+      );
+
+    assert.deepEqual(open, [], 'these stylesheets have a selector list that runs into the next rule');
   });
 
   test('every language icon URL carries the base path', () => {

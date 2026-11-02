@@ -2,7 +2,7 @@
 title: "Deploying"
 description: "The build is static output. Deploy it to Cloudflare for every feature, or to any static host, with subdomain and subpath options and their costs."
 canonical: "https://duvlify.dev/guides/deployment"
-updated: "2026-10-23"
+updated: "2026-11-02"
 ---
 
 # Deploying
@@ -118,7 +118,7 @@ there matter most:
   with a 301. That would affect every internal link on the site, since Astro
   writes them all without a trailing slash.
 - **`run_worker_first`** lists the paths the Worker sees. Fingerprinted
-  bundles, fonts, share cards, and icons are excluded, so the build serves
+  bundles, fonts, and every image and video are excluded, so the build serves
   most requests straight off the asset path, at no invocation cost.
 
 ### What the Worker adds
@@ -141,13 +141,14 @@ The Worker renders nothing. Every byte still comes out of `dist` through the
   preview URL. Any other host then answers `robots.txt` with `Disallow: /` and
   sends `X-Robots-Tag: noindex, nofollow`. Left unset, every host is indexable.
 
-`run_worker_first` sends documents through the Worker and keeps assets off it,
-one excluded folder at a time. If your pages keep their images beside them, as
-content migrated from Mintlify, Docusaurus or Starlight does
-(`guides/images/x.png`), exclude that layout too, or every image costs a Worker
-invocation. Add `"!/*/images/*"` to `run_worker_first`, and give the same files
-a cache rule in `public/_headers` spelled `/:section/images/*`. `_headers` allows
-one `*` per rule, so `/*/images/*` would be silently ignored there.
+`run_worker_first` sends documents through the Worker and keeps assets off it.
+Images and videos are excluded by extension (`"!/*.webp"`), not by folder, so
+they skip the Worker wherever they live: in `public/screenshots/`, or beside
+their page, as content migrated from Mintlify, Docusaurus or Starlight keeps
+them (`guides/images/x.png`). `public/_headers` gives each extension the same
+cache rule (`/*.webp`). To serve another format, add it to both files, or it
+costs a Worker invocation and is revalidated on every view. A test fails if
+the two lists drift apart.
 
 You can remove the Worker. Delete `main`, `assets.binding`, and
 `run_worker_first` from `wrangler.jsonc`, and the site serves as pure static
@@ -251,7 +252,7 @@ Setting it up:
    ```jsonc
    "routes": [{ "pattern": "example.com/docs/*", "zone_name": "example.com" }],
    "assets": {
-     "run_worker_first": ["/docs/*", "!/docs/_astro/*", "!/docs/og/*", "…"]
+     "run_worker_first": ["/docs/*", "!/docs/_astro/*", "!/docs/*.webp", "…"]
    }
    ```
 
