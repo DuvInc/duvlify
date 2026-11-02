@@ -183,9 +183,14 @@ export function snippetAround(text: string, at: number) {
 interface Field {
   folded: string;
   plain: string;
+  /** Plain, with the hyphen or underscore inside a word removed: "set-up" is "setup". */
+  joined: string;
 }
 
-const asField = (text: string): Field => ({ folded: fold(text), plain: text.toLowerCase() });
+const asField = (text: string): Field => {
+  const plain = text.toLowerCase();
+  return { folded: fold(text), plain, joined: plain.replace(/([a-z0-9])[-_](?=[a-z0-9])/g, '$1') };
+};
 
 /** Occurrences of `word` in an already lower-cased text, by how they line up. */
 function occurrences(text: string, word: string): { exact: number; prefix: number } {
@@ -239,11 +244,17 @@ function qualityOf(text: string, term: { word: string; root?: string }): number 
   return 0;
 }
 
-/** The better of the field's two forms, without paying for the second one twice. */
+/**
+ * The best of the field's forms, each tried only when the one before it did not
+ * already answer in full. The joined form is what lets "setup" find "Set-up".
+ */
 function fieldQuality(field: Field, term: { word: string; root?: string }): number {
-  const folded = qualityOf(field.folded, term);
-  if (folded === 1 || field.folded === field.plain) return folded;
-  return Math.max(folded, qualityOf(field.plain, term));
+  let best = qualityOf(field.folded, term);
+  if (best === 1) return 1;
+  if (field.plain !== field.folded) best = Math.max(best, qualityOf(field.plain, term));
+  if (best === 1) return 1;
+  if (field.joined !== field.plain) best = Math.max(best, qualityOf(field.joined, term));
+  return best;
 }
 
 /** How many times a field carries a term, for term frequency inside a section. */
