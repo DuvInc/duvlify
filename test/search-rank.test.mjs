@@ -153,3 +153,14 @@ test('an exact phrase query outranks a shorter title that only carries one word 
   assert.ok(results[0].score > results[2].score);
   assert.ok(results[1].score > results[2].score);
 });
+
+test('an unfinished last word still earns the phrase bonus, a finished stop word does not', () => {
+  const docs = {
+    quick: [],
+    pages: [
+      page('/a', 'Getting started with the API', 'Guides', 'Intro.', [{ t: 'Start here.' }]),
+      page('/b', 'Started guide for getting data', 'Guides', 'Other.', [{ t: 'Getting data.' }]),
+    ],
+  };
+  assert.equal(rank(docs, 'getting sta')[0].href, '/a');
+});
