@@ -256,13 +256,20 @@ function countOf(field: Field, term: Term): number {
   return root.exact + root.prefix;
 }
 
-/** Whether the whole phrase appears at an exact word boundary. */
+/**
+ * Whether the whole phrase appears at a word boundary.
+ *
+ * The last word may be unfinished ("getting sta" is on its way to "getting
+ * started"), unless it is a stop word: "sign in" is a finished query, and "in"
+ * must not stretch to "integration" and hand DocuSign the phrase bonus.
+ */
 function phraseQuality(field: Field, phrases: string[]): number {
   for (const phrase of phrases) {
     if (!phrase.includes(' ')) continue;
+    const unfinished = !STOP.has(phrase.slice(phrase.lastIndexOf(' ') + 1));
     for (const text of field.folded === field.plain ? [field.folded] : [field.folded, field.plain]) {
       const found = occurrences(text, phrase);
-      if (found.exact > 0) return 1;
+      if (found.exact > 0 || (unfinished && found.prefix > 0)) return 1;
     }
   }
   return 0;
