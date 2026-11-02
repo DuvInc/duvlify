@@ -164,3 +164,16 @@ test('an unfinished last word still earns the phrase bonus, a finished stop word
   };
   assert.equal(rank(docs, 'getting sta')[0].href, '/a');
 });
+
+test('a word typed whole finds the same word written with a hyphen', () => {
+  const docs = {
+    quick: [],
+    pages: [
+      page('/setup', 'Set-up guide', 'Guides', 'First steps.', [{ t: 'Install it.' }]),
+      page('/other', 'Billing', 'Guides', 'Invoices.', [{ t: 'Pay.' }]),
+    ],
+  };
+  assert.equal(rank(docs, 'setup')[0].href, '/setup');
+  assert.equal(rank(docs, 'set-up')[0].href, '/setup');
+  assert.equal(rank(docs, 'set up')[0].href, '/setup');
+});
