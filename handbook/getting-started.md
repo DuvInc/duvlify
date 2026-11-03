@@ -2,7 +2,7 @@
 title: "Getting started"
 description: "Clone Duvlify, run it locally, and understand the four things you will edit (content, navigation, identity and theme) before you deploy."
 canonical: "https://duvlify.dev/getting-started"
-updated: "2026-10-16"
+updated: "2026-11-03"
 ---
 
 # Getting started
