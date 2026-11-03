@@ -2,7 +2,7 @@
 title: "Getting started"
 description: "Clone Duvlify, run it locally, and understand the four things you will edit (content, navigation, identity and theme) before you deploy."
 canonical: "https://duvlify.dev/getting-started"
-updated: "2026-10-16"
+updated: "2026-11-03"
 ---
 
 # Getting started
@@ -17,9 +17,9 @@ an AI agent calls.
 
 1. **Clone and install**
 
-   Node 22.18 or newer. Astro asks only for 22.12, but `npm test` imports
-   TypeScript sources directly, and Node strips the types without a flag only
-   from 22.18. `.nvmrc` pins the major, so `nvm use` gets you the version CI
+   Node 22.22 or newer, the floor Astro asks for. `npm test` also imports
+   TypeScript sources directly, which needs 22.18 or newer, so Astro is the
+   stricter of the two. `.nvmrc` pins the major, so `nvm use` gets you the version CI
    runs. Dependency versions are pinned exactly, so a clone builds the same
    way tomorrow as it does today.
 
