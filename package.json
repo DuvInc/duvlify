@@ -10,7 +10,7 @@
     "url": "git+https://github.com/DuvInc/duvlify.git"
   },
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "astro dev",

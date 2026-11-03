@@ -17,9 +17,9 @@ an AI agent calls.
 
 1. **Clone and install**
 
-   Node 22.22 or newer, the floor Astro asks for. `npm test` also imports
-   TypeScript sources directly, which needs 22.18 or newer, so Astro is the
-   stricter of the two. `.nvmrc` pins the major, so `nvm use` gets you the version CI
+   Node 24 or newer. Astro asks for 22.22 and `npm test` for 22.18, but
+   Node 22 reaches end of life in April 2027, so the floor starts at the
+   current LTS line. `.nvmrc` pins the major, so `nvm use` gets you the version CI
    runs. Dependency versions are pinned exactly, so a clone builds the same
    way tomorrow as it does today.
 
