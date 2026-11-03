@@ -273,6 +273,15 @@ describe('the site-wide banner', () => {
  * made once, is invisible in review, and is one grep away from never recurring.
  */
 describe('source guards', () => {
+  test('Mermaid draws with the classic look, not the library default', () => {
+    /* Mermaid 12 changed the default look to `neo` (hard corners, a drop shadow
+       on every node). Nothing breaks and the diagram still renders, so only a
+       person looking at the page would notice. The look is pinned in the one
+       place that configures Mermaid. */
+    const source = readFileSync(path.join(ROOT, 'src', 'scripts', 'mermaid.ts'), 'utf8');
+    assert.match(source, /look:\s*'classic'/);
+  });
+
   test('every _redirects rule points at something the build produced', () => {
     /*
      * The companion to the `_headers` guard below, for the file whose failure is

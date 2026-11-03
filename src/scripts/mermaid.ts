@@ -151,6 +151,11 @@ async function draw(mermaid: Mermaid, node: HTMLElement): Promise<boolean> {
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
+    /* Mermaid 12 defaults to the `neo` look: hard corners and a drop shadow on
+       every node. `classic` is the flat look this site was designed around, and
+       the rounded corners are the site's own, not Mermaid's. */
+    look: 'classic',
+    themeCSS: '.node rect, .cluster rect { rx: 8px; ry: 8px }',
     theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'neutral',
     fontFamily: bodyFont,
   });
