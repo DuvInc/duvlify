@@ -32,6 +32,8 @@ export interface Passage {
   pageId: string;
   text?: string;
   anchor?: string;
+  /** A lexical passage whose page answers every word of the query. */
+  complete?: boolean;
 }
 
 /** Shape of dist/search-index.json — see src/lib/navigation.ts. */
@@ -101,6 +103,7 @@ async function lexical(env: Env, origin: string, query: string, limit: number): 
   return passages(index, query, limit).map(found => ({
     pageId: pageIdOf(found.page.h),
     anchor: found.section.a,
+    complete: found.complete,
   }));
 }
 
@@ -246,8 +249,19 @@ export async function retrieve(
        *
        * Only a thrown error reaches the fallback below, because that means
        * retrieval was unavailable rather than unfruitful.
+       *
+       * One exception to "empty is an answer": a lexical page that answers
+       * EVERY word of the query, typo correction included. Embeddings and
+       * keywords cannot read a typo ("airtble" scores 0.43 against a 0.54
+       * threshold and matches no keyword), but the lexical pass corrects it to
+       * a word of the corpus and finds the page. A near miss does not count:
+       * "apple pie recipe" matches some of its words, never all, so it still
+       * returns nothing.
        */
-      return { passages: await aiSearch(env, query, limit), backend: 'ai-search' };
+      const semantic = await aiSearch(env, query, limit);
+      if (semantic.length) return { passages: semantic, backend: 'ai-search' };
+      const exact = (await lexical(env, origin, query, limit)).filter(passage => passage.complete);
+      return { passages: exact, backend: 'ai-search' };
     } catch (error) {
       /* Fall through: a retrieval outage should degrade, not take the tool
          down. The lexical path needs no network beyond an asset read. */

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { rank } from '../src/scripts/search-rank.ts';
+import { rank, passages } from '../src/scripts/search-rank.ts';
 import { toSections } from '../src/lib/plain-text.ts';
 
 const page = (h, t, s, d, b = []) => ({ h, t, s, d, k: 'page', b });
@@ -176,4 +176,19 @@ test('a word typed whole finds the same word written with a hyphen', () => {
   assert.equal(rank(docs, 'setup')[0].href, '/setup');
   assert.equal(rank(docs, 'set-up')[0].href, '/setup');
   assert.equal(rank(docs, 'set up')[0].href, '/setup');
+});
+
+test('a passage is complete when its page answers every word, typo corrected, and not for a near miss', () => {
+  assert.ok(passages(index, 'stripe').every(found => found.complete));
+  const docs = {
+    quick: [],
+    pages: [
+      page('/guides/authoring', 'Authoring pages', 'Guides', 'Write pages.', [
+        { h: 'Frontmatter fields', a: 'frontmatter-fields', t: 'Every page starts with frontmatter that names its title.' },
+      ]),
+    ],
+  };
+  assert.ok(passages(docs, 'frontmatr').some(found => found.complete), 'a typo is corrected, then complete');
+  /* "api" and "key" are on a page; "zebra" is on none: a near miss, never complete. */
+  assert.ok(passages(index, 'api key zebra').every(found => !found.complete));
 });

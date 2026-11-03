@@ -96,6 +96,8 @@ export interface Passage {
   page: Page;
   section: Section;
   score: number;
+  /** the page answers every word of the query (after typo correction), not only most of them. */
+  complete?: boolean;
 }
 
 const WEIGHT = { title: 100, heading: 45, description: 22, place: 18, body: 12 } as const;
@@ -692,7 +694,7 @@ export function passages(index: Index, rawQuery: string, limit = 20): Passage[] 
        answers two words out of three ranks below one that answers all three. */
     const coverage = (scored.coverage / terms.length) ** 2;
     for (const entry of scored.sections) {
-      if (entry.score > 0) found.push({ page: page.page, section: entry.prepared.section, score: entry.score * coverage });
+      if (entry.score > 0) found.push({ page: page.page, section: entry.prepared.section, score: entry.score * coverage, complete: scored.coverage === terms.length });
     }
   }
   return found.sort((a, b) => b.score - a.score).slice(0, limit);
