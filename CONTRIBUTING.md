@@ -7,9 +7,9 @@ always welcome, and a large one is worth agreeing on first.
 
 ## Getting set up
 
-Node 22.22 or newer, the floor Astro asks for. The test suite also imports
-TypeScript sources directly, which needs Node 22.18 or newer, so Astro is the
-stricter of the two. `.nvmrc` pins the major, so `nvm use` gets you the same
+Node 24 or newer. Astro asks for 22.22 and the test suite for 22.18, but
+Node 22 reaches end of life in April 2027, so the floor starts at the current
+LTS line. `.nvmrc` pins the major, so `nvm use` gets you the same
 version CI runs.
 
 ```bash

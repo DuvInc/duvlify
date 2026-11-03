@@ -23,6 +23,10 @@ updates:
         update-types: [version-update:semver-major]
       - dependency-name: wrangler
         update-types: [version-update:semver-major]
+      # The types describe the Node floor in package.json, not the newest Node:
+      # a newer major would let code call APIs the floor does not have.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
     groups:
       production:
         dependency-type: production
