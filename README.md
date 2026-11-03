@@ -252,9 +252,9 @@ whether or not you credit them; it applies to your deployment too. See
 
 ## Requirements
 
-Node 22.18 or newer. Astro itself asks only for 22.12, but the test suite
-imports TypeScript sources directly, and Node strips the types without a flag
-only from 22.18. `.nvmrc` pins the major, and CI reads it from there.
+Node 22.22 or newer, the floor Astro asks for. The test suite also imports
+TypeScript sources directly, which needs Node 22.18 or newer, so Astro is the
+stricter of the two. `.nvmrc` pins the major, and CI reads it from there.
 Dependency versions are pinned exactly.
 
 ## Contributing
