@@ -94,8 +94,3 @@
 /search-index.json
   Cache-Control: public, max-age=300, stale-while-revalidate=604800
 
-# Read by sitemap.xml's own `xml-stylesheet` instruction, once per crawler visit
-# rather than once per reader — a browser opening sitemap.xml directly is rare
-# enough not to design around.
-/sitemap.xsl
-  Cache-Control: public, max-age=604800
