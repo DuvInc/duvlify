@@ -55,7 +55,6 @@
       "!/*.mp4",
       "!/*.webm",
       "!/*.svg",
-      "!/sitemap.xsl",
       "!/search-index.json"
     ],
 

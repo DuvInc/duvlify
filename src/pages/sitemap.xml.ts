@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { withBase } from '../docs.config';
 import { lastModifiedFor } from '../lib/last-modified';
 import { getFlatPages, getHomePage } from '../lib/navigation';
 import { byId, getPublishedDocs } from '../lib/published';
@@ -43,8 +42,6 @@ export const GET: APIRoute = async ({ site }) => {
   return new Response(
     [
       '<?xml version="1.0" encoding="UTF-8"?>',
-      /* Renders as a readable page in a browser instead of raw XML. */
-      `<?xml-stylesheet type="text/xsl" href="${withBase('/sitemap.xsl')}"?>`,
       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
       urls,
       '</urlset>',

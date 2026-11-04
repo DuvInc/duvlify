@@ -613,7 +613,6 @@ describe('framework-level links go through withBase', () => {
     { file: 'src/pages/llms.txt.ts', tokens: ["'/llms-full.txt'", "'/mcp'", "'/api/docs'", "'/api/docs/openapi.json'", "'/sitemap.xml'", "'/updates.xml'", 'OPENAPI_PATH'] },
     { file: 'src/pages/robots.txt.ts', tokens: ["'/sitemap.xml'", "'/llms.txt'", "'/llms-full.txt'", "'/updates.xml'", "'/mcp'", "'/api/docs'", 'OPENAPI_PATH'] },
     { file: 'src/components/DocumentHead.astro', tokens: ["'/favicon.svg'", "'/llms.txt'", "'/sitemap.xml'", "'/updates.xml'", 'seo.defaultImage', 'OPENAPI_PATH'] },
-    { file: 'src/pages/sitemap.xml.ts', tokens: ["'/sitemap.xsl'"] },
     /* The feed's own self-URL, and the generated share cards. Both escaped this
        list once: the feed's <link rel="self"> named the origin's /updates.xml,
        and every og:image pointed at an unprefixed /og/… no request would reach. */
