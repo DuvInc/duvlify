@@ -193,6 +193,8 @@ export const withBase = (path: `/${string}`) => `${basePath}${path}` as `/${stri
 
 /** Old page path to final page path, without basePath, trailing slash or .md.
  * Example: '/guides/install': '/getting-started'. Both HTML and Markdown move.
+ * A long map can live in src/redirects.ts: import it and re-export the binding.
+ * Never a spread or computed value here, which the browser bundle would keep.
  */
 export const redirects: Readonly<Record<string, string>> = {};
 
@@ -731,10 +733,10 @@ export const navigation: NavTab[] = [
         label: 'Publishing',
         folder: true,
         icon: 'folder',
-        /* `guides/migrating` is a draft: it stays listed here, and navigation
+        /* `guides/importing` is a draft: it stays listed here, and navigation
            resolution drops it from the built sidebar. Publishing it is one
            frontmatter line, with no config change. */
-        pages: ['guides/deployment', 'guides/internationalization', 'guides/migrating'],
+        pages: ['guides/deployment', 'guides/internationalization', 'guides/migrating', 'guides/importing'],
       },
     ],
   },

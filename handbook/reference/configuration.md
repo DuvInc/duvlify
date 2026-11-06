@@ -257,6 +257,32 @@ Setting `enabled: false` registers no routes, provisions nothing, and skips
 the index upload. A site that wants plain documentation carries none of that
 cost. Full detail in [Serving agents](/agents/overview).
 
+## Long lists in their own files
+
+On a large site the sidebar and the redirect map run to hundreds of lines
+each, and the identity, theme and agent settings get lost between them. Move
+each list to its own file and re-export it from `docs.config.ts`, so every
+consumer still has one import:
+
+```ts title="src/docs.config.ts"
+import { navigation } from './navigation';
+import { redirects } from './redirects';
+
+export { navigation, redirects };
+```
+
+In `src/navigation.ts`, import the types with `import type { NavTab } from
+'./docs.config'`, so the two files do not import each other at run time. A
+script that reads the sidebar can then import `src/navigation.ts` directly
+instead of parsing `docs.config.ts` as text.
+
+Re-export each list as it is. Do not merge maps with a spread or build them
+with code in this file. The browser imports `site` from `docs.config.ts`, and
+the bundler only drops the other exports when it can prove they have no side
+effects. A 300-entry redirect map written as `{ ...a, ...b }` reached every
+visitor's browser; the same map re-exported did not. The test suite fails if
+the browser copy of this file grows past what `site` needs.
+
 ## Also configurable
 
 - [`src/openapi.config.ts`](https://github.com/DuvInc/duvlify/blob/main/src/openapi.config.ts): the OpenAPI document the

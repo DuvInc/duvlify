@@ -16,8 +16,15 @@
  * JSON-LD graph as well, so the pages would stop demonstrating the `APIReference`
  * typing that `seo.apiReferenceTabs` exists to apply.
  *
- * Replace this object with your own OpenAPI 3.1 document, written inline or
- * imported from a JSON file the build can read. Then rewrite the pages under
+ * Replace this object with your own OpenAPI 3.1 document, written inline or,
+ * for a real spec, imported as a JSON module:
+ *
+ *   import spec from './openapi.json' with { type: 'json' };
+ *   export const openapiSpec = spec;
+ *
+ * Never read the file at run time (`readFileSync`). The Worker imports this
+ * module too, for the API catalog, and a Worker has no file system: the build
+ * passes, then the Worker fails at startup. Then rewrite the pages under
  * content/example-api/ to name your own operations, drop that paragraph from
  * `agentInstructions`, and change the tab id in `seo.apiReferenceTabs` if you
  * rename the tab.

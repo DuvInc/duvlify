@@ -60,6 +60,7 @@ The live version of these pages, always current, is at
 - [API reference pages](./guides/api-reference.md)
 - [Deploying](./guides/deployment.md)
 - [Publishing in several languages](./guides/internationalization.md)
+- [Migrating an existing site](./guides/migrating.md)
 
 ### Reference
 

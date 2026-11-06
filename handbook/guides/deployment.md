@@ -187,6 +187,36 @@ Neither variant is needed while `agents.retrieval` is `'lexical'`. The lexical
 index is built into `dist/` and ships with the assets, so `index:sync` detects
 that and exits immediately.
 
+### Preview a pull request
+
+`preview_urls` is on in `wrangler.jsonc`, so an uploaded version can answer at
+its own address while production traffic stays on the deployed one. There are
+two ways to get one.
+
+- **On every push, with Workers Builds.** In the Worker's build settings, turn
+  on builds for non-production branches. A push to any branch other than the
+  production one then uploads a version, with an alias named after the branch.
+- **By hand, for one pull request:**
+
+  ```bash
+  npm run build
+  npx wrangler versions upload --preview-alias pr-42 --message "Pull request 42"
+  ```
+
+  It answers at `https://pr-42-<worker>.<subdomain>.workers.dev`. A new alias
+  can take about a minute before HTTPS works.
+
+A preview is a version of the production Worker, with its bindings and
+secrets. Three things follow:
+
+- Set `INDEXABLE_HOSTS` first (see above), or the preview host is indexable.
+- Do not run `npm run deploy` or `index:sync` for a preview. Semantic search
+  has one index, and the preview would replace production's pages in it with
+  the branch's. A preview's semantic search therefore answers from production
+  pages. Lexical search ships in `dist/`, so it matches the branch.
+- A third-party widget with a domain allowlist (a chat, a feedback form,
+  analytics) rejects the preview host until you add it.
+
 ## Where the documentation lives under your domain
 
 Two shapes, chosen with one setting:

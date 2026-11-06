@@ -23,8 +23,26 @@ MDX restates a field name.
 ## Point the build at a spec
 
 [`src/openapi.config.ts`](https://github.com/DuvInc/duvlify/blob/main/src/openapi.config.ts)
-exports one object: an OpenAPI 3.1 document. Write it inline, or import it from
-a JSON file the build can read.
+exports one object: an OpenAPI 3.1 document. Write it inline, as below, or
+import your spec file as a JSON module, which is the usual case for a real API:
+
+```ts title="src/openapi.config.ts"
+import spec from './openapi.json' with { type: 'json' };
+
+export const openapiSpec = spec;
+```
+
+Import it, never read it with `readFileSync`. The Worker that serves search and
+the MCP server bundles this module, and a Worker has no file system. A file
+read passes the build, then the Worker fails at startup.
+
+A YAML spec converts once, and you commit the JSON:
+
+```bash
+npx yaml --single --json --indent 2 < openapi.yaml > src/openapi.json
+```
+
+The inline form looks like this:
 
 ```ts title="src/openapi.config.ts"
 export const openapiSpec = {
@@ -163,6 +181,35 @@ shape suits a person but not a tool writing code against the API. Such a tool
 needs the exact parameter names, the enum members, and the response schema,
 not a description of them. Publishing the source document costs one route and
 removes the entire class of "the docs said the field was optional" mistakes.
+
+### Serve it as YAML too
+
+Postman, code generators and existing links often expect `/openapi.yaml`. To
+keep that URL without a second copy of the spec, add `yaml` to your
+dependencies and generate the file from the same object:
+
+```ts title="src/pages/[openapi].yaml.ts"
+import type { APIRoute } from 'astro';
+import { stringify } from 'yaml';
+import { openapiSpec } from '../openapi.config';
+import { hasOpenApiSpec } from '../lib/openapi-spec';
+
+export function getStaticPaths() {
+  return hasOpenApiSpec ? [{ params: { openapi: 'openapi' } }] : [];
+}
+
+export const GET: APIRoute = () =>
+  new Response(stringify(openapiSpec, { lineWidth: 0, version: '1.1' }), {
+    headers: {
+      'Content-Type': 'application/yaml; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+    },
+  });
+```
+
+`version: '1.1'` quotes values such as `2026-08-01`, `yes` or `on`. Without it
+they are written bare, and a YAML 1.1 reader turns them into a date or a
+boolean.
 
 ## Writing parameter fields by hand
 

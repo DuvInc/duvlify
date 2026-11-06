@@ -13,7 +13,16 @@ import path from 'node:path';
  * A page can override this with `updated:` in its frontmatter, for the case
  * where the commit history overstates a change (a typo fix should not reset a
  * page's age) or understates one (content moved between files).
+ *
+ * A commit whose message has the line `Page-dates: keep` is skipped. That is
+ * for the bulk change that touches many files without changing what they say:
+ * removing dead frontmatter keys from 284 migrated pages would otherwise have
+ * marked all 284 as updated that day, in the sitemap, the updates feed and
+ * every page's `dateModified`. On a squash merge the line must survive into the
+ * final message, so check what the repository's squash setting keeps.
  */
+
+export const KEEP_DATES_TRAILER = 'Page-dates: keep';
 
 const cache = new Map<string, Date | null>();
 
@@ -26,7 +35,11 @@ export function gitLastModified(contentPath: string): Date | null {
 
   if (existsSync(absolute)) {
     try {
-      const iso = execFileSync('git', ['log', '-1', '--format=%cI', '--', absolute], {
+      const iso = execFileSync('git', [
+        'log', '-1', '--format=%cI',
+        '--invert-grep', `--grep=^${KEEP_DATES_TRAILER}$`,
+        '--', absolute,
+      ], {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'ignore'],
       }).trim();
