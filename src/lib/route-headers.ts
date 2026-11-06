@@ -19,8 +19,10 @@ import { fileURLToPath } from 'node:url';
  * wrote: a site with no spec gets no `/openapi.json` rule. A test fails when a
  * route sets a header of its own instead of reading it from this table.
  *
- * Keys are `_headers` rules: an exact path, or `/*.ext` for every file with
- * that extension. Images are left out: their extension already gives the type.
+ * Keys are `_headers` rules, matched as Cloudflare matches them: `:name` is one
+ * path segment and `*` the rest, so `/*.md`, `/:locale/search-index.json` and
+ * `/openapi/*` all work. Images are left out: their extension already gives
+ * the type.
  */
 export const ROUTE_HEADERS = {
   '/openapi.json': {
@@ -57,13 +59,20 @@ function builtFiles(dir: string, base = dir): string[] {
   });
 }
 
+/** A `_headers` rule as a regular expression over built paths. */
+export const ruleRegex = (rule: string) =>
+  new RegExp(`^${rule
+    .split(/(:[A-Za-z_]\w*|\*)/)
+    .map(part => (part === '*' ? '.*' : part.startsWith(':') ? '[^/]+' : part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')))
+    .join('')}$`);
+
 /** The rules this build needs, as `_headers` text: one per table entry that matches a built file. */
-export function routeHeaderRules(files: readonly string[]): string {
-  const blocks = Object.entries(ROUTE_HEADERS)
-    .filter(([rule]) => {
-      const extension = rule.match(/^\/\*(\.[a-z0-9]+)$/i)?.[1];
-      return extension ? files.some(file => file.endsWith(extension)) : files.includes(rule);
-    })
+export function routeHeaderRules(
+  files: readonly string[],
+  table: Readonly<Record<string, Readonly<Record<string, string>>>> = ROUTE_HEADERS,
+): string {
+  const blocks = Object.entries(table)
+    .filter(([rule]) => files.some(file => ruleRegex(rule).test(file)))
     .map(([rule, headers]) => [
       rule,
       /* `!` first: the host has already chosen a Content-Type from the
