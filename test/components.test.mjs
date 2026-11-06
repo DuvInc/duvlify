@@ -442,6 +442,22 @@ describe('source guards', () => {
     assert.ok(Object.keys(ROUTE_HEADERS).length > 0);
   });
 
+  test('no hand-written _headers rule repeats a generated header', () => {
+    /* Cloudflare applies every matching rule, and `! Name` in a later rule does
+       not cancel an earlier one. A sibling site kept a hand-written OpenAPI rule
+       next to the generated one and sent each header twice. */
+    const repeated = [];
+    let rule = null;
+    for (const line of readFileSync(path.join(ROOT, 'public', '_headers'), 'utf8').split('\n')) {
+      if (line.startsWith('/')) rule = line.trim();
+      else if (rule && /^\s+[A-Za-z-]+:/.test(line)) {
+        const name = line.trim().split(':')[0].toLowerCase();
+        if (Object.keys(ROUTE_HEADERS[rule] ?? {}).some(key => key.toLowerCase() === name)) repeated.push(`${rule} ${name}`);
+      }
+    }
+    assert.deepEqual(repeated, [], 'remove these from public/_headers: src/lib/route-headers.ts already sets them');
+  });
+
   test('no _headers rule has a second splat, which Cloudflare silently ignores', () => {
     // `_headers` allows one splat per rule. A second one is not an error: the
     // rule just never applies, its files serve at `max-age=0` and nothing says
