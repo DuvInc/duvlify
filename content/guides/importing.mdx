@@ -1,0 +1,29 @@
+---
+title: Importing a published site
+description: The planned importer that turns a published documentation site into content, navigation and a redirect map, and checks the result.
+icon: download
+draft: true
+---
+
+<Callout title="This page is a draft" tone="warning">
+  This page is listed in the navigation config, and one line of frontmatter
+  excludes it from the built site. It has no route, no sidebar entry, and
+  nothing an agent can reach. It is here because the work is real and planned,
+  not to hold a place.
+</Callout>
+
+<Steps>
+  <Step title="A content importer">
+    This will fetch a published site, rewrite its MDX, re-encode its images,
+    and emit `content/` plus a starting `navigation` block.
+  </Step>
+  <Step title="A redirect map">
+    This map will be generated from the old URL structure rather than
+    assembled by hand, because a hand-written redirect map is where a
+    migration silently loses pages.
+  </Step>
+  <Step title="A verification pass">
+    This pass will assert that every page in the old sitemap resolves in the
+    new build, so the migration is checked rather than spot-read.
+  </Step>
+</Steps>

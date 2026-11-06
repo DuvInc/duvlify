@@ -1,10 +1,13 @@
 import { test, describe, before } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 /* The search index's section splitter, imported so the anchor tests below
    exercise the shipped code. Node strips the types on import. */
 import { toSections } from '../src/lib/plain-text.ts';
+import { gitLastModified, KEEP_DATES_TRAILER } from '../src/lib/last-modified.ts';
 
 /**
  * The publication rules, asserted against a real build.
@@ -711,5 +714,60 @@ describe('search sections keep their anchors', () => {
     const [section] = toSections(body, headings);
     assert.equal(section.h, 'Serving list_pages');
     assert.equal(section.a, 'serving-list_pages', 'a decorated heading missed the slug lookup and lost its anchor');
+  });
+});
+
+describe('page dates', () => {
+  test(`a commit with "${KEEP_DATES_TRAILER}" does not re-date the pages it touches`, () => {
+    const repo = mkdtempSync(path.join(os.tmpdir(), 'duvlify-dates-'));
+    const git = (date, ...args) =>
+      execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', '-c', 'commit.gpgsign=false', ...args], {
+        cwd: repo,
+        stdio: 'ignore',
+        env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date },
+      });
+    const cwd = process.cwd();
+    try {
+      git('2026-01-01T00:00:00Z', 'init', '-q');
+      writeFileSync(path.join(repo, 'page.mdx'), 'first');
+      git('2026-01-01T00:00:00Z', 'add', '.');
+      git('2026-01-01T00:00:00Z', 'commit', '-q', '-m', 'Write the page');
+      writeFileSync(path.join(repo, 'page.mdx'), 'first, minus a dead key');
+      git('2026-03-01T00:00:00Z', 'commit', '-q', '-am', `Remove dead frontmatter\n\n${KEEP_DATES_TRAILER}`);
+      writeFileSync(path.join(repo, 'other.mdx'), 'other');
+      git('2026-03-01T00:00:00Z', 'add', '.');
+      git('2026-03-01T00:00:00Z', 'commit', '-q', '-m', 'Write another page');
+
+      process.chdir(repo);
+      assert.equal(gitLastModified('page.mdx')?.toISOString(), '2026-01-01T00:00:00.000Z');
+      assert.equal(gitLastModified('other.mdx')?.toISOString(), '2026-03-01T00:00:00.000Z');
+    } finally {
+      process.chdir(cwd);
+      rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('browser bundle', () => {
+  test('the browser copy of docs.config.ts carries only what the browser reads', () => {
+    /*
+     * The browser imports `site` from docs.config.ts. The bundler drops every
+     * other export only when it can prove the value has no side effects, so a
+     * redirect map merged with a spread, or a navigation built with code, ships
+     * to every visitor. A 267-entry redirect map once did, for nothing: the
+     * Worker answers redirects. `site` today is about 1.5 KB.
+     */
+    const assets = path.join(DIST, '_astro');
+    if (!existsSync(assets)) return;
+    const LIMIT = 8 * 1024;
+    const heavy = readdirSync(assets)
+      .filter(name => /^docs\.config\..*\.js$/.test(name))
+      .map(name => ({ name, size: readFileSync(path.join(assets, name)).length }))
+      .filter(chunk => chunk.size > LIMIT);
+    assert.deepEqual(
+      heavy,
+      [],
+      'docs.config.ts ships more than `site` to the browser. Re-export long lists as plain bindings, see Configuration > Long lists in their own files',
+    );
   });
 });

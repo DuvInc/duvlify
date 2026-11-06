@@ -16,13 +16,18 @@ import path from 'node:path';
  * feeds, MCP tool descriptions and replies). Code comments are skipped, and so
  * are stylesheets, tests and scripts: none of those is copy.
  *
- * A site built on this framework with its own `content/` in another language
- * should drop `content/` and `handbook/` from ROOTS rather than edit its prose.
+ * A site built on this framework whose `content/` follows other rules (another
+ * language, or a corpus migrated with hundreds of em dashes) sets DOC_ROOTS to
+ * `[]`. Keep the rest: the strings in `src/` and `worker/` are still this
+ * framework's own copy. Do not turn a failure into a warning, and do not delete
+ * the file: a check that cannot fail checks nothing, and both of those have
+ * happened.
  */
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const EM_DASH = '—';
 
+/* Set to [] when your documentation does not follow this rule. See above. */
 const DOC_ROOTS = ['content', 'handbook'];
 const DOC_EXT = /\.mdx?$/;
 const CODE_ROOTS = ['src', 'worker'];

@@ -2,7 +2,7 @@
 title: "Frontmatter"
 description: "Every field a page can declare, what it controls, and which fields the build requires, as defined and enforced in src/content.config.ts."
 canonical: "https://duvlify.dev/reference/frontmatter"
-updated: "2026-10-23"
+updated: "2026-11-06"
 ---
 
 # Frontmatter
@@ -74,6 +74,14 @@ file, instead of writing its own filter. This keeps the meaning of
 
 Set `updated` when a change is substantial and the commit history does not
 show that. A typo fix should not reset a page's freshness.
+
+A change that touches many pages without changing what they say, such as
+removing a frontmatter key from every file, should not re-date them all. Put
+the line `Page-dates: keep` in its commit message, and the build dates each
+page from the commit before it. With squash merges, the line has to reach the
+merged commit. If the repository's squash message uses the commit details,
+write it in the commit. If it uses the pull request description, write it
+there.
 
 ## Social
 

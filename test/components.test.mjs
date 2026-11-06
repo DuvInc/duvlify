@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 
 import { cssColor, cssCounter, cssCustomProperties } from '../src/lib/css-value.ts';
+import { mp4Size } from '../src/lib/mp4-size.ts';
 import { rehypeInlineLinks } from '../src/lib/rehype-inline-links.ts';
 import { slugify } from '../src/lib/slug.ts';
 
@@ -487,7 +488,7 @@ describe('source guards', () => {
     assert.equal(lines[astro + 1], '! Cache-Control', '/_astro/* must detach the media rules first');
   });
 
-  test('every content image is sized from the file it points at', () => {
+  test('every content image and video is sized from the file it points at', () => {
     /*
      * `width`/`height` on a content image exist to stop the article jumping as
      * each screenshot arrives, so a *wrong* pair is worse than none: the browser
@@ -525,6 +526,7 @@ describe('source guards', () => {
        read: anything else legitimately has no intrinsic size to check. */
     const sizeOf = file => {
       const header = readFileSync(file);
+      if (/\.(mp4|m4v|mov)$/i.test(file)) return mp4Size(header);
       if (header.length > 24 && header.toString('ascii', 1, 4) === 'PNG') {
         return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
       }
@@ -550,7 +552,13 @@ describe('source guards', () => {
     for (const page of pages) {
       const html = readFileSync(page, 'utf8');
       const pattern = /<img\b[^>]*?src="([^"]+\.(?:png|webp))"[^>]*?width="(\d+)"[^>]*?height="(\d+)"/gi;
-      for (const [, src, width, height] of html.matchAll(pattern)) {
+      /* A recording names its file on the element or on its first <source>. */
+      const videos = [
+        ...html.matchAll(/<video\b[^>]*?src="([^"]+)"[^>]*?width="(\d+)"[^>]*?height="(\d+)"/gi),
+        ...[...html.matchAll(/<video\b[^>]*?width="(\d+)"[^>]*?height="(\d+)"[^>]*>\s*<source\b[^>]*?src="([^"]+)"/gi)]
+          .map(([all, width, height, src]) => [all, src, width, height]),
+      ];
+      for (const [, src, width, height] of [...html.matchAll(pattern), ...videos]) {
         if (checked.has(src) || !src.startsWith('/')) continue;
         const relative = basePath && src.startsWith(`${basePath}/`) ? src.slice(basePath.length) : src;
         const file = path.join(ROOT, 'public', relative.replace(/^\//, ''));
@@ -929,5 +937,50 @@ describe('prose links', () => {
     assert.ok(links.length > 0, 'no paragraph on the page links anywhere, which cannot be right');
     const unstyled = links.map(match => match[1]).filter(a => !/class="[^"]*\binline\b/.test(a));
     assert.deepEqual(unstyled, [], 'a prose link is missing .inline, so it renders as plain text');
+  });
+});
+
+describe('MP4 display size', () => {
+  /* A box: 32-bit size, four-letter type, body. */
+  const box = (type, ...body) => {
+    const content = Buffer.concat(body);
+    const head = Buffer.alloc(8);
+    head.writeUInt32BE(8 + content.length);
+    head.write(type, 4, 'ascii');
+    return Buffer.concat([head, content]);
+  };
+  /* A track header with the display size as 16.16 fixed point, version 0 or 1. */
+  const tkhd = (width, height, version = 0) => {
+    const body = Buffer.alloc(version === 1 ? 96 : 84);
+    body[0] = version;
+    body.writeUInt32BE(width * 65536, body.length - 8);
+    body.writeUInt32BE(height * 65536, body.length - 4);
+    return box('tkhd', body);
+  };
+  const file = (...tracks) =>
+    Buffer.concat([box('ftyp', Buffer.from('isom')), box('moov', ...tracks.map(t => box('trak', t)))]);
+
+  test('reads the video track, skipping an audio track before it', () => {
+    assert.deepEqual(mp4Size(file(tkhd(0, 0), tkhd(1280, 720))), { width: 1280, height: 720 });
+  });
+
+  test('reads a version 1 track header, whose time fields are 64-bit', () => {
+    assert.deepEqual(mp4Size(file(tkhd(1920, 1080, 1))), { width: 1920, height: 1080 });
+  });
+
+  test('finds moov after a large mdat with a 64-bit size', () => {
+    const mdat = Buffer.alloc(16 + 32);
+    mdat.writeUInt32BE(1);
+    mdat.write('mdat', 4, 'ascii');
+    mdat.writeBigUInt64BE(BigInt(mdat.length), 8);
+    assert.deepEqual(
+      mp4Size(Buffer.concat([box('ftyp', Buffer.from('isom')), mdat, box('moov', box('trak', tkhd(640, 360)))])),
+      { width: 640, height: 360 },
+    );
+  });
+
+  test('answers null for a file with no sized track, or no MP4 at all', () => {
+    assert.equal(mp4Size(file(tkhd(0, 0))), null);
+    assert.equal(mp4Size(Buffer.from('not a video at all')), null);
   });
 });

@@ -14,6 +14,8 @@
  *                      also just unpleasant to read.
  *
  * Dimensions come from the file in public/, so they cannot disagree with it.
+ * A `<video>` gets the same width and height, read from its MP4 (mp4-size.ts),
+ * because a screen recording jumps the page exactly as a screenshot would.
  *
  * That sentence used to be untrue, and the exception cost a real layout shift.
  * A bulk importer that re-encodes screenshots already knows the sizes it
@@ -38,13 +40,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { basePath } from '../docs.config';
 import { responsiveAttributes } from './image-variants';
+import { mp4Size, type Size } from './mp4-size';
 import type { Element, Root } from 'hast';
 
 interface Parent {
   children?: unknown[];
 }
-
-type Size = { width: number; height: number };
 
 const dimensions = new Map<string, Size | null>();
 
@@ -139,11 +140,13 @@ function intrinsicSize(src: string) {
       } else if (header.length > 30 && header.toString('ascii', 0, 4) === 'RIFF'
         && header.toString('ascii', 8, 12) === 'WEBP') {
         result = webpSize(header);
+      } else if (/\.(mp4|m4v|mov)$/i.test(file)) {
+        result = mp4Size(header);
       }
     }
   }
 
-  /* Only if the file could not be read or its format is not one of the three
+  /* Only if the file could not be read or its format is not one of those
      above. A manifest entry is a copy of what some earlier tool measured, so it
      is trusted last and never against the file's own answer. */
   result ??= manifest[src] ?? null;
@@ -170,8 +173,42 @@ interface JsxNode {
   attributes?: JsxAttribute[];
 }
 
-const isJsxImage = (node: JsxNode) =>
-  (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') && node.name === 'img';
+const isJsx = (node: JsxNode, name: string) =>
+  (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') && node.name === name;
+
+const jsxValue = (node: JsxNode, name: string) => {
+  const value = node.attributes?.find(a => a.type === 'mdxJsxAttribute' && a.name === name)?.value;
+  return typeof value === 'string' ? value : undefined;
+};
+
+/**
+ * A recording gets the same reserved box as a still. Its file is named either
+ * on the element or on its first `<source>`, and both are common. Only the
+ * size is added: `loading` and `decoding` are not video attributes, and
+ * playback flags are the author's call.
+ */
+function applyToJsxVideo(node: JsxNode & { children?: unknown[] }) {
+  if (jsxValue(node, 'width') || jsxValue(node, 'height')) return;
+  const source = (node.children as JsxNode[] | undefined)?.find(child => isJsx(child, 'source'));
+  const src = jsxValue(node, 'src') ?? (source && jsxValue(source, 'src'));
+  const size = src && intrinsicSize(src);
+  if (!size) return;
+  (node.attributes ??= []).push(
+    { type: 'mdxJsxAttribute', name: 'width', value: String(size.width) },
+    { type: 'mdxJsxAttribute', name: 'height', value: String(size.height) },
+  );
+}
+
+function applyToVideo(node: Element) {
+  if (node.properties.width || node.properties.height) return;
+  const source = node.children.find((child): child is Element =>
+    child.type === 'element' && child.tagName === 'source');
+  const src = node.properties.src ?? source?.properties.src;
+  const size = typeof src === 'string' && intrinsicSize(src);
+  if (!size) return;
+  node.properties.width = size.width;
+  node.properties.height = size.height;
+}
 
 function applyToJsx(node: JsxNode) {
   const attributes = (node.attributes ??= []);
@@ -228,7 +265,9 @@ export function rehypeImages() {
       for (const child of node.children as (Element & JsxNode)[]) {
         if (!child) continue;
         if (child.type === 'element' && child.tagName === 'img') applyToElement(child);
-        else if (isJsxImage(child)) applyToJsx(child);
+        else if (child.type === 'element' && child.tagName === 'video') applyToVideo(child);
+        else if (isJsx(child, 'img')) applyToJsx(child);
+        else if (isJsx(child, 'video')) applyToJsxVideo(child);
         /* Recurse regardless: most content images live inside a <Frame>, which
            is itself an MDX node rather than a plain element. */
         else visit(child as Parent);
