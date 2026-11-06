@@ -3,6 +3,7 @@ import { seo, site as siteConfig } from '../docs.config';
 import { getFlatPages, getHomePage } from '../lib/navigation';
 import { byId, getPublishedDocs } from '../lib/published';
 import { toPageMarkdown } from '../lib/markdown';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * /llms-full.txt — the optional homepage, then every sidebar page's Markdown,
@@ -34,6 +35,6 @@ export const GET: APIRoute = async ({ site }) => {
       ].join('\n'),
       ...documents,
     ].join('\n\n---\n\n'),
-    { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
+    { headers: headersFor('/llms-full.txt') },
   );
 };

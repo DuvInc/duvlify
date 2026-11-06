@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { lastModifiedFor } from '../lib/last-modified';
 import { getFlatPages, getHomePage } from '../lib/navigation';
 import { byId, getPublishedDocs } from '../lib/published';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * One flat sitemap: the optional homepage first, then the docs in sidebar
@@ -47,6 +48,6 @@ export const GET: APIRoute = async ({ site }) => {
       '</urlset>',
       '',
     ].join('\n'),
-    { headers: { 'Content-Type': 'application/xml; charset=utf-8' } },
+    { headers: headersFor('/sitemap.xml') },
   );
 };

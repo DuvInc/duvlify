@@ -192,6 +192,7 @@ import type { APIRoute } from 'astro';
 import { stringify } from 'yaml';
 import { openapiSpec } from '../openapi.config';
 import { hasOpenApiSpec } from '../lib/openapi-spec';
+import { headersFor } from '../lib/route-headers';
 
 export function getStaticPaths() {
   return hasOpenApiSpec ? [{ params: { openapi: 'openapi' } }] : [];
@@ -199,12 +200,17 @@ export function getStaticPaths() {
 
 export const GET: APIRoute = () =>
   new Response(stringify(openapiSpec, { lineWidth: 0, version: '1.1' }), {
-    headers: {
-      'Content-Type': 'application/yaml; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
-    },
+    headers: headersFor('/openapi.yaml'),
   });
 ```
+
+The headers come from
+[`src/lib/route-headers.ts`](https://github.com/DuvInc/duvlify/blob/main/src/lib/route-headers.ts),
+which already has a `/openapi.yaml` entry. A route's own headers are only sent
+by `astro dev`: the build keeps the body. At the end of the build, that file
+writes the same headers into `dist/_headers` for every file the build
+produced, so the YAML is served with its type and a CORS header in production
+too.
 
 `version: '1.1'` quotes values such as `2026-08-01`, `yes` or `on`. Without it
 they are written bare, and a YAML 1.1 reader turns them into a date or a

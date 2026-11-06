@@ -387,9 +387,9 @@ walkthroughs.
 
 | Host | What to set beyond `dist` |
 | --- | --- |
-| **Netlify** | Nothing. `public/_headers` and `public/_redirects` are that platform's own syntax and are copied into `dist/` unchanged. |
+| **Netlify** | Nothing. `public/_headers` and `public/_redirects` are that platform's own syntax and are copied into `dist/`, and the build appends the generated files' headers to `dist/_headers`. |
 | **Cloudflare Pages** | Nothing, and both files work here too. You lose the Worker, so read the note at the end of this section. |
-| **Vercel** | `"trailingSlash": false` in `vercel.json`, so `/page` is not redirected. Translate `_headers` into that file's `headers` array, and `_redirects` into `redirects`. Neither file is read. |
+| **Vercel** | `"trailingSlash": false` in `vercel.json`, so `/page` is not redirected. Translate the built `dist/_headers` (not only `public/_headers`: the build appends the headers of `llms.txt`, `openapi.json` and the other generated files) into that file's `headers` array, and `_redirects` into `redirects`. Neither file is read. |
 | **GitHub Pages** | See the callout below. It is the host with the most to configure and the one thing you cannot have. |
 | **S3 + CloudFront** | Directory URLs need resolving: point CloudFront at the S3 *website* endpoint, which appends `index.html` to a path, or attach a CloudFront Function that does it. Set `Content-Type` on upload: S3 does not infer it, so `.md` arrives as `application/octet-stream` without help. Headers belong in a response headers policy. |
 | **nginx, Caddy, any origin you run** | `try_files $uri $uri/index.html =404;` or the equivalent, `types { text/markdown md; }`, and the headers from `_headers` by hand. |

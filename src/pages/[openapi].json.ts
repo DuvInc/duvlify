@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { openapiSpec } from '../openapi.config';
 import { hasOpenApiSpec } from '../lib/openapi-spec';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * The API description, served whole at /openapi.json.
@@ -23,10 +24,5 @@ export function getStaticPaths() {
 
 export const GET: APIRoute = () =>
   new Response(JSON.stringify(openapiSpec, null, 2), {
-    headers: {
-      /* The type registered for OpenAPI 3.1; agents sniffing for it look here
-         before they look at the extension. */
-      'Content-Type': 'application/openapi+json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
-    },
+    headers: headersFor('/openapi.json'),
   });
