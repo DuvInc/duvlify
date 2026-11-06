@@ -72,7 +72,7 @@ export function initToc() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') sync();
   });
-  document.addEventListener('duvlify:view-change', () => {
+  document.addEventListener('docs:view-change', () => {
     active = null;
     sync();
   });

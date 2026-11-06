@@ -61,7 +61,7 @@ const PLAIN_LANGUAGES = new Set(['plain', 'plaintext', 'text', 'txt']);
  * only stage that sees the raw meta, so it has to happen here.
  */
 export const shikiCodeMeta: ShikiTransformer = {
-  name: 'duvlify:code-meta',
+  name: 'code-meta',
   pre(node) {
     const raw = (this.options.meta as { __raw?: string } | undefined)?.__raw ?? '';
     const title = raw.match(/title="([^"]+)"/)?.[1] ?? raw.match(/title=([^\s"]+)/)?.[1];

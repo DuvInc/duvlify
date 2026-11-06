@@ -16,7 +16,7 @@
  * frame, every write lands in a single natural layout and the reads that follow
  * are free.
  */
-import { site } from '../docs.config';
+import { site, storageKey } from '../docs.config';
 import { initAgentAccess } from './agent';
 import { initApiReference } from './api-reference';
 import { initCodeBlocks } from './code';
@@ -31,7 +31,7 @@ import { initRichComponents } from './rich-components';
 
 /* ── Phase one: mutate and bind, no geometry reads ───────────────────────── */
 
-const theme = initTheme(site.themeStorageKey);
+const theme = initTheme(storageKey('theme'));
 const mobileNav = initMobileNav();
 const pageMenu = initPageMenu();
 const search = initSearch(site.searchIndexPath);

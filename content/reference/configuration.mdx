@@ -309,6 +309,7 @@ The list below orders them by how soon each one will cause a problem.
 | `SITE_URL`, falling back to `astro.config.ts` → `site` | `https://docs.example.com` | Canonical tags, the sitemap, `llms.txt` and the agent manifest all name a host that is not yours. The site looks fine and the SEO points elsewhere. Guarded twice: see [Set the origin first](/guides/deployment#set-the-origin-first). |
 | `wrangler.jsonc` → `name` | `duvlify-docs` | Your first deploy creates a Worker under that name, or collides with one. |
 | `src/docs.config.ts` → `site`, `seo`, `theme` | Duvlify's own identity | Cosmetic, and obvious on first render. |
+| `src/docs.config.ts` → `site.storagePrefix` | `duvlify` | Your readers' browsers keep their colour mode, tab choice and dismissed banner under this project's name. Set it once, before launch: changing it later resets those choices. |
 | `src/docs.config.ts` → `agents.aiSearchInstance` | `duvlify-docs` | The build reads this only when `retrieval` is `'ai-search'`. It stays inert until then. |
 | `src/openapi.config.ts` | an empty stub | The build emits nothing and advertises no spec, which is the right behaviour for a site with no API of its own. |
 | `content/` | Duvlify's documentation | You publish someone else's docs. Delete the folder and write your own. |
@@ -342,7 +343,9 @@ perfectly while pointing at the wrong place.
 | `public/_redirects` | Holds one redirect from this site's own URL history, which yours has no reason to serve. |
 | `handbook/` | The frozen manual. Keep it while you need it, delete it when you do not, and never regenerate it: see [Architecture](/reference/architecture). |
 
-Nothing under `src/components/`, `src/styles/` or `worker/` names this project.
+Nothing under `src/` or `worker/` names this project, except the values in
+`src/docs.config.ts` and the example spec in `src/openapi.config.ts`. A test
+keeps it that way.
 That is a deliberate property rather than a coincidence, and the one worth
 relying on: if a rebrand ever requires editing those, the configuration has a
 gap. To find whatever this table has missed:
@@ -359,6 +362,32 @@ grep -ril 'duvlify\|duvinc' . --exclude-dir=node_modules --exclude-dir=dist \
   typeface, which carry their own attribution terms and are served to your
   readers whether or not you credit them, so it applies to your deployment too.
 </Callout>
+
+## Keeping a fork up to date
+
+A site built on Duvlify is a fork: its `src/`, `worker/` and `test/` come from
+here, and it improves when this repository does. There is no upgrade command.
+What worked for a 360-page fork:
+
+- **Record the upstream commit you synced to**, in the sync's commit message
+  (`port Duvlify engine <from>..<to>`). The next sync starts from it.
+- **Fetch upstream into your repository** before merging, so Git has both
+  histories: `git fetch <duvlify clone> +refs/heads/main:refs/remotes/duvlify/main`.
+  A plain `git apply -3` of the upstream diff fails with "repository lacks the
+  necessary blob", then rejects whole files.
+- **Merge file by file** with `git merge-file -p --diff3 <yours> <base> <upstream>`.
+  The engine is `src/` (except the values in `docs.config.ts` and
+  `openapi.config.ts`), `worker/`, `scripts/`, `test/` and `astro.config.ts`.
+  `content/`, `handbook/`, `public/` assets and the names in `wrangler.jsonc`
+  are yours.
+- **Mark your own changes** in engine files with a comment naming your site.
+  On a conflict, upstream wins outside those marks.
+- **Take upstream whole when both sides built the same thing.** A line-level
+  merge of two versions of one feature duplicates functions. Copy the upstream
+  file, then re-add your marked blocks.
+- **Prove it on the build.** `npm test` passes, and on a preview version each
+  generated file (`/openapi.json`, `/llms.txt`, `/updates.xml`) answers with
+  its headers exactly once.
 
 ## Secrets
 

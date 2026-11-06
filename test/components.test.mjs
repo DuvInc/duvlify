@@ -458,6 +458,33 @@ describe('source guards', () => {
     assert.deepEqual(repeated, [], 'remove these from public/_headers: src/lib/route-headers.ts already sets them');
   });
 
+  test('no engine code names this project', () => {
+    /*
+     * A fork keeps src/ and worker/ in step with upstream, so a project name in
+     * engine code either ships to the fork's readers (browser storage keys, the
+     * 404 copy) or forks the file. softr-docs found five such names on its first
+     * sync. Values belong in docs.config.ts; comments are history and may name it.
+     */
+    const files = [];
+    const walk = dir => {
+      for (const item of readdirSync(dir, { withFileTypes: true })) {
+        const next = path.join(dir, item.name);
+        if (item.isDirectory()) walk(next);
+        else if (/\.(ts|astro|mjs)$/.test(item.name)) files.push(next);
+      }
+    };
+    walk(SRC);
+    walk(path.join(ROOT, 'worker'));
+    const allowed = new Set(['docs.config.ts', 'openapi.config.ts'].map(name => path.join(SRC, name)));
+    const named = files
+      .filter(file => !allowed.has(file))
+      .flatMap(file => readFileSync(file, 'utf8').split('\n')
+        .map((line, index) => ({ line: line.trim(), at: `${path.relative(ROOT, file)}:${index + 1}` }))
+        .filter(({ line }) => /duvlify/i.test(line) && !/^(\*|\/\/|\/\*|<!--)/.test(line))
+        .map(({ line, at }) => `${at}: ${line}`));
+    assert.deepEqual(named, [], 'move these values to src/docs.config.ts');
+  });
+
   test('no _headers rule has a second splat, which Cloudflare silently ignores', () => {
     // `_headers` allows one splat per rule. A second one is not an error: the
     // rule just never applies, its files serve at `max-age=0` and nothing says

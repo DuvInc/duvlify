@@ -1,5 +1,6 @@
 import { $, $$ } from './dom';
 import { createSelect } from './dropdown';
+import { storageKey } from '../docs.config';
 
 /**
  * Components that participate in the page shell rather than only their slot.
@@ -41,7 +42,7 @@ function initBanner() {
   };
 
   try {
-    if (localStorage.getItem('duvlify-dismissed-banner') === key) return dismiss();
+    if (localStorage.getItem(storageKey('dismissed-banner')) === key) return dismiss();
   } catch { /* Storage may be blocked; the banner simply stays dismissible. */ }
 
   /*
@@ -59,7 +60,7 @@ function initBanner() {
   }).observe(banner);
 
   $('[data-banner-dismiss]', banner)?.addEventListener('click', () => {
-    try { localStorage.setItem('duvlify-dismissed-banner', key); } catch { /* no-op */ }
+    try { localStorage.setItem(storageKey('dismissed-banner'), key); } catch { /* no-op */ }
     dismiss();
   });
 }
@@ -125,7 +126,7 @@ function initViews() {
       const target = document.getElementById(decodeURIComponent(link.hash.slice(1)));
       link.hidden = Boolean(target?.closest<HTMLElement>('[data-content-view]')?.hidden);
     });
-    document.dispatchEvent(new CustomEvent('duvlify:view-change'));
+    document.dispatchEvent(new CustomEvent('docs:view-change'));
   };
 
   const select = createSelect({

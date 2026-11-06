@@ -240,8 +240,18 @@ export const site = {
    * site whose home is its first documentation page.
    */
   homePageId: 'index' as string | undefined,
-  /** localStorage key for the visitor's colour-mode choice. */
-  themeStorageKey: 'duvlify-theme',
+  /**
+   * Prefix of everything the site keeps in a reader's browser: `<prefix>-theme`
+   * (colour mode), `<prefix>-tab-choice` (the tab a reader picked in `Tabs`) and
+   * `<prefix>-dismissed-banner`. Name it after your site, or a fork writes this
+   * project's name into its readers' storage. Changing it resets those choices.
+   */
+  storagePrefix: 'duvlify',
+  /** The 404 page's heading and subtitle. Leave undefined for a plain "Page not found". */
+  notFound: {
+    title: 'This page wandered off.',
+    subtitle: 'The page may have moved, or the link is taking a creative detour.',
+  } as { title: string; subtitle: string } | undefined,
   /**
    * Built by src/pages/search-index.json.ts, fetched on first search.
    *
@@ -303,6 +313,10 @@ export const site = {
  * fighting: the Markdown twin of each page is offered to assistants and
  * withheld from classic search (see src/pages/robots.txt.ts).
  */
+
+/** A key in the reader's browser storage, under this site's own prefix. */
+export const storageKey = (name: 'theme' | 'tab-choice' | 'dismissed-banner') => `${site.storagePrefix}-${name}`;
+
 export const seo = {
   /** Publisher identity, emitted as an Organization node in the JSON-LD graph. */
   organization: {
