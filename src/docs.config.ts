@@ -302,6 +302,9 @@ export const site = {
   ],
 } as const;
 
+/** A key in the reader's browser storage, under this site's own prefix. */
+export const storageKey = (name: 'theme' | 'tab-choice' | 'dismissed-banner') => `${site.storagePrefix}-${name}`;
+
 /**
  * Search and generative-engine settings.
  *
@@ -313,10 +316,6 @@ export const site = {
  * fighting: the Markdown twin of each page is offered to assistants and
  * withheld from classic search (see src/pages/robots.txt.ts).
  */
-
-/** A key in the reader's browser storage, under this site's own prefix. */
-export const storageKey = (name: 'theme' | 'tab-choice' | 'dismissed-banner') => `${site.storagePrefix}-${name}`;
-
 export const seo = {
   /** Publisher identity, emitted as an Organization node in the JSON-LD graph. */
   organization: {

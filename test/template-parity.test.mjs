@@ -61,6 +61,7 @@ test('a redirect may only target a page that was actually built', async t => {
   const root = pathToFileURL(`${directory}/`);
   assert.doesNotThrow(() => assertRedirectTargets({ '/old': '/guide', '/welcome': '/' }, root));
   assert.throws(() => assertRedirectTargets({ '/old': '/guied' }, root), /missing page.*guied/);
+  assert.throws(() => assertRedirectTargets({ '/guide': '/' }, root), /also a published page/);
   await mkdir(join(directory, 'draft.html'));
   assert.throws(() => assertRedirectTargets({ '/old': '/draft' }, root), /missing page.*draft/);
 });

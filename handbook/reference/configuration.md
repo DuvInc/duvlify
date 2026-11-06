@@ -30,8 +30,9 @@ Use paths without `basePath`, a trailing slash, or a `.md` suffix. The Worker
 returns a permanent HTTP 301 for both the HTML page and its Markdown twin,
 preserving query parameters and adding the deployment prefix. External
 destinations, missing target pages, loops, and chains fail the build. Point each old path directly
-at its final page, and remove the old content file so discovery lists only
-the current page.
+at its final page, and remove the old content file: the build also fails when
+an old path is still a published page, because the sitemap, `llms.txt` and the
+agent manifest would keep listing a URL that answers 301.
 
 ## `site`: identity
 
