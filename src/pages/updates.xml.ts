@@ -4,6 +4,7 @@ import { lastModifiedFor } from '../lib/last-modified';
 import { markdownUrl } from '../lib/markdown-url';
 import { getFlatPages, getHomePage } from '../lib/navigation';
 import { byId, descriptionOf, getPublishedDocs } from '../lib/published';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * /updates.xml — the pages that changed most recently, newest first.
@@ -83,6 +84,6 @@ export const GET: APIRoute = async ({ site }) => {
       '</feed>',
       '',
     ].join('\n'),
-    { headers: { 'Content-Type': 'application/atom+xml; charset=utf-8' } },
+    { headers: headersFor('/updates.xml') },
   );
 };

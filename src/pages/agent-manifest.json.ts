@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { buildAgentManifest } from '../lib/agent-manifest';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * /agent-manifest.json — the build's description of itself, for the Worker.
@@ -16,8 +17,5 @@ import { buildAgentManifest } from '../lib/agent-manifest';
  */
 export const GET: APIRoute = async ({ site }) =>
   new Response(JSON.stringify(await buildAgentManifest(site)), {
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
-    },
+    headers: headersFor('/agent-manifest.json'),
   });

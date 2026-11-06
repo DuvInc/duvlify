@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { cssColor, cssCounter, cssCustomProperties } from '../src/lib/css-value.ts';
 import { mp4Size } from '../src/lib/mp4-size.ts';
+import { ROUTE_HEADERS, routeHeaderRules } from '../src/lib/route-headers.ts';
 import { rehypeInlineLinks } from '../src/lib/rehype-inline-links.ts';
 import { slugify } from '../src/lib/slug.ts';
 
@@ -395,6 +396,50 @@ describe('source guards', () => {
       [],
       'these _headers rules match no built file, so their headers are never sent',
     );
+  });
+
+  test('the headers each route sets reach the built _headers', () => {
+    /*
+     * A route's Response headers exist in `astro dev` only: the build writes the
+     * body and drops them. /openapi.json went out as plain `application/json`
+     * with no CORS header, and the Atom feed as `application/xml`, while the
+     * route code said otherwise. The rules are appended at build time from
+     * src/lib/route-headers.ts; this checks they arrived.
+     */
+    if (!existsSync(distDir)) return;
+    const built = [];
+    const walk = dir => {
+      for (const item of readdirSync(dir, { withFileTypes: true })) {
+        const next = path.join(dir, item.name);
+        if (item.isDirectory()) walk(next);
+        else built.push(`/${path.relative(distDir, next).split(path.sep).join('/')}`);
+      }
+    };
+    walk(distDir);
+    const expected = routeHeaderRules(built);
+    assert.ok(expected.includes('/llms.txt'), 'the build wrote no llms.txt, so this test checks nothing');
+    assert.ok(
+      readFileSync(path.join(distDir, '_headers'), 'utf8').includes(expected),
+      'dist/_headers is missing the generated route rules: is routeHeaders() in astro.config.ts?',
+    );
+  });
+
+  test('no route sets a header outside src/lib/route-headers.ts', () => {
+    const routes = [];
+    const walk = dir => {
+      for (const item of readdirSync(dir, { withFileTypes: true })) {
+        const next = path.join(dir, item.name);
+        if (item.isDirectory()) walk(next);
+        /* An image route's type is its extension, which every host gets right. */
+        else if (/\.ts$/.test(item.name) && !/\.png\.ts$/.test(item.name)) routes.push(next);
+      }
+    };
+    walk(path.join(SRC, 'pages'));
+    const own = routes
+      .filter(file => /['"](Content-Type|Access-Control-Allow-Origin)['"]\s*:/i.test(readFileSync(file, 'utf8')))
+      .map(file => path.relative(ROOT, file));
+    assert.deepEqual(own, [], 'these routes set headers that only `astro dev` would send. Add them to ROUTE_HEADERS and use headersFor()');
+    assert.ok(Object.keys(ROUTE_HEADERS).length > 0);
   });
 
   test('no _headers rule has a second splat, which Cloudflare silently ignores', () => {

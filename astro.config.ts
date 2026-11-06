@@ -12,6 +12,7 @@ import { rehypeInlineLinks } from './src/lib/rehype-inline-links';
 import { rehypeWrapTables } from './src/lib/rehype-wrap-tables';
 import { remarkMermaid } from './src/lib/remark-mermaid';
 import { remarkVideoEmbed } from './src/lib/remark-video-embed';
+import { routeHeaders } from './src/lib/route-headers';
 import { loadEnvFile } from './scripts/env-file.mjs';
 import { PLACEHOLDER_ORIGIN, warnOnPlaceholderOrigin } from './scripts/check-origin.mjs';
 
@@ -145,5 +146,6 @@ export default defineConfig({
     { name: 'redirect-targets', hooks: { 'astro:build:done': ({ dir }) => assertRedirectTargets(redirects, dir) } },
     imageVariants({ basePath }),
     lowPriorityScripts(),
+    routeHeaders(),
   ],
 });

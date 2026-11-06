@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSearchIndex } from '../lib/navigation';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * The full-text search index, as one static file built once.
@@ -9,5 +10,5 @@ import { getSearchIndex } from '../lib/navigation';
  */
 export const GET: APIRoute = async () =>
   new Response(JSON.stringify(await getSearchIndex()), {
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    headers: headersFor('/search-index.json'),
   });

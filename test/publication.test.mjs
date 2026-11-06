@@ -636,7 +636,9 @@ describe('framework-level links go through withBase', () => {
       for (const token of tokens) {
         const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const total = (body.match(new RegExp(escaped, 'g')) ?? []).length;
-        const wrapped = (body.match(new RegExp(`withBase\\(\\s*${escaped}`, 'g')) ?? []).length;
+        /* `headersFor('/updates.xml')` names a _headers rule, which is matched
+           against the built path without the base, so it is not a link. */
+        const wrapped = (body.match(new RegExp(`(withBase|headersFor)\\(\\s*${escaped}`, 'g')) ?? []).length;
         assert.equal(
           wrapped,
           total,

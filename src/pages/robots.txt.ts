@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { agents, seo, withBase } from '../docs.config';
 import { hasOpenApiSpec, OPENAPI_PATH } from '../lib/openapi-spec';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * robots.txt, doing two jobs.
@@ -75,6 +76,6 @@ export const GET: APIRoute = ({ site }) => {
   ];
 
   return new Response(lines.join('\n'), {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    headers: headersFor('/robots.txt'),
   });
 };

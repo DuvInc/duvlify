@@ -3,6 +3,7 @@ import { agents, seo, site as siteConfig, withBase } from '../docs.config';
 import { getNavigation } from '../lib/navigation';
 import { hasOpenApiSpec, OPENAPI_PATH } from '../lib/openapi-spec';
 import { byId, getPublishedDocs } from '../lib/published';
+import { headersFor } from '../lib/route-headers';
 
 /**
  * /llms.txt — a map of the documentation for assistants, following the
@@ -64,6 +65,6 @@ export const GET: APIRoute = async ({ site }) => {
       `- [Documentation home](${url(siteConfig.home)}): the browsable site, with search and navigation.`,
       '',
     ].join('\n'),
-    { headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
+    { headers: headersFor('/llms.txt') },
   );
 };
