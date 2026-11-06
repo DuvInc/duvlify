@@ -2,7 +2,7 @@
 title: "Migrating an existing site"
 description: "Bringing a documentation set over from Mintlify, Docusaurus, or Starlight, with what carries across, what to convert, and how to brief an agent to do it."
 canonical: "https://duvlify.dev/guides/migrating"
-updated: "2026-10-23"
+updated: "2026-11-06"
 ---
 
 # Migrating an existing site
