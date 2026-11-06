@@ -50,7 +50,7 @@ export const PLACEHOLDER_ORIGIN = 'https://docs.example.com';
 export function warnOnPlaceholderOrigin() {
   let site;
   return {
-    name: 'duvlify:check-origin',
+    name: 'check-origin',
     hooks: {
       'astro:config:done': ({ config }) => {
         site = config.site;

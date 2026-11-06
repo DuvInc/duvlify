@@ -118,6 +118,11 @@ there matter most:
   bundles, fonts, and every image and video are excluded, so the build serves
   most requests straight off the asset path, at no invocation cost.
 
+**Node version.** `.nvmrc` pins Node 24, and Workers Builds reads it. A build
+trigger that sets a `NODE_VERSION` variable wins over the file: change both in
+the same commit, or the next production build may run an older Node, which
+Astro refuses.
+
 ### What the Worker adds
 
 The Worker renders nothing. Every byte still comes out of `dist` through the

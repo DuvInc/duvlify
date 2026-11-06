@@ -86,7 +86,7 @@ export function imageVariants({ basePath = '' }: { basePath?: string } = {}): As
     hooks: {
       'astro:build:done': async ({ dir, logger }) => {
         const dist = fileURLToPath(dir);
-        const cache = path.resolve('node_modules/.cache/duvlify-image-variants');
+        const cache = path.resolve('node_modules/.cache/image-variants');
 
         /* What the pages ask for, read back from the HTML, so a copy exists if
            and only if something references it. */

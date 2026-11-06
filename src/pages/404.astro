@@ -21,9 +21,9 @@ const tabs = await getNavigation();
 const context = { tabs, activeTab: tabs[0], breadcrumb: '' };
 ---
 <DocsLayout
-  title="This page wandered off."
+  title={site.notFound?.title ?? 'Page not found'}
   description="The documentation page you asked for does not exist."
-  subtitle="The page may have moved, or the link is taking a creative detour."
+  subtitle={site.notFound?.subtitle ?? 'The page may have moved, or the link is out of date.'}
   headings={[]}
   pageActions={false}
   seo={{}}

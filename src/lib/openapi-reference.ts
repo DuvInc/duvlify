@@ -103,7 +103,7 @@ export function getApiReference(data: ApiPageData, document: unknown = spec): Ap
   const pathItem = spec.paths?.[data.apiPath];
   const operation = pathItem?.[method];
   if (!operation) {
-    throw new Error(`OpenAPI operation ${data.apiMethod} ${data.apiPath} is missing from public/openapi.yaml.`);
+    throw new Error(`OpenAPI operation ${data.apiMethod} ${data.apiPath} is missing from the OpenAPI document (src/openapi.config.ts).`);
   }
 
   const server = operation.servers?.[0]?.url ?? pathItem.servers?.[0]?.url ?? spec.servers?.[0]?.url ?? '';

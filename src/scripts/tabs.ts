@@ -11,6 +11,7 @@ import { $, $$ } from './dom';
 import { makeCopyButton, wireCopy } from './code';
 import { languageIconUrl } from '../lib/language-icon';
 import { createSelect, type Select } from './dropdown';
+import { storageKey } from '../docs.config';
 
 let groupIndex = 0;
 
@@ -41,7 +42,7 @@ function languageIcon(panel: HTMLElement, label: string) {
  *
  * The same signature is the storage key, so the choice outlives the page.
  */
-const CHOICE_KEY = 'duvlify-tab-choice';
+const CHOICE_KEY = storageKey('tab-choice');
 
 const syncs = (group: HTMLElement) => group.dataset.tabSync !== 'false';
 
