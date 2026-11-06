@@ -52,7 +52,7 @@ export const ROUTE_HEADERS = {
 
 export type RouteHeaderRule = keyof typeof ROUTE_HEADERS;
 
-function builtFiles(dir: string, base = dir): string[] {
+export function builtFiles(dir: string, base = dir): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap(item => {
     const next = path.join(dir, item.name);
     return item.isDirectory() ? builtFiles(next, base) : [`/${path.relative(base, next).split(path.sep).join('/')}`];
@@ -66,15 +66,23 @@ export const ruleRegex = (rule: string) =>
     .map(part => (part === '*' ? '.*' : part.startsWith(':') ? '[^/]+' : part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')))
     .join('')}$`);
 
-/** The rules this build needs, as `_headers` text: one per table entry that matches a built file. */
+/**
+ * The rules this build needs, as `_headers` text: one per table entry that
+ * matches a built file. `files` are paths inside Astro's outDir. `prefix` is for
+ * a site whose `_headers` sits above that folder (outDir `dist/docs`, assets
+ * root `dist`): each rule is written as `prefix + rule`.
+ */
 export function routeHeaderRules(
   files: readonly string[],
-  table: Readonly<Record<string, Readonly<Record<string, string>>>> = ROUTE_HEADERS,
+  { table = ROUTE_HEADERS, prefix = '' }: {
+    table?: Readonly<Record<string, Readonly<Record<string, string>>>>;
+    prefix?: string;
+  } = {},
 ): string {
   const blocks = Object.entries(table)
     .filter(([rule]) => files.some(file => ruleRegex(rule).test(file)))
     .map(([rule, headers]) => [
-      rule,
+      `${prefix}${rule}`,
       /* `!` first: the host has already chosen a Content-Type from the
          extension, and a second value would be appended to it, not replace it. */
       ...Object.keys(headers).map(name => `  ! ${name}`),
