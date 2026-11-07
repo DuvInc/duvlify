@@ -21,9 +21,11 @@ import { storageKey } from '../docs.config';
     const viewport = document.querySelector('[data-sidebar-viewport]');
     const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
     if (viewport && saved && saved.tab === viewport.dataset.sidebarTab) {
-      const folders = viewport.querySelectorAll('details');
+      /* The navigation tree only: the category switcher above it is a details
+         too, a menu that must stay closed, and it holds an active link of its own. */
+      const folders = viewport.querySelectorAll('nav details');
       folders.forEach((folder, index) => { folder.open = saved.open.includes(index); });
-      for (let node = viewport.querySelector('a.active'); node && node !== viewport; node = node.parentElement) {
+      for (let node = viewport.querySelector('nav a.active'); node && node !== viewport; node = node.parentElement) {
         if (node.tagName === 'DETAILS') node.open = true;
       }
       viewport.scrollTop = saved.top;

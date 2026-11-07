@@ -1113,6 +1113,11 @@ describe('moving between pages', () => {
     assert.match(nav, /sessionStorage\.setItem\(storageKey\('sidebar'\)/);
     assert.match(nav, /addEventListener\('pagehide'/);
     assert.match(restore, /storageKey\('sidebar'\)/);
+    /* The category switcher is a details too, and a menu: saving or restoring
+       it with the folders left it open and shifted the tree on every page. */
+    assert.match(nav, /querySelectorAll(<HTMLDetailsElement>)?\('nav details'\)/);
+    assert.match(restore, /querySelectorAll\('nav details'\)/);
+    assert.match(restore, /querySelector\('nav a\.active'\)/);
   });
 
   test('the chrome swaps in place while only the page crossfades', () => {
