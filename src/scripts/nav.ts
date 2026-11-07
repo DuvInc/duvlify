@@ -115,7 +115,7 @@ export function rememberSidebar() {
   if (!viewport) return;
   const save = () => {
     const open: number[] = [];
-    viewport.querySelectorAll('details').forEach((folder, index) => { if (folder.open) open.push(index); });
+    viewport.querySelectorAll('nav details').forEach((folder, index) => { if (folder.open) open.push(index); });
     try {
       sessionStorage.setItem(storageKey('sidebar'), JSON.stringify({ tab: viewport.dataset.sidebarTab, top: viewport.scrollTop, open }));
     } catch { /* storage blocked: the next page starts at the top */ }
