@@ -1091,3 +1091,36 @@ describe('scrolling', () => {
     assert.doesNotMatch(shell, /overscroll-behavior(-x)?:\s*none/);
   });
 });
+
+describe('moving between pages', () => {
+  test('the sidebar is restored before the article is parsed, so it never paints at the top', t => {
+    const page = path.join(distDir, 'getting-started', 'index.html');
+    if (!existsSync(page)) return t.skip('nothing built');
+    const html = readFileSync(page, 'utf8');
+    const sidebarEnd = html.indexOf('data-sidebar-scrollbar');
+    const restore = html.indexOf('sessionStorage.getItem');
+    const article = html.indexOf('id="article"');
+
+    assert.match(html, /data-sidebar-viewport[^>]*data-sidebar-tab="[^"]+"/, 'the sidebar does not say which tab it belongs to');
+    /* Inline and between the two: a bundled module runs after the first paint,
+       which is the flash this exists to remove. */
+    assert.ok(restore > sidebarEnd && restore < article, 'the restore script is not inline right after the sidebar');
+  });
+
+  test('the page saves the sidebar as it leaves, under the same key it restores', () => {
+    const nav = readFileSync(path.join(SRC, 'scripts', 'nav.ts'), 'utf8');
+    const restore = readFileSync(path.join(SRC, 'components', 'SidebarRestore.astro'), 'utf8');
+    assert.match(nav, /sessionStorage\.setItem\(storageKey\('sidebar'\)/);
+    assert.match(nav, /addEventListener\('pagehide'/);
+    assert.match(restore, /storageKey\('sidebar'\)/);
+  });
+
+  test('the chrome swaps in place while only the page crossfades', () => {
+    const shell = readFileSync(path.join(SRC, 'styles', 'shell.css'), 'utf8');
+    assert.match(shell, /@view-transition\s*\{\s*navigation:\s*auto\s*\}/);
+    for (const name of ['topbar', 'categorybar', 'sidebar']) {
+      assert.match(shell, new RegExp(`view-transition-name:\\s*${name}\\b`), `${name} is not named, so it would fade with the page`);
+    }
+    assert.match(shell, /prefers-reduced-motion:reduce\)\s*\{\s*@view-transition\s*\{\s*navigation:\s*none/);
+  });
+});

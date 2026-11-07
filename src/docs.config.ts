@@ -303,7 +303,7 @@ export const site = {
 } as const;
 
 /** A key in the reader's browser storage, under this site's own prefix. */
-export const storageKey = (name: 'theme' | 'tab-choice' | 'dismissed-banner') => `${site.storagePrefix}-${name}`;
+export const storageKey = (name: 'theme' | 'tab-choice' | 'dismissed-banner' | 'sidebar') => `${site.storagePrefix}-${name}`;
 
 /**
  * Search and generative-engine settings.

@@ -1,4 +1,5 @@
 /** Mobile navigation drawer, and the sidebar's overlay scrollbar. */
+import { storageKey } from '../docs.config';
 import { $, $$ } from './dom';
 
 export function initMobileNav() {
@@ -101,4 +102,23 @@ export function revealActiveNavLink() {
   const frame = viewport.getBoundingClientRect();
   if (link.bottom > frame.top && link.top < frame.bottom) return;
   viewport.scrollTop += link.top - frame.top - frame.height / 3;
+}
+
+/**
+ * Saves the sidebar's scroll and open folders as the page is left, for
+ * SidebarRestore to put back before the next page paints. Folders are saved by
+ * position: the tree is the same on every page of a tab, and the tab is saved
+ * alongside so another tab's tree never reads them.
+ */
+export function rememberSidebar() {
+  const viewport = $('[data-sidebar-viewport]');
+  if (!viewport) return;
+  const save = () => {
+    const open: number[] = [];
+    viewport.querySelectorAll('details').forEach((folder, index) => { if (folder.open) open.push(index); });
+    try {
+      sessionStorage.setItem(storageKey('sidebar'), JSON.stringify({ tab: viewport.dataset.sidebarTab, top: viewport.scrollTop, open }));
+    } catch { /* storage blocked: the next page starts at the top */ }
+  };
+  addEventListener('pagehide', save);
 }

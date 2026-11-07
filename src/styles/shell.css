@@ -1871,6 +1871,29 @@ body[data-navigation-mode='unified-sidebar'] {
     transition: none!important;
   }
 }
+/* Moving between pages. The browser keeps the old frame until the new page is
+   ready and swaps them in one step, so nothing is drawn half-built. The bars
+   and the sidebar are named, so they swap in place with no fade: to the reader
+   they never move (SidebarRestore has already put the sidebar's scroll back).
+   Only the page underneath crossfades, briefly. */
+@view-transition { navigation: auto }
+.topbar { view-transition-name: topbar }
+.categorybar { view-transition-name: categorybar }
+.sidebar { view-transition-name: sidebar }
+:is(::view-transition-group(topbar), ::view-transition-group(categorybar), ::view-transition-group(sidebar)),
+:is(::view-transition-new(topbar), ::view-transition-new(categorybar), ::view-transition-new(sidebar)) {
+  animation: none;
+}
+:is(::view-transition-old(topbar), ::view-transition-old(categorybar), ::view-transition-old(sidebar)) {
+  display: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 120ms;
+}
+@media(prefers-reduced-motion:reduce) {
+  @view-transition { navigation: none }
+}
 @media(min-width:761px) {
   .article {
     min-height: calc(100vh - var(--shell-top));

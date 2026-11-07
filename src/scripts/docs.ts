@@ -22,7 +22,7 @@ import { initApiReference } from './api-reference';
 import { initCodeBlocks } from './code';
 import { initAssistantLinks, initCopyButtons, initCopyPage, initLightbox, initPageMenu } from './copy';
 import { initMermaid } from './mermaid';
-import { initMobileNav, initSidebarScrollbar, revealActiveNavLink } from './nav';
+import { initMobileNav, initSidebarScrollbar, rememberSidebar, revealActiveNavLink } from './nav';
 import { initSearch } from './search';
 import { initTabs } from './tabs';
 import { initTheme } from './theme';
@@ -78,6 +78,7 @@ document.addEventListener('keydown', event => {
 setTimeout(() => {
   initSidebarScrollbar();
   revealActiveNavLink();
+  rememberSidebar();
   initToc();
   /* Only registers an observer; the library itself is fetched when a diagram
      nears the viewport. */

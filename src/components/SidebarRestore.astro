@@ -1,0 +1,32 @@
+---
+/**
+ * Puts the sidebar back where the reader left it, before the first paint.
+ *
+ * Every page is a full document, so without this the sidebar of the next page
+ * is drawn scrolled to the top, then jumps once the bundled scripts run: a
+ * flash and a jump on every click. `rememberSidebar()` (src/scripts/nav.ts)
+ * saves the scroll and the open folders as the page is left; this restores
+ * them synchronously, right after the sidebar's markup and before anything is
+ * painted. It is the second script that has to stay inline, for the same
+ * reason as ThemeBootstrap.
+ *
+ * Only within the same tab: another tab is another tree, and its saved indexes
+ * would point at different folders. The folders holding the current page are
+ * opened whatever was saved, so the active link is never hidden.
+ */
+import { storageKey } from '../docs.config';
+---
+<script is:inline define:vars={{ key: storageKey('sidebar') }}>
+  try {
+    const viewport = document.querySelector('[data-sidebar-viewport]');
+    const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+    if (viewport && saved && saved.tab === viewport.dataset.sidebarTab) {
+      const folders = viewport.querySelectorAll('details');
+      folders.forEach((folder, index) => { folder.open = saved.open.includes(index); });
+      for (let node = viewport.querySelector('a.active'); node && node !== viewport; node = node.parentElement) {
+        if (node.tagName === 'DETAILS') node.open = true;
+      }
+      viewport.scrollTop = saved.top;
+    }
+  } catch { /* storage blocked: the sidebar simply starts at the top */ }
+</script>
