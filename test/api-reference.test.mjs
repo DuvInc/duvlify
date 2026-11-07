@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { getApiReference } from '../src/lib/openapi-reference.ts';
+import { methodChipLabel } from '../src/lib/method-label.ts';
 
 const endpoint = { apiMethod: 'POST', apiPath: '/search/{index}', description: 'Search.' };
 
@@ -155,4 +156,10 @@ test('the Markdown twin of an endpoint carries its reference', async () => {
   const deepMd = apiMarkdown(getApiReference({ apiMethod: 'GET', apiPath: '/deep', description: '' }, deepSpec));
   assert.match(deepMd, /\*\*204\*\*: nothing\n\nNo response body\./);
   assert.ok(deepMd.includes('`next.next.next`'), 'nested fields are named by their full path');
+});
+
+test('a method chip reads the same in the sidebar and in search: upper case, DELETE shortened', () => {
+  assert.equal(methodChipLabel('get'), 'GET');
+  assert.equal(methodChipLabel('PATCH'), 'PATCH');
+  assert.equal(methodChipLabel('delete'), 'DEL');
 });

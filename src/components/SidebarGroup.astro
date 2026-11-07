@@ -8,6 +8,7 @@
  */
 import Icon from './Icon.astro';
 import type { GroupNode } from '../lib/navigation';
+import { methodChipLabel } from '../lib/method-label';
 
 interface Props {
   node: GroupNode;
@@ -35,7 +36,7 @@ const open = holdsCurrent(node) || group.defaultOpen;
     {page.icon && <Icon name={page.icon} size={16} />}
     {page.apiMethod && (
       <small class="api-nav-method" data-method={page.apiMethod}>
-        {page.apiMethod === 'DELETE' ? 'DEL' : page.apiMethod}
+        {methodChipLabel(page.apiMethod)}
       </small>
     )}
     <span>{page.label}</span>{page.badge && <em>{page.badge}</em>}

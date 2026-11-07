@@ -94,8 +94,13 @@
 .api-article .api-method {
   flex: none;
   min-width: 42px;
+  /* Same centring as the sidebar chip: fixed height, flex, line-height 1. */
+  align-items: center;
   justify-content: center;
-  padding: 4px 8px;
+  height: 24px;
+  padding: 0 8px;
+  font-weight: 700;
+  line-height: 1;
 }
 .api-article .mdx-content > .endpoint-row:first-child {
   display: none;
@@ -458,24 +463,30 @@
   height: 16px;
   padding: 0 3px;
   border-radius: 5px;
-  background: var(--c-sunken-strong);
-  color: var(--c-mute);
   font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 700;
+  font-size: 9px;
+  font-weight: 600;
   line-height: 1;
   text-align: center;
   letter-spacing: -.02em;
 }
-:is(.api-nav-method, .api-method)[data-method='GET'] { background: #ecfdf3; color: #18794e }
-:is(.api-nav-method, .api-method)[data-method='POST'] { background: #eef4ff; color: #2a52c9 }
-:is(.api-nav-method, .api-method)[data-method='PUT'],
-:is(.api-nav-method, .api-method)[data-method='PATCH'] { background: #fff8e6; color: #946200 }
-:is(.api-nav-method, .api-method)[data-method='DELETE'] { background: #fff0f0; color: #c23131 }
-[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='GET'] { background: rgb(24 121 78 / .18); color: #77d5a7 }
-[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='POST'] { background: rgb(56 106 245 / .18); color: #9bb4ff }
-[data-theme='dark'] :is(.api-nav-method, .api-method):is([data-method='PUT'],[data-method='PATCH']) { background: rgb(148 98 0 / .2); color: #f2c45e }
-[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='DELETE'] { background: rgb(194 49 49 / .2); color: #ff9b9b }
+/* Colours go through two variables so the dark theme only swaps values and can
+   never lose a specificity fight to the light rules. Tints are saturated enough
+   to stand out from a grey bar (the first ones, #ecfdf3, vanished on it); every
+   text colour keeps at least 4.5:1 on its own tint. Any other method falls back
+   to the neutral, theme-aware surface. */
+:is(.api-nav-method, .api-method)[data-method] {
+  background: var(--method-bg, var(--c-sunken-strong));
+  color: var(--method-fg, var(--c-mute));
+}
+:is(.api-nav-method, .api-method)[data-method='GET'] { --method-bg: #d7f5e3; --method-fg: #0d7040 }
+:is(.api-nav-method, .api-method)[data-method='POST'] { --method-bg: #dce6ff; --method-fg: #2348c4 }
+:is(.api-nav-method, .api-method):is([data-method='PUT'], [data-method='PATCH']) { --method-bg: #fdecc4; --method-fg: #7f5100 }
+:is(.api-nav-method, .api-method)[data-method='DELETE'] { --method-bg: #fde0e0; --method-fg: #b02020 }
+[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='GET'] { --method-bg: rgb(34 160 100 / .26); --method-fg: #8fe3b8 }
+[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='POST'] { --method-bg: rgb(56 106 245 / .3); --method-fg: #b3c6ff }
+[data-theme='dark'] :is(.api-nav-method, .api-method):is([data-method='PUT'], [data-method='PATCH']) { --method-bg: rgb(200 140 0 / .26); --method-fg: #f6d07a }
+[data-theme='dark'] :is(.api-nav-method, .api-method)[data-method='DELETE'] { --method-bg: rgb(220 60 60 / .26); --method-fg: #ffadad }
 .nav-group a.active .api-nav-method { font-weight: 800 }
 .api-nav-group .nav-children {
   padding-left: 5px;
