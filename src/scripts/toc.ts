@@ -57,9 +57,16 @@ export function initToc() {
     if (atBottom) {
       current = visibleTargets[visibleTargets.length - 1];
     } else {
-      for (const entry of visibleTargets) {
-        if (entry.target.getBoundingClientRect().top <= line) current = entry;
-        else break;
+      /* A heading resting exactly where an anchor lands one is the heading just
+         jumped to. It wins over a later one also above the line: two headings
+         a few lines apart lit the second when the first was clicked. */
+      const landed = visibleTargets.find(entry => Math.abs(entry.target.getBoundingClientRect().top - landing) <= 4);
+      if (landed) current = landed;
+      else {
+        for (const entry of visibleTargets) {
+          if (entry.target.getBoundingClientRect().top <= line) current = entry;
+          else break;
+        }
       }
     }
     if (current === active) return;
@@ -77,6 +84,32 @@ export function initToc() {
   };
 
   addEventListener('scroll', onScroll, { passive: true });
+
+  /*
+   * An anchor jump lands where the page was when it started. Content drawn on
+   * the way (a Mermaid diagram the scroll passes) can grow above the heading
+   * and leave it a few hundred pixels low, under the next entry. Once the
+   * scroll settles, put it back where an anchor lands a heading, once.
+   */
+  addEventListener('hashchange', () => {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (!target) return;
+    let done = false;
+    /* The reader scrolling on their own cancels it: never pull the page back. */
+    const cancel = () => { done = true; };
+    const input = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const;
+    input.forEach(type => addEventListener(type, cancel, { once: true, passive: true }));
+    const settle = () => {
+      if (done) return;
+      done = true;
+      removeEventListener('scrollend', settle);
+      input.forEach(type => removeEventListener(type, cancel));
+      const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 2;
+      if (!atBottom && Math.abs(target.getBoundingClientRect().top - landing) > 4) target.scrollIntoView({ block: 'start' });
+    };
+    addEventListener('scrollend', settle);
+    setTimeout(settle, 1500);
+  });
   /* A resize can reflow link heights (label wrapping) without changing which
      heading is active, so re-place the marker even when sync() no-ops. */
   addEventListener('resize', () => { measureLanding(); onScroll(); if (active) moveMarker(active.link); });
