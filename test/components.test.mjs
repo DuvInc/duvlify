@@ -1176,7 +1176,7 @@ describe('table of contents', () => {
     assert.doesNotMatch(css, /scroll-margin-top/, 'a scroll-margin-top adds to the root scroll-padding-top');
     const toc = readFileSync(path.join(SRC, 'scripts', 'toc.ts'), 'utf8');
     assert.match(toc, /scrollPaddingTop/, 'the reading line ignores where an anchor lands a heading');
-    assert.match(toc, /Math\.abs\(.*- landing\)/, 'of two close headings, the one jumped to does not win');
+    assert.match(toc, /pinTo\(link\.hash\)[\s\S]*pinTo\(location\.hash\)/, 'the heading jumped to is not kept lit: a short next section takes over');
     assert.match(toc, /addEventListener\('hashchange'[\s\S]*?scrollend/, 'a heading pushed down by content drawn during the jump is never put back');
   });
 });
