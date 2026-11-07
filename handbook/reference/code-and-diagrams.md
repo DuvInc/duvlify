@@ -80,11 +80,25 @@ its caption. The drawing re-renders when the visitor changes colour mode.
 Diagrams are drawn in the reader's browser, and Mermaid is a large library. It
 is fetched only when a diagram comes within 600px of the viewport, so a page
 without diagrams costs nothing and a reader who never scrolls to one pays
-nothing. But a reader who does downloads about **180 KB of JavaScript**
-(28 chunks, compressed) to draw it. Each diagram is then laid out on its own as
-it is reached, rather than the whole page at once.
+nothing. But a reader who does downloads about **210 KB of JavaScript**
+(29 chunks, compressed) to draw a flowchart, and each other diagram type adds
+its own chunk (a sequence diagram, 30 KB). Each diagram is then laid out on its
+own as it is reached, rather than the whole page at once.
 
-> **Note: When a diagram is not worth 180 KB**
+Diagrams are laid out with dagre. Mermaid 12 made ELK its default, and ELK alone
+is 440 KB compressed, so Duvlify sets dagre back. A diagram that needs ELK asks
+for it in its own config:
+
+```text
+---
+config:
+  layout: elk
+---
+flowchart LR
+  A --> B
+```
+
+> **Note: When a diagram is not worth 210 KB**
 >
 > That library is the same size whether the page has one diagram or ten, and it
 > is cached once fetched: diagrams are cheap in bulk and expensive in
@@ -150,7 +164,7 @@ sequenceDiagram
 ```
 
 A second diagram on a page that already has one costs no extra JavaScript: the
-180 KB is per reader, not per diagram.
+210 KB is per reader, not per diagram.
 
 A `<Mermaid>` component also exists, for one-liners and for compatibility with
 content authored elsewhere. A fence is the better default choice.

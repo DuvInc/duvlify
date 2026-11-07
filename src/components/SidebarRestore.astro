@@ -13,22 +13,30 @@
  * Only within the same tab: another tab is another tree, and its saved indexes
  * would point at different folders. The folders holding the current page are
  * opened whatever was saved, so the active link is never hidden.
+ *
+ * A page prerendered on hover (SpeculationRules) runs this before the click,
+ * from what was saved then; it runs again as the page is shown, from what the
+ * click saved.
  */
 import { storageKey } from '../docs.config';
 ---
 <script is:inline define:vars={{ key: storageKey('sidebar') }}>
-  try {
-    const viewport = document.querySelector('[data-sidebar-viewport]');
-    const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
-    if (viewport && saved && saved.tab === viewport.dataset.sidebarTab) {
-      /* The navigation tree only: the category switcher above it is a details
-         too, a menu that must stay closed, and it holds an active link of its own. */
-      const folders = viewport.querySelectorAll('nav details');
-      folders.forEach((folder, index) => { folder.open = saved.open.includes(index); });
-      for (let node = viewport.querySelector('nav a.active'); node && node !== viewport; node = node.parentElement) {
-        if (node.tagName === 'DETAILS') node.open = true;
+  const restore = () => {
+    try {
+      const viewport = document.querySelector('[data-sidebar-viewport]');
+      const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+      if (viewport && saved && saved.tab === viewport.dataset.sidebarTab) {
+        /* The navigation tree only: the category switcher above it is a details
+           too, a menu that must stay closed, and it holds an active link of its own. */
+        const folders = viewport.querySelectorAll('nav details');
+        folders.forEach((folder, index) => { folder.open = saved.open.includes(index); });
+        for (let node = viewport.querySelector('nav a.active'); node && node !== viewport; node = node.parentElement) {
+          if (node.tagName === 'DETAILS') node.open = true;
+        }
+        viewport.scrollTop = saved.top;
       }
-      viewport.scrollTop = saved.top;
-    }
-  } catch { /* storage blocked: the sidebar simply starts at the top */ }
+    } catch { /* storage blocked: the sidebar simply starts at the top */ }
+  };
+  restore();
+  if (document.prerendering) document.addEventListener('prerenderingchange', restore, { once: true });
 </script>

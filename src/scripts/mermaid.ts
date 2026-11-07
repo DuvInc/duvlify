@@ -155,6 +155,11 @@ async function draw(mermaid: Mermaid, node: HTMLElement): Promise<boolean> {
        every node. `classic` is the flat look this site was designed around, and
        the rounded corners are the site's own, not Mermaid's. */
     look: 'classic',
+    /* Mermaid 12 also made ELK the default layout, which fetched elkjs (~440 KB,
+       more than the rest of Mermaid together) for every flowchart. Dagre lays
+       out the diagrams docs actually draw in a few KB. A diagram that needs ELK
+       still asks for it in its own config (`layout: elk`). */
+    layout: 'dagre',
     themeCSS: '.node rect, .cluster rect { rx: 8px; ry: 8px }',
     theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'neutral',
     fontFamily: bodyFont,

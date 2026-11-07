@@ -1137,4 +1137,27 @@ describe('moving between pages', () => {
       assert.doesNotMatch(css, /:is\([^)]*::/, `${file} has a pseudo-element inside :is()`);
     }
   });
+
+  test('a docs link held under the pointer is prerendered, and the sidebar is restored again as it is shown', t => {
+    const page = path.join(distDir, 'getting-started', 'index.html');
+    if (!existsSync(page)) return t.skip('nothing built');
+    const html = readFileSync(page, 'utf8');
+    const block = html.match(/<script type="speculationrules">([\s\S]*?)<\/script>/);
+    assert.ok(block, 'no speculation rules on the page');
+    const rule = JSON.parse(block[1]).prerender[0];
+    assert.equal(rule.eagerness, 'moderate');
+    assert.match(JSON.stringify(rule.where), /a\[href\$=\\?"\.md\\?"\]/, 'Markdown twins would be prerendered as pages');
+
+    const restore = readFileSync(path.join(SRC, 'components', 'SidebarRestore.astro'), 'utf8');
+    assert.match(restore, /prerenderingchange/, 'a prerendered page would keep the sidebar as it was at hover time');
+    const nav = readFileSync(path.join(SRC, 'scripts', 'nav.ts'), 'utf8');
+    assert.match(nav, /addEventListener\('click'[\s\S]*?save\(\)/, 'the sidebar is saved only on pagehide, after a prerendered page is already shown');
+  });
+});
+
+describe('diagrams', () => {
+  test('Mermaid lays out with dagre, never fetching ELK unless a diagram asks', () => {
+    const mermaid = readFileSync(path.join(SRC, 'scripts', 'mermaid.ts'), 'utf8');
+    assert.match(mermaid, /layout:\s*'dagre'/, 'Mermaid 12 defaults to ELK, 440 KB per flowchart');
+  });
 });
