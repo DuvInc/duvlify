@@ -23,6 +23,7 @@ import AgentAccess from './AgentAccess.astro';
 import GlobalBanner from './GlobalBanner.astro';
 import { agents, navigationLayout, site, type HeaderLink } from '../docs.config';
 import { renderSpecMarkdown } from '../lib/spec-markdown';
+import SidebarRestore from './SidebarRestore.astro';
 import type { ApiReference } from '../lib/openapi-reference';
 import type { ResolvedPage, ResolvedTab, ResolvedGroup } from '../lib/navigation';
 
@@ -173,7 +174,7 @@ const currentPath = Astro.url.pathname;
 
     <div class:list={['docs-grid', (api || customRail) && 'api-reference-grid']}>
       <aside class="sidebar" data-sidebar>
-        <div class="sidebar-viewport" data-sidebar-viewport>
+        <div class="sidebar-viewport" data-sidebar-viewport data-sidebar-tab={activeTab.id}>
           <div class="mobile-drawer-head">
             <Brand />
             <button class="icon-button" data-menu-close aria-label="Close navigation"><Icon name="x" size={20} /></button>
@@ -200,6 +201,7 @@ const currentPath = Astro.url.pathname;
           <div class="sidebar-scrollbar-thumb" data-sidebar-thumb></div>
         </div>
       </aside>
+      <SidebarRestore />
 
       <main class:list={['article', (api || customRail) && 'api-article']} id="article">
         <div class="article-heading">
