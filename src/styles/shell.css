@@ -758,7 +758,6 @@ html[data-theme-pref="dark"] [data-theme-icon="dark"] {
   display: flex;
   align-items: center;
   gap: 10px;
-  scroll-margin-top: 132px;
 }
 .anchored-heading>span {
   min-width: 0;

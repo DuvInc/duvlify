@@ -6,6 +6,11 @@
  * this resolves the active entry from scroll position on every frame: the last
  * heading whose top has crossed the reading line, or the last heading overall
  * once the page is scrolled to the bottom.
+ *
+ * The reading line is never above where an anchor lands a heading (the root's
+ * scroll-padding-top, which clears the fixed bars). It was 28% of the window
+ * alone, and a heading jumped to from this very list landed below it, so the
+ * list lit the heading before the one just clicked.
  */
 import { $, $$ } from './dom';
 
@@ -19,6 +24,14 @@ export function initToc() {
   if (!targets.length) return;
 
   let active: (typeof targets)[number] | null = null;
+
+  /* Where an anchor jump puts a heading's top. Read once, and again on resize:
+     the bars it clears can change height with the window. */
+  let landing = 0;
+  const measureLanding = () => {
+    landing = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+  };
+  measureLanding();
 
   /* The marker lives inside the same scrolling list as the links (see
      .toc-list), so its offsetTop/offsetHeight are already in that shared
@@ -38,7 +51,7 @@ export function initToc() {
   const sync = () => {
     const visibleTargets = targets.filter(entry => !entry.link.hidden && entry.target.offsetParent !== null);
     if (!visibleTargets.length) return;
-    const line = window.innerHeight * 0.28;
+    const line = Math.max(window.innerHeight * 0.28, landing + 24);
     const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 2;
     let current = visibleTargets[0];
     if (atBottom) {
@@ -66,7 +79,7 @@ export function initToc() {
   addEventListener('scroll', onScroll, { passive: true });
   /* A resize can reflow link heights (label wrapping) without changing which
      heading is active, so re-place the marker even when sync() no-ops. */
-  addEventListener('resize', () => { onScroll(); if (active) moveMarker(active.link); });
+  addEventListener('resize', () => { measureLanding(); onScroll(); if (active) moveMarker(active.link); });
   /* Frames are not scheduled while the tab is hidden, so scrolling in a
      background tab leaves the marker stale. Resync when it comes back. */
   document.addEventListener('visibilitychange', () => {
