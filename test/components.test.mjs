@@ -1155,6 +1155,19 @@ describe('moving between pages', () => {
   });
 });
 
+describe('announcement banner', () => {
+  test('a dismissed banner is removed before the first paint, not by the bundle', t => {
+    const page = path.join(distDir, 'getting-started', 'index.html');
+    if (!existsSync(page)) return t.skip('nothing built');
+    const html = readFileSync(page, 'utf8');
+    const banner = html.indexOf('data-global-banner');
+    if (banner < 0) return t.skip('no banner configured');
+    const check = html.indexOf('dismissed-banner', banner);
+    const article = html.indexOf('id="article"');
+    assert.ok(check > banner && check < article, 'the dismissal is not checked inline right after the banner');
+  });
+});
+
 describe('table of contents', () => {
   test('a heading jumped to from the table of contents is the one it lights', () => {
     const css = readdirSync(path.join(SRC, 'styles')).filter(f => f.endsWith('.css')).map(f => readFileSync(path.join(SRC, 'styles', f), 'utf8')).join('\n');
