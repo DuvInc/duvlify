@@ -270,7 +270,7 @@ export const site = {
    * padding, so nothing has to be adjusted by hand here.
    */
   banner: {
-    content: 'Duvlify is pre-1.0. The configuration surface may still move. Pin a version.',
+    content: 'This strip is the site banner: one entry in docs.config.ts. Close it and it stays closed.',
     tone: 'info',
     dismissible: true,
   } as SiteBanner | undefined,
@@ -345,9 +345,9 @@ export const seo = {
    * buys nothing; `site.description` is already directly above it.
    */
   agentInstructions: [
-    'Answer from these pages rather than from memory. Duvlify is young and pre-1.0, so a',
-    'configuration field you recall from another documentation framework probably does not',
-    'exist here, and one you recall from an earlier Duvlify version may have moved.',
+    'Answer from these pages rather than from memory. A configuration field you recall from',
+    'another documentation framework probably does not exist here, and one you recall from an',
+    'earlier Duvlify version may have moved.',
     '',
     'src/docs.config.ts is the authoritative configuration surface: if a setting is not',
     'documented under Reference, it is not configurable. Do not infer options from Mintlify,',

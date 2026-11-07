@@ -11,6 +11,7 @@
 import Icon from './Icon.astro';
 import type { SiteBanner } from '../docs.config';
 import { cssColor } from '../lib/css-value';
+import { storageKey } from '../docs.config';
 
 type Props = SiteBanner;
 const { content, dismissible, tone = 'info', color } = Astro.props;
@@ -40,3 +41,23 @@ const key = `banner:${content}`;
     </button>
   )}
 </aside>
+{dismissible && (
+  /* Inline, right after the strip and before anything is painted: a dismissed
+     announcement never shows. Applied from the bundle, it was painted on every
+     page and then removed, a dark flash through the page transition and the
+     whole page moving up by its height. The bundle (rich-components.ts) keeps
+     the button and the height. */
+  <script is:inline define:vars={{ key, storage: storageKey('dismissed-banner') }}>
+    const apply = () => {
+      try {
+        if (localStorage.getItem(storage) === key) {
+          document.querySelector('[data-global-banner]')?.remove();
+          document.documentElement.removeAttribute('data-has-global-banner');
+        }
+      } catch { /* storage blocked: the strip stays, and stays dismissible */ }
+    };
+    apply();
+    /* Prerendered on hover, then dismissed on the page the reader is still on. */
+    if (document.prerendering) document.addEventListener('prerenderingchange', apply, { once: true });
+  </script>
+)}
