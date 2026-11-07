@@ -33,6 +33,10 @@
 }
 html {
   scroll-behavior: smooth;
+  /* The page stops at its top and bottom instead of rubber-banding past them.
+     Vertical only: the horizontal axis keeps the trackpad swipe back and
+     forward through history. */
+  overscroll-behavior-y: none;
   /* Derived rather than a literal, so an anchor jump clears whatever is
      actually fixed at the top — both bars, plus the announcement strip when
      there is one. It was 88px against 110px of chrome, which landed every
@@ -400,6 +404,7 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
   padding: 11px;
   max-height: min(460px, calc(100dvh - 190px));
   overflow: auto;
+  overscroll-behavior-y: none;
 }
 .search-label {
   font-weight: 740;
@@ -987,6 +992,7 @@ input {
 .sidebar-viewport {
   height: 100%;
   overflow-y: auto;
+  overscroll-behavior-y: none;
   padding: 22px 18px 18px 0;
   scrollbar-width: none;
 }
@@ -1062,6 +1068,7 @@ input {
 }
 body {
   margin: 0;
+  overscroll-behavior-y: none;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -2005,6 +2012,7 @@ body[data-navigation-mode='unified-sidebar'] {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: none;
   scrollbar-width: thin;
 }
 
@@ -2072,6 +2080,7 @@ body[data-navigation-mode='unified-sidebar'] {
      clip the last section out of reach. */
   max-height: min(620px, calc(100dvh - 180px));
   overflow: auto;
+  overscroll-behavior-y: none;
 }
 .agent-section {
   padding: 22px 0;

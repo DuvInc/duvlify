@@ -125,6 +125,7 @@
 .api-panel-scroll {
   height: 100%;
   overflow-y: auto;
+  overscroll-behavior-y: none;
   padding: 56px 4px 48px 0;
   scrollbar-width: thin;
 }

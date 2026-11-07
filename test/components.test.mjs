@@ -1072,3 +1072,22 @@ describe('MP4 display size', () => {
     assert.equal(mp4Size(Buffer.from('not a video at all')), null);
   });
 });
+
+describe('scrolling', () => {
+  test('the page and its scroll panels stop at their ends instead of bouncing', () => {
+    const shell = readFileSync(path.join(SRC, 'styles', 'shell.css'), 'utf8');
+    const api = readFileSync(path.join(SRC, 'styles', 'api-reference.css'), 'utf8');
+    const stops = (css, selector) => new RegExp(`(^|\\n)${selector}\\s*\\{[^}]*overscroll-behavior-y:\\s*none`, 's').test(css);
+
+    /* Safari scrolls the page on <html>, Chrome and Firefox honour either; both
+       carry it so no engine rubber-bands the whole document. */
+    for (const selector of ['html', 'body', '\\.sidebar-viewport', '\\.toc-list', '\\.search-content', '\\.agent-dialog-body']) {
+      assert.ok(stops(shell, selector), `${selector} still bounces past its end`);
+    }
+    assert.ok(stops(api, '\\.api-panel-scroll'), 'the API code panel still bounces past its end');
+
+    /* Only the vertical axis: a horizontal `none` on the root would also kill
+       the trackpad swipe back through history. */
+    assert.doesNotMatch(shell, /overscroll-behavior(-x)?:\s*none/);
+  });
+});
