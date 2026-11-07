@@ -1155,6 +1155,17 @@ describe('moving between pages', () => {
   });
 });
 
+describe('table of contents', () => {
+  test('a heading jumped to from the table of contents is the one it lights', () => {
+    const css = readdirSync(path.join(SRC, 'styles')).filter(f => f.endsWith('.css')).map(f => readFileSync(path.join(SRC, 'styles', f), 'utf8')).join('\n');
+    /* The root's scroll-padding-top already clears the fixed bars; a heading's
+       own scroll-margin-top adds to it and lands the heading below the line. */
+    assert.doesNotMatch(css, /scroll-margin-top/, 'a scroll-margin-top adds to the root scroll-padding-top');
+    const toc = readFileSync(path.join(SRC, 'scripts', 'toc.ts'), 'utf8');
+    assert.match(toc, /scrollPaddingTop/, 'the reading line ignores where an anchor lands a heading');
+  });
+});
+
 describe('diagrams', () => {
   test('Mermaid lays out with dagre, never fetching ELK unless a diagram asks', () => {
     const mermaid = readFileSync(path.join(SRC, 'scripts', 'mermaid.ts'), 'utf8');
