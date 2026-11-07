@@ -11,6 +11,13 @@
  * scroll-padding-top, which clears the fixed bars). It was 28% of the window
  * alone, and a heading jumped to from this very list landed below it, so the
  * list lit the heading before the one just clicked.
+ *
+ * A heading reached by a link (this list, an in-page anchor, a URL with a
+ * hash) stays lit while it is on screen, until the reader scrolls. Position
+ * alone cannot say it: the line sits below where a heading lands, so a short
+ * next section crossed it too and lit the entry after the one clicked, and near
+ * the end of a page a heading that cannot scroll up to the bars never reaches
+ * the line. (Found on docs.softr.io, softr-io/softr-docs#62.)
  */
 import { $, $$ } from './dom';
 
@@ -24,6 +31,14 @@ export function initToc() {
   if (!targets.length) return;
 
   let active: (typeof targets)[number] | null = null;
+  /* The entry a link jumped to, lit while it is on screen and the reader has
+     not scrolled since. */
+  let pinned: (typeof targets)[number] | null = null;
+  const pinTo = (hash: string) => {
+    const id = decodeURIComponent(hash.slice(1));
+    pinned = targets.find(entry => entry.target.id === id) ?? null;
+  };
+  const unpin = () => { pinned = null; };
 
   /* Where an anchor jump puts a heading's top. Read once, and again on resize:
      the bars it clears can change height with the window. */
@@ -54,19 +69,15 @@ export function initToc() {
     const line = Math.max(window.innerHeight * 0.28, landing + 24);
     const atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 2;
     let current = visibleTargets[0];
-    if (atBottom) {
+    const pin = pinned && visibleTargets.includes(pinned) ? pinned.target.getBoundingClientRect() : null;
+    if (pinned && pin && pin.bottom > 0 && pin.top < window.innerHeight) {
+      current = pinned;
+    } else if (atBottom) {
       current = visibleTargets[visibleTargets.length - 1];
     } else {
-      /* A heading resting exactly where an anchor lands one is the heading just
-         jumped to. It wins over a later one also above the line: two headings
-         a few lines apart lit the second when the first was clicked. */
-      const landed = visibleTargets.find(entry => Math.abs(entry.target.getBoundingClientRect().top - landing) <= 4);
-      if (landed) current = landed;
-      else {
-        for (const entry of visibleTargets) {
-          if (entry.target.getBoundingClientRect().top <= line) current = entry;
-          else break;
-        }
+      for (const entry of visibleTargets) {
+        if (entry.target.getBoundingClientRect().top <= line) current = entry;
+        else break;
       }
     }
     if (current === active) return;
@@ -84,6 +95,9 @@ export function initToc() {
   };
 
   addEventListener('scroll', onScroll, { passive: true });
+  links.forEach(link => link.addEventListener('click', () => { pinTo(link.hash); onScroll(); }));
+  for (const type of ['wheel', 'touchmove', 'keydown'] as const) addEventListener(type, unpin, { passive: true });
+  if (location.hash) pinTo(location.hash);
 
   /*
    * An anchor jump lands where the page was when it started. Content drawn on
@@ -92,6 +106,8 @@ export function initToc() {
    * scroll settles, put it back where an anchor lands a heading, once.
    */
   addEventListener('hashchange', () => {
+    pinTo(location.hash);
+    onScroll();
     const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
     if (!target) return;
     let done = false;
