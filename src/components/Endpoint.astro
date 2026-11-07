@@ -4,5 +4,6 @@ interface Props {
   path: string;
 }
 const { method = 'GET', path } = Astro.props;
+const label = method.toUpperCase();
 ---
-<p class="endpoint-row"><span class="api-method" data-method={method.toUpperCase()}>{method}</span><code class="endpoint">{path}</code></p>
+<p class="endpoint-row"><span class="api-method" data-method={label}>{label}</span><code class="endpoint">{path}</code></p>

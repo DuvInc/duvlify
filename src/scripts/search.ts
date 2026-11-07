@@ -13,6 +13,7 @@
  */
 import { $, $$, escapeHtml } from './dom';
 import type { Index } from './search-rank';
+import { methodChipLabel } from '../lib/method-label';
 
 const MAX_RESULTS = 20;
 
@@ -93,8 +94,8 @@ export function initSearch(indexUrl: string) {
     $('[data-search-title]', node)!.innerHTML = highlight(title, query);
     const badge = $('[data-search-method]', node)!;
     badge.hidden = !method;
-    badge.textContent = method ?? '';
-    if (method) badge.dataset.method = method;
+    badge.textContent = method ? methodChipLabel(method) : '';
+    if (method) badge.dataset.method = method.toUpperCase();
     $('small', node)!.innerHTML = highlight(meta, query);
     return node;
   };
