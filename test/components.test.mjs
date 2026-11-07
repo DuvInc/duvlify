@@ -1127,5 +1127,14 @@ describe('moving between pages', () => {
       assert.match(shell, new RegExp(`view-transition-name:\\s*${name}\\b`), `${name} is not named, so it would fade with the page`);
     }
     assert.match(shell, /prefers-reduced-motion:reduce\)\s*\{\s*@view-transition\s*\{\s*navigation:\s*none/);
+    assert.match(shell, /::view-transition-new\(root\)\s*\{\s*animation:\s*page-in 100ms/, 'the new page does not come in over 100 ms');
+  });
+
+  test('no stylesheet puts a pseudo-element inside :is(), which voids the whole rule', () => {
+    const dir = path.join(SRC, 'styles');
+    for (const file of readdirSync(dir).filter(name => name.endsWith('.css'))) {
+      const css = readFileSync(path.join(dir, file), 'utf8');
+      assert.doesNotMatch(css, /:is\([^)]*::/, `${file} has a pseudo-element inside :is()`);
+    }
   });
 });

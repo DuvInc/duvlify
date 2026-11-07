@@ -1875,21 +1875,37 @@ body[data-navigation-mode='unified-sidebar'] {
    ready and swaps them in one step, so nothing is drawn half-built. The bars
    and the sidebar are named, so they swap in place with no fade: to the reader
    they never move (SidebarRestore has already put the sidebar's scroll back).
-   Only the page underneath crossfades, briefly. */
+   The old page stays put and the new one comes in over it in 100 ms, from half
+   opacity, so the click answers at once. Each pseudo-element is listed on its
+   own: inside :is() a pseudo-element voids the whole rule. */
 @view-transition { navigation: auto }
 .topbar { view-transition-name: topbar }
 .categorybar { view-transition-name: categorybar }
 .sidebar { view-transition-name: sidebar }
-:is(::view-transition-group(topbar), ::view-transition-group(categorybar), ::view-transition-group(sidebar)),
-:is(::view-transition-new(topbar), ::view-transition-new(categorybar), ::view-transition-new(sidebar)) {
+::view-transition-group(root),
+::view-transition-group(topbar),
+::view-transition-group(categorybar),
+::view-transition-group(sidebar),
+::view-transition-new(topbar),
+::view-transition-new(categorybar),
+::view-transition-new(sidebar) {
   animation: none;
 }
-:is(::view-transition-old(topbar), ::view-transition-old(categorybar), ::view-transition-old(sidebar)) {
+::view-transition-old(topbar),
+::view-transition-old(categorybar),
+::view-transition-old(sidebar) {
   display: none;
 }
-::view-transition-old(root),
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
 ::view-transition-new(root) {
-  animation-duration: 120ms;
+  animation: page-in 100ms ease-out;
+  mix-blend-mode: normal;
+}
+@keyframes page-in {
+  from { opacity: .5 }
 }
 @media(prefers-reduced-motion:reduce) {
   @view-transition { navigation: none }
