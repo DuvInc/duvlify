@@ -2,7 +2,7 @@
 title: "Code and diagrams"
 description: "Fenced code blocks get syntax highlighting, a filename header and a copy button. Mermaid fences render real diagrams that follow the reader's colour mode."
 canonical: "https://duvlify.dev/reference/code-and-diagrams"
-updated: "2026-08-18"
+updated: "2026-11-07"
 ---
 
 # Code and diagrams
