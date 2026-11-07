@@ -121,4 +121,9 @@ export function rememberSidebar() {
     } catch { /* storage blocked: the next page starts at the top */ }
   };
   addEventListener('pagehide', save);
+  /* Also as a link is followed: a page prerendered on hover is shown as the
+     click lands, before this one's pagehide, and reads what is saved by then. */
+  document.addEventListener('click', event => {
+    if ((event.target as Element | null)?.closest?.('a[href]')) save();
+  }, { capture: true });
 }

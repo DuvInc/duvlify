@@ -1,0 +1,33 @@
+---
+/**
+ * Prerenders a docs page when the reader shows intent to open it.
+ *
+ * `moderate` means a link held under the pointer for a moment, or pressed: the
+ * browser builds the page in the background, so the click shows it at once
+ * instead of fetching, parsing and painting it then. Chromium does this; other
+ * browsers ignore the script, and a click there is the ordinary navigation.
+ *
+ * Only pages of this site: anything outside the base path (the product's app,
+ * its sign-in), and the files the site serves next to its pages (Markdown
+ * twins, llms.txt, feeds, specs, downloads), stay ordinary links. A link can opt
+ * out with `data-no-prerender`, on itself or an ancestor.
+ *
+ * A prerendered page runs its scripts before anyone sees it, so anything that
+ * counts a visit has to wait for `prerenderingchange`. The Duv Analytics
+ * tracker does; a fork adding another must check it does too.
+ */
+import { withBase } from '../docs.config';
+
+const rules = {
+  prerender: [{
+    where: {
+      and: [
+        { href_matches: `${withBase('/').replace(/\/$/, '')}/*` },
+        { not: { selector_matches: 'a[href$=".md"], a[href$=".txt"], a[href$=".json"], a[href$=".xml"], a[href$=".yaml"], a[download], a[target="_blank"], a[rel~="nofollow"], [data-no-prerender], [data-no-prerender] a' } },
+      ],
+    },
+    eagerness: 'moderate',
+  }],
+};
+---
+<script type="speculationrules" is:inline set:html={JSON.stringify(rules)} />

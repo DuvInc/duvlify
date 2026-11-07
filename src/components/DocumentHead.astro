@@ -18,6 +18,7 @@ import { Font } from 'astro:assets';
 import { agents, seo, site, theme, withBase } from '../docs.config';
 import { markdownUrl } from '../lib/markdown-url';
 import { hasOpenApiSpec, OPENAPI_PATH } from '../lib/openapi-spec';
+import SpeculationRules from './SpeculationRules.astro';
 import ThemeBootstrap from './ThemeBootstrap.astro';
 import WebMcpBridge from './WebMcpBridge.astro';
 import ThemeTokens from './ThemeTokens.astro';
@@ -139,4 +140,5 @@ const robots = indexable
 <Font cssVariable={theme.font.sansVariable} preload />
 <ThemeTokens />
 <ThemeBootstrap />
+<SpeculationRules />
 {agents.enabled && agents.webmcpBridge === 'on' && <WebMcpBridge />}
