@@ -102,5 +102,29 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
     process.exit(1);
   }
 
+  /* INDEXABLE_HOSTS in wrangler.jsonc must name the host this build points at.
+     A fork that keeps another site's value would deploy with every page marked
+     noindex on its own domain, and nothing about the site would look wrong. */
+  const origin = readFileSync(sitemap, 'utf8').match(/<loc>([^<]+)<\/loc>/)?.[1];
+  const wrangler = path.join(root, 'wrangler.jsonc');
+  const listed = existsSync(wrangler)
+    ? readFileSync(wrangler, 'utf8').match(/"INDEXABLE_HOSTS"\s*:\s*"([^"]*)"/)?.[1]
+    : undefined;
+  if (origin && listed !== undefined) {
+    const siteHost = new URL(origin).hostname.toLowerCase();
+    const hosts = listed.split(',').map(h => h.trim().toLowerCase()).filter(Boolean);
+    if (hosts.length > 0 && !hosts.includes(siteHost)) {
+      console.error(
+        `check-origin: refusing to deploy. This build's origin is ${siteHost}, but\n` +
+          `  INDEXABLE_HOSTS in wrangler.jsonc is "${listed}".\n` +
+          `\n` +
+          `  Every host not in that list answers robots.txt with Disallow: / and sends\n` +
+          `  X-Robots-Tag: noindex, so this deploy would remove the site from search.\n` +
+          `  Put ${siteHost} in INDEXABLE_HOSTS, or remove the variable.`,
+      );
+      process.exit(1);
+    }
+  }
+
   console.log('check-origin: the build names a real origin.');
 }

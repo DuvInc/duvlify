@@ -109,6 +109,20 @@
     { "binding": "AI_SEARCH", "instance_name": "duvlify-docs", "remote": true }
   ],
 
+  /**
+   * The hosts search engines and AI crawlers may index. Every other host this
+   * Worker answers on, which with `preview_urls` means every version's preview
+   * host, gets `robots.txt: Disallow: /` and `X-Robots-Tag: noindex, nofollow`.
+   * See worker/indexing.ts.
+   *
+   * This is duvlify.dev's own host. A fork replaces it with its own, or removes
+   * the line: left as is, it would mark the fork's whole site noindex.
+   * `npm run deploy` refuses a build whose origin is not listed here.
+   */
+  "vars": {
+    "INDEXABLE_HOSTS": "duvlify.dev"
+  },
+
   "observability": {
     "enabled": true
   }
