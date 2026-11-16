@@ -2,7 +2,7 @@
 title: "Deploying"
 description: "The build is static output. Deploy it to Cloudflare for every feature, or to any static host, with subdomain and subpath options and their costs."
 canonical: "https://duvlify.dev/guides/deployment"
-updated: "2026-11-06"
+updated: "2026-11-16"
 ---
 
 # Deploying
@@ -287,9 +287,14 @@ Setting it up:
    ```jsonc
    "routes": [{ "pattern": "example.com/docs/*", "zone_name": "example.com" }],
    "assets": {
-     "run_worker_first": ["/docs/*", "!/docs/_astro/*", "!/docs/*.webp", "…"]
+     "run_worker_first": ["/docs/*", "!/docs/_astro/*", "!/docs/*.webp", "…", "/robots.txt"]
    }
    ```
+
+   `/robots.txt` never reaches this Worker in production, where the route
+   covers `/docs/*` only. A preview host sends it every path, though, and
+   without that entry the root `robots.txt` comes straight from the assets
+   with `Allow: /`, whatever `INDEXABLE_HOSTS` says.
 
 3. Set `SITE_URL=https://example.com`: the origin only, with no path. The
    prefix comes from `basePath`. Putting it in both gives you `/docs/docs/`.
