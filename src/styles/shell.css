@@ -1212,6 +1212,22 @@ body[data-navigation-mode='unified-sidebar'] {
   border-left: 2px solid var(--line);
   color: var(--muted);
 }
+/* A Markdown `---` is a pause between two parts of a page, not something to
+   read. reset.css leaves `<hr>` in the text colour, which drew it near-black,
+   heavier than any heading around it. In the reading column it takes the
+   hairline under the page title (`--line`) and the same 3rem as an h2, whose
+   top margin collapses into it. Inside a callout, card or panel the surface is
+   tinted, so the opaque `--line` would vanish or show as a pale stripe: the
+   translucent component border reads on any tint, with a tighter gap. */
+.mdx-content hr {
+  margin: 1.5rem 0;
+  border: 0;
+  border-top: 1px solid var(--c-border);
+}
+.mdx-content > hr {
+  margin: 3rem 0;
+  border-top-color: var(--line);
+}
 /* Denser than the article's own type, but not as tight as 13px/28px turned out
    to read: at 334 pages the sidebar is scanned rather than read, but 13px sat
    below the 14px used everywhere else in the chrome and the row felt cramped
