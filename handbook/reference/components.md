@@ -431,6 +431,29 @@ the swatch with exactly what you wrote, not a sanitised version of it. Use
 Exactly two cells. `Columns` follows the layout you drew.
 Collapses to one column on a phone.
 
+## Dividers
+
+A divider is plain Markdown, not a tag: three dashes on a line of their own,
+with a blank line above. It draws the same light hairline as the one under
+the page title.
+
+---
+
+The break above is a `---`. Use one between two parts of a page that do not
+need headings of their own. When the next part has a name, a heading already
+separates them.
+
+```mdx
+The end of one part.
+
+---
+
+The start of the next.
+```
+
+The blank line above the dashes matters. Without it, Markdown reads the
+paragraph above as a heading.
+
 ## The right rail
 
 Top-level `Panel`, `RequestExample`, and `ResponseExample` content can occupy the
