@@ -105,7 +105,9 @@ export function buildStructuredData(input: PageSchemaInput): Node {
   const trail = [
     { name: site.name, item: absolute(origin, site.home) },
     ...(input.tab ? [{ name: input.tab.label, item: absolute(origin, input.tab.href) }] : []),
-    ...(input.group?.folder ? [{ name: input.group.label }] : []),
+    /* No folder crumb: a folder is not a page, and Google rejects a breadcrumb
+       item without a URL anywhere but last (357 errors on AI Glot's docs, site
+       audit 2026-11-18). */
     { name: input.title, item: url },
   ];
 
