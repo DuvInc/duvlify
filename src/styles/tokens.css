@@ -68,9 +68,13 @@
    */
   --banner-h: 0px;
   --banner-min: 40px;
-  /* Sidebar rhythm: keep folder rows compact while giving category headings
-     their own entry and exit spacing. */
-  --nav-folder-gap: 5px;
+  /* Sidebar rhythm: a closed folder is a row like a page link, with no
+     margin, so a run of folders keeps the pitch of a run of pages and the
+     pointer never crosses a strip that hovers nothing. Row height and the gap
+     drawn inside each row come from `theme.sidebar` in docs.config.ts. An
+     open folder still leaves room before the next one; category headings
+     keep their own entry and exit spacing. */
+  --nav-folder-gap: 0px;
   --nav-folder-expanded-gap: 12px;
   --nav-category-before-gap: 22px;
   --nav-category-after-gap: 10px;
