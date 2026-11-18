@@ -960,11 +960,17 @@ input {
 .right-rail-content { display: grid; gap: 18px; min-width: 0 }
 .right-rail-content > * { margin: 0; min-width: 0 }
 .right-rail-content .code-tabs { max-width: 100% }
-/* The page-wide view selector: the shared select (scripts/dropdown.ts), widened
-   to fill whichever column it is placed in. It governs the whole page, so unlike
-   a code group's language control it is not a quiet affordance on a header row —
-   it gets a visible field and the full width. */
+/* The page-wide view selector: the shared select (scripts/dropdown.ts). It
+   governs the whole page, so unlike a code group's language control it is not
+   a quiet affordance on a header row: it gets a visible field. In the right
+   rail it fills the column; in the reading column it is sized to its options
+   rather than stretched across the page, and set apart from the prose above
+   and the view below. */
 .view-select { display: block }
+.mdx-content > .view-select {
+  width: min(100%, 18rem);
+  margin: 1.75rem 0 1.25rem;
+}
 .view-select .api-select-trigger {
   width: 100%;
   justify-content: space-between;
@@ -1101,10 +1107,16 @@ body[data-navigation-mode='unified-sidebar'] {
   margin-bottom: .6rem;
   color: var(--prose-heading);
 }
-.mdx-content>blockquote {
+/* <View> and <Visibility> wrap prose without being a component of their own:
+   the page reads straight through them. Their paragraphs take the reading
+   column's rhythm, or they sat flush against whatever came next (the
+   Components page, 2026-11-18). */
+.mdx-content>blockquote,
+.mdx-content > :is(.content-view, .visibility-humans) > blockquote {
   max-width: 68ch;
 }
-.mdx-content>p {
+.mdx-content>p,
+.mdx-content > :is(.content-view, .visibility-humans) > p {
   max-width: 68ch;
   margin-top: 0;
   margin-bottom: 1.35em;
