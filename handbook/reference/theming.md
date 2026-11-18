@@ -2,7 +2,7 @@
 title: "Theming"
 description: "Accent, font, and radius are one line each in docs.config.ts, and the neutral palette derives from a single background colour."
 canonical: "https://duvlify.dev/reference/theming"
-updated: "2026-08-18"
+updated: "2026-11-18"
 ---
 
 # Theming
