@@ -13,7 +13,7 @@
  */
 import { theme, type CornerSmoothing } from '../docs.config';
 
-const { font, accent, headerPrimary, radius, links, cardIcons } = theme;
+const { font, accent, headerPrimary, radius, links, cardIcons, sidebar } = theme;
 
 /** `theme.radius.smoothing` → the actual `corner-shape` value it stands for. */
 const CORNER_SHAPE: Record<CornerSmoothing, string> = {
@@ -81,6 +81,8 @@ const tokens = `
   --r-sm: ${radius.sm};
   --r-xs: ${radius.xs};
   --corner-shape: ${CORNER_SHAPE[radius.smoothing]};
+  --nav-row-height: ${sidebar.rowHeight};
+  --nav-row-gap: ${sidebar.rowGap};
 ${links === 'accent-underline' ? `  --link-color: var(--c-title);
   --link-weight: 600;
   --link-underline: var(--accent-strong);
