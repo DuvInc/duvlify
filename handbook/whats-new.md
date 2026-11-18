@@ -2,6 +2,7 @@
 title: "What's New"
 description: "What changed in Duvlify, newest first. Each entry links to the pull request on GitHub."
 canonical: "https://duvlify.dev/whats-new"
+updated: "2026-11-18"
 ---
 
 # What's New
