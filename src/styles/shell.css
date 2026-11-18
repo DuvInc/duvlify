@@ -1273,11 +1273,19 @@ body[data-navigation-mode='unified-sidebar'] {
   }
   .table-wrapper::after {
     animation: table-more-right linear both;
-    animation-timeline: --table-x;
-    animation-range: calc(100% - 24px) 100%;
   }
   .mdx-content table[data-row-labels] :is(th, td):first-child {
     animation: table-pinned-edge linear both;
+  }
+  /* The timeline and range sit in their own, more specific rules. Written
+     next to `animation`, the minifier folds them into that shorthand, which
+     cannot carry a timeline: Chrome dropped the whole declaration and neither
+     effect showed in production, while dev (unminified) looked right. */
+  .mdx-content .table-wrapper::after {
+    animation-timeline: --table-x;
+    animation-range: calc(100% - 24px) 100%;
+  }
+  .mdx-content .table-scroll table[data-row-labels] :is(th, td):first-child {
     animation-timeline: --table-x;
     animation-range: 0 16px;
   }

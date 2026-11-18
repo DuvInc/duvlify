@@ -1255,6 +1255,17 @@ describe('tables', () => {
     assert.ok(!('dataRowLabels' in tableIn(wrap(table(['Plan', 'Detail'], [['Free', sentence]]))).properties));
   });
 
+  test('no built stylesheet folds a scroll timeline into the animation shorthand', () => {
+    /* The shorthand cannot carry a timeline: Chrome drops the declaration
+       whole. The minifier merged `animation` and `animation-timeline` written
+       side by side, and the table shadows never showed in production. */
+    const dir = path.join(distDir, '_astro');
+    const folded = readdirSync(dir)
+      .filter(name => name.endsWith('.css'))
+      .flatMap(name => [...readFileSync(path.join(dir, name), 'utf8').matchAll(/animation:[^;}]*(?<!var\()--[a-z][\w-]*/g)].map(m => `${name}: ${m[0]}`));
+    assert.deepEqual(folded, []);
+  });
+
   test('the built gallery renders its table in the scrolling card', { skip: !existsSync(htmlPath) }, () => {
     const html = readFileSync(htmlPath, 'utf8');
     assert.match(html, /<div class="table-wrapper"><div class="table-scroll"><table data-row-labels/);
