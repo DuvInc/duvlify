@@ -458,10 +458,6 @@
 .api-nav-method {
   flex: 0 0 34px;
   width: 34px;
-  /* Centred on the capitals, not on the line box. A font's line box keeps
-     room below the baseline for descenders, which GET, POST and DELETE never
-     use, so a box centred by flex alone still showed the letters high.
-     `text-box` trims the line box to cap height and baseline first. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -483,12 +479,13 @@
 :is(.api-nav-method, .api-method)[data-method] {
   background: var(--method-bg, var(--c-sunken-strong));
   color: var(--method-fg, var(--c-mute));
-  /* Every badge centres its capitals: see `.api-nav-method`. */
+}
+/* Trim the label's line box. The flex container only positions that box. */
+.api-method-label {
   text-box: trim-both cap alphabetic;
 }
-/* Without `text-box` (Firefox), nudge the letters down by the descender room. */
 @supports not (text-box: trim-both cap alphabetic) {
-  :is(.api-nav-method, .api-method)[data-method] { padding-top: 1px }
+  .api-method-label { position: relative; inset-block-start: .5px }
 }
 :is(.api-nav-method, .api-method)[data-method='GET'] { --method-bg: #d7f5e3; --method-fg: #0d7040 }
 :is(.api-nav-method, .api-method)[data-method='POST'] { --method-bg: #dce6ff; --method-fg: #2348c4 }

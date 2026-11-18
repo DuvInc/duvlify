@@ -299,7 +299,10 @@ const currentPath = Astro.url.pathname;
           <Icon name="hash" size={16} data-search-icon="heading" />
         </span>
         <span class="search-result-body">
-          <strong><span class="api-nav-method search-api-method" data-search-method hidden></span><span data-search-title></span></strong>
+          <strong>
+            <span class="api-nav-method search-api-method" data-search-method hidden><span class="api-method-label"></span></span>
+            <span data-search-title></span>
+          </strong>
           <small></small>
         </span>
         <Icon name="enter" size={13} />
