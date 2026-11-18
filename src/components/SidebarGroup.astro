@@ -36,7 +36,7 @@ const open = holdsCurrent(node) || group.defaultOpen;
     {page.icon && <Icon name={page.icon} size={16} />}
     {page.apiMethod && (
       <small class="api-nav-method" data-method={page.apiMethod}>
-        {methodChipLabel(page.apiMethod)}
+        <span class="api-method-label">{methodChipLabel(page.apiMethod)}</span>
       </small>
     )}
     <span>{page.label}</span>{page.badge && <em>{page.badge}</em>}

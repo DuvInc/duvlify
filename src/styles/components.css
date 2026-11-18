@@ -1207,6 +1207,8 @@ details[open] > summary .disclosure-caret { transform: rotate(90deg) }
 .endpoint-row { display: flex; align-items: center; gap: 8px; margin: 1.1rem 0 1.6rem }
 .api-method {
   display: inline-flex;
+  align-items: center;
+  min-height: calc(1lh + 4px);
   padding: 2px 8px;
   border-radius: var(--r-xs);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
