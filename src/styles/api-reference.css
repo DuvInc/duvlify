@@ -69,8 +69,10 @@
   gap: 10px;
   border: 1px solid var(--c-border);
   border-radius: var(--r-md);
-  background: var(--c-sunken);
-  box-shadow: 0 1px 2px rgb(0 0 0 / .03);
+  /* A raised card, not a grey well: the method and path are the page's
+     subject, and the method's tint reads on white where it sank into grey. */
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .04);
 }
 .api-article .endpoint-row > .copy-button {
   flex: none;
