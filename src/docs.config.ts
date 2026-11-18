@@ -737,6 +737,20 @@ export const theme = {
      */
     smoothing: 'subtle' as CornerSmoothing,
   },
+  /**
+   * Sidebar rows: page links and folder titles share one height, so a run of
+   * folders keeps the same pitch as a run of pages.
+   *
+   *   rowHeight  the height of every row, its hover area included
+   *   rowGap     visible space between two highlighted rows. It is drawn
+   *              inside each row (a transparent edge the background stops
+   *              at), so the pointer never crosses a strip that hovers
+   *              nothing. `0px` lets highlights touch.
+   */
+  sidebar: {
+    rowHeight: '34px',
+    rowGap: '2px',
+  },
 } as const;
 
 export const navigation: NavTab[] = [

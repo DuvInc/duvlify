@@ -538,9 +538,8 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
 .nav-folder {
   margin-bottom: var(--nav-folder-gap);
 }
-/* Closed folders keep a compact rhythm with a tiny breathing gap. Once
-   expanded, a little extra space separates the final child page from the
-   next folder. */
+/* Closed folders sit flush, like page links. Once expanded, a little extra
+   space separates the final child page from the next folder. */
 .nav-folder[open] {
   margin-bottom: var(--nav-folder-expanded-gap);
 }
@@ -1350,8 +1349,8 @@ body[data-navigation-mode='unified-sidebar'] {
    rather than merely dense. 14px over a 30px row still fits noticeably more
    links than the original 14px over 35px, just with a little less punishment. */
 .nav-group a {
-  min-height: 34px;
-  padding: 5px 10px;
+  min-height: var(--nav-row-height);
+  padding: 4px 10px;
   border-radius: var(--r-sm);
   display: flex;
   align-items: center;
@@ -1359,10 +1358,14 @@ body[data-navigation-mode='unified-sidebar'] {
   color: var(--muted);
   /* No margin between rows: a 2px margin left a 4px strip between two links
      where nothing was hovered, so the hover background blinked off as the
-     pointer crossed it. The 30px row plus the 4px it used to leave is a 34px
-     pitch, which `min-height` keeps. */
+     pointer crossed it. The visible gap between two highlights is drawn
+     inside the row instead: a transparent top and bottom edge, half of
+     `--nav-row-gap` each, that the background stops at. The edge still
+     belongs to the link, so hovering it keeps the link hovered. */
   margin: 0;
   border: 1px solid transparent;
+  border-block-width: calc(var(--nav-row-gap) / 2);
+  background-clip: padding-box;
   font-size: 14px;
   line-height: 1.4;
 }
@@ -1473,7 +1476,7 @@ body[data-navigation-mode='unified-sidebar'] {
 .nav-folder summary {
   list-style: none;
   cursor: pointer;
-  padding: 0 11px;
+  padding: 0 10px;
   letter-spacing: normal;
   color: var(--muted);
   font-weight: 450;
@@ -1481,7 +1484,13 @@ body[data-navigation-mode='unified-sidebar'] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 30px;
+  /* A row like a page link (`.nav-group a`): same height, same transparent
+     edge holding the gap between highlights. At 30px plus a 5px margin, a run
+     of folders read as squeezed next to the pages around it. */
+  min-height: var(--nav-row-height);
+  border: 1px solid transparent;
+  border-block-width: calc(var(--nav-row-gap) / 2);
+  background-clip: padding-box;
   border-radius: var(--r-sm);
   font-size: 14px;
   line-height: 1.35;

@@ -2,7 +2,7 @@
 title: "Theming"
 description: "Accent, font, and radius are one line each in docs.config.ts, and the neutral palette derives from a single background colour."
 canonical: "https://duvlify.dev/reference/theming"
-updated: "2026-08-18"
+updated: "2026-11-18"
 ---
 
 # Theming
@@ -19,6 +19,7 @@ export const theme = {
   accent: { base: '#16866a', strong: '#0f5e4a', strongDark: '#68b09e', contrast: '#ffffff' },
   headerPrimary: { background: '', foreground: '' },
   radius: { lg: '16px', md: '12px', sm: '8px', xs: '6px', smoothing: 'subtle' },
+  sidebar: { rowHeight: '34px', rowGap: '2px' },
 } as const;
 ```
 
@@ -134,6 +135,20 @@ break anything.
 | `subtle`   | A light continuous curve, what this site uses          |
 | `standard` | A clearly continuous curve                             |
 | `ios`      | The spec's own `squircle` keyword, the strongest curve |
+
+## Sidebar rows
+
+Page links and folder titles in the sidebar are rows of one height, so a run of
+folders keeps the same rhythm as a run of pages.
+
+| Key         | Default | What it sets                                   |
+| ----------- | ------- | ---------------------------------------------- |
+| `rowHeight` | `34px`  | The height of every row, hover area included   |
+| `rowGap`    | `2px`   | The visible space between two highlighted rows |
+
+The gap is drawn inside each row, as a transparent edge the background stops
+at. The pointer never crosses a strip between two rows that hovers nothing,
+which a margin would leave. Set `rowGap` to `0px` to let highlights touch.
 
 ## Where the rest lives
 

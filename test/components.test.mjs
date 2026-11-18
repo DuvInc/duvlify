@@ -1218,6 +1218,20 @@ test('a tab holding one page drops the sidebar column, a larger tab keeps it', (
   if (!single) return; // a site without a one-page tab has nothing to check
   assert.match(single, /\bno-sidebar\b/);
   assert.doesNotMatch(grid('getting-started') ?? '', /\bno-sidebar\b/);
+
+test('a closed sidebar folder is a row the same height as a page link', () => {
+  /* At 30px plus a 5px gap, a run of folders looked squeezed beside the pages,
+     and the gap hovered nothing. */
+  const css = readFileSync(path.join(SRC, 'styles', 'shell.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const tokens = readFileSync(path.join(SRC, 'styles', 'tokens.css'), 'utf8');
+  const minHeight = selector => {
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(m => m[1].trim() === selector);
+    const values = rules.flatMap(m => [...m[2].matchAll(/min-height:\s*([^;]+);/g)].map(v => v[1].trim()));
+    return values.at(-1);
+  };
+  assert.equal(minHeight('.nav-folder summary'), 'var(--nav-row-height)');
+  assert.equal(minHeight('.nav-group a'), 'var(--nav-row-height)');
+  assert.match(tokens, /--nav-folder-gap:\s*0(px)?;/);
 });
 
 describe('tables', () => {
