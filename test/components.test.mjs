@@ -1218,6 +1218,7 @@ test('a tab holding one page drops the sidebar column, a larger tab keeps it', (
   if (!single) return; // a site without a one-page tab has nothing to check
   assert.match(single, /\bno-sidebar\b/);
   assert.doesNotMatch(grid('getting-started') ?? '', /\bno-sidebar\b/);
+});
 
 test('a closed sidebar folder is a row the same height as a page link', () => {
   /* At 30px plus a 5px gap, a run of folders looked squeezed beside the pages,
