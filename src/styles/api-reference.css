@@ -78,7 +78,7 @@
   opacity: 0;
   pointer-events: none;
   transform: translateX(2px);
-  transition: opacity .15s ease, transform .15s ease, background .15s ease, color .15s ease;
+  transition: opacity .15s ease, transform .15s ease;
 }
 .api-article .endpoint-row:hover > .copy-button,
 .api-article .endpoint-row:focus-within > .copy-button {

@@ -1195,6 +1195,20 @@ describe('diagrams', () => {
  * the reading width at a word per line. The plugin fixes the first and gives
  * CSS what it needs for the second: a width class per column.
  */
+test('no stylesheet fades a colour on hover', () => {
+  /* A hover is an instant change. A background-color transition runs on the
+     compositor in Chrome and flickered while the pointer swept the sidebar. */
+  const dir = path.join(SRC, 'styles');
+  const fades = readdirSync(dir)
+    .filter(name => name.endsWith('.css'))
+    .flatMap(name =>
+      [...readFileSync(path.join(dir, name), 'utf8').matchAll(/transition:([^;{}]*);/g)]
+        .filter(m => /(^|,)\s*(background|background-color|color|border-color)\s/.test(m[1]))
+        .map(m => `${name}: ${m[1].trim()}`),
+    );
+  assert.deepEqual(fades, []);
+});
+
 describe('tables', () => {
   const text = value => ({ type: 'text', value });
   const cell = (tagName, value) => ({ type: 'element', tagName, properties: {}, children: value ? [text(value)] : [] });
