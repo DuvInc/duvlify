@@ -7,6 +7,7 @@ import { cssColor, cssCounter, cssCustomProperties } from '../src/lib/css-value.
 import { mp4Size } from '../src/lib/mp4-size.ts';
 import { ROUTE_HEADERS, routeHeaderRules } from '../src/lib/route-headers.ts';
 import { rehypeInlineLinks } from '../src/lib/rehype-inline-links.ts';
+import { rehypeWrapTables } from '../src/lib/rehype-wrap-tables.ts';
 import { slugify } from '../src/lib/slug.ts';
 
 /**
@@ -1185,5 +1186,78 @@ describe('diagrams', () => {
   test('Mermaid lays out with dagre, never fetching ELK unless a diagram asks', () => {
     const mermaid = readFileSync(path.join(SRC, 'scripts', 'mermaid.ts'), 'utf8');
     assert.match(mermaid, /layout:\s*'dagre'/, 'Mermaid 12 defaults to ELK, 440 KB per flowchart');
+  });
+});
+
+/**
+ * Tables. An import from Notion left softr-docs with a blank header row over
+ * the real one (12 pages), and seven columns of sentences were crushed into
+ * the reading width at a word per line. The plugin fixes the first and gives
+ * CSS what it needs for the second: a width class per column.
+ */
+describe('tables', () => {
+  const text = value => ({ type: 'text', value });
+  const cell = (tagName, value) => ({ type: 'element', tagName, properties: {}, children: value ? [text(value)] : [] });
+  const row = (tagName, values) => ({ type: 'element', tagName: 'tr', properties: {}, children: values.map(value => cell(tagName, value)) });
+  const table = (head, body) => ({
+    type: 'element',
+    tagName: 'table',
+    properties: {},
+    children: [
+      { type: 'element', tagName: 'thead', properties: {}, children: [row('th', head)] },
+      { type: 'element', tagName: 'tbody', properties: {}, children: body.map(values => row('td', values)) },
+    ],
+  });
+  /** Runs the plugin and hands back the wrapper it put around the table. */
+  const wrap = node => {
+    const tree = { type: 'root', children: [node] };
+    rehypeWrapTables()(tree);
+    return tree.children[0];
+  };
+  const tableIn = wrapper => wrapper.children[0].children[0];
+  const headerTexts = node =>
+    node.children[0].children[0].children.map(th => th.children.map(child => child.value ?? '').join(''));
+
+  const sentence = 'App users will only be able to see the options for records the rules allow.';
+
+  test('a table is wrapped in a card holding the scroller', () => {
+    const wrapper = wrap(table(['A', 'B'], [['1', '2']]));
+    assert.deepEqual(wrapper.properties.className, ['table-wrapper']);
+    assert.deepEqual(wrapper.children[0].properties.className, ['table-scroll']);
+    assert.equal(tableIn(wrapper).tagName, 'table');
+  });
+
+  test('an empty header row gives way to the first body row', () => {
+    const node = tableIn(wrap(table(['', ''], [['Type', 'Scope'], ['View', 'All records']])));
+    assert.deepEqual(headerTexts(node), ['Type', 'Scope']);
+    assert.equal(node.children[0].children[0].children[0].tagName, 'th');
+    assert.equal(node.children[1].children.length, 1);
+  });
+
+  test('a real header row is kept, even with one blank cell', () => {
+    const node = tableIn(wrap(table(['', 'Scope'], [['View', 'All'], ['Edit', 'Some']])));
+    assert.deepEqual(headerTexts(node), ['', 'Scope']);
+    assert.equal(node.children[1].children.length, 2);
+  });
+
+  test('each column is classed by its longest cell', () => {
+    const node = tableIn(
+      wrap(table(['Type', 'Scope', 'Rule', 'Detail'], [['View', 'Can only view certain records', sentence, `${sentence} ${sentence} ${sentence}`]])),
+    );
+    const classes = node.children[1].children[0].children.map(td => td.properties.className);
+    assert.deepEqual(classes, [undefined, ['col-text'], ['col-prose'], ['col-long']]);
+    assert.deepEqual(node.children[0].children[0].children[2].properties.className, ['col-prose']);
+  });
+
+  test('a short first column is pinned, a long one or a two-column table is not', () => {
+    assert.ok('dataRowLabels' in tableIn(wrap(table(['Type', 'Rule', 'Detail'], [['View', sentence, sentence]]))).properties);
+    assert.ok(!('dataRowLabels' in tableIn(wrap(table(['Rule', 'Type', 'Detail'], [[sentence, 'View', sentence]]))).properties));
+    assert.ok(!('dataRowLabels' in tableIn(wrap(table(['Plan', 'Detail'], [['Free', sentence]]))).properties));
+  });
+
+  test('the built gallery renders its table in the scrolling card', { skip: !existsSync(htmlPath) }, () => {
+    const html = readFileSync(htmlPath, 'utf8');
+    assert.match(html, /<div class="table-wrapper"><div class="table-scroll"><table data-row-labels/);
+    assert.match(html, /<td class="col-prose">/);
   });
 });

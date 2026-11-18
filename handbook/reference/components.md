@@ -454,6 +454,23 @@ The start of the next.
 The blank line above the dashes matters. Without it, Markdown reads the
 paragraph above as a heading.
 
+## Tables
+
+A table is plain Markdown too. The build measures each column: a column of
+short values stays narrow, a column of sentences keeps a readable width. When
+the columns no longer fit, the table scrolls sideways inside its frame, and a
+short first column stays pinned so each row keeps its name.
+
+| Column     | Longest cell         | Minimum width | How it reads                                                                                                | Typical content                                     |
+| ---------- | -------------------- | ------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Values     | Up to 24 characters  | None          | As narrow as its widest value, so a column of short answers never takes room from the columns that need it. | `Yes`, `N/A`, a type name, a version number         |
+| Phrases    | 25 to 60 characters  | 10rem         | Wraps onto two or three short lines instead of one word per line.                                           | A scope, a default value spelled out, a short label |
+| Sentences  | 61 to 160 characters | 15rem         | About 34 characters per line at the table's 14px, close to a comfortable reading measure.                   | A description, a rule, what a setting changes       |
+| Paragraphs | Over 160 characters  | 20rem         | Wider still, so a long cell doesn't grow its row ten lines tall.                                            | An explanation with an example in brackets          |
+
+An empty first row of headers, as Notion and GitBook exports write it, is
+dropped: the row below it becomes the header.
+
 ## The right rail
 
 Top-level `Panel`, `RequestExample`, and `ResponseExample` content can occupy the

@@ -1175,11 +1175,40 @@ body[data-navigation-mode='unified-sidebar'] {
   padding: .12em .4em;
   font-family: var(--font-mono);
 }
+/* Tables. The build (src/lib/rehype-wrap-tables.ts) measures each column and
+   tags its cells: `col-text` for short phrases, `col-prose` for sentences, `col-long` for
+   paragraphs, which get a wider floor so a row doesn't grow ten lines tall. A
+   column of sentences keeps a readable measure (~34 characters at 14px) and the
+   table scrolls sideways when the columns no longer fit, instead of the
+   browser crushing seven columns into the reading width at a word per line.
+   Short columns (`Yes`, `N/A`, a type name) take no floor and stay narrow.
+   `--table-bg` is the surface the table sits on: pinned cells paint it so the
+   scrolled columns pass under them. */
 .table-wrapper {
+  --table-bg: var(--bg);
+  position: relative;
   margin: 1.5rem 0;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  overflow: auto;
+  overflow: hidden;
+  background: var(--table-bg);
+}
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+/* Scroll hint: a light shadow on the right edge while columns remain hidden,
+   gone once the reader reaches the last one. It lives on the card, above the
+   scroller, so a hovered row or the header's tint never paints over it. */
+.table-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: 16px;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(to left, rgb(0 0 0 / .03), transparent);
+  opacity: 0;
 }
 .mdx-content table {
   width: 100%;
@@ -1192,6 +1221,7 @@ body[data-navigation-mode='unified-sidebar'] {
 }
 .mdx-content th {
   text-align: left;
+  vertical-align: bottom;
   font-weight: 600;
   color: var(--muted);
   padding: 10px 14px;
@@ -1199,12 +1229,66 @@ body[data-navigation-mode='unified-sidebar'] {
 }
 .mdx-content td {
   padding: 10px 14px;
+  vertical-align: top;
+}
+.mdx-content :is(th, td).col-text {
+  min-width: 10rem;
+}
+.mdx-content :is(th, td).col-prose {
+  min-width: 15rem;
+}
+.mdx-content :is(th, td).col-long {
+  min-width: 20rem;
 }
 .mdx-content tbody tr {
   border-top: 1px solid var(--line);
 }
 .mdx-content tbody tr:hover {
   background: var(--surface-2);
+}
+/* A short first column names the row (`View`, `Create`): it stays pinned while
+   the other columns scroll, so a cell is never read without its row. */
+.mdx-content table[data-row-labels] :is(th, td):first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--table-bg);
+}
+.mdx-content table[data-row-labels] th:first-child,
+.mdx-content table[data-row-labels] tbody tr:hover td:first-child {
+  background: color-mix(in oklab, var(--table-bg) 96%, var(--text));
+}
+.mdx-content table[data-row-labels] td:first-child {
+  font-weight: 500;
+}
+/* The pinned column's edge and the right-hand hint follow the horizontal
+   scroll. Without scroll-driven animations neither shows: the cut-off column
+   still says there is more. */
+@supports (animation-timeline: scroll()) {
+  .table-wrapper {
+    timeline-scope: --table-x;
+  }
+  .table-scroll {
+    scroll-timeline: --table-x inline;
+  }
+  .table-wrapper::after {
+    animation: table-more-right linear both;
+    animation-timeline: --table-x;
+    animation-range: calc(100% - 24px) 100%;
+  }
+  .mdx-content table[data-row-labels] :is(th, td):first-child {
+    animation: table-pinned-edge linear both;
+    animation-timeline: --table-x;
+    animation-range: 0 16px;
+  }
+}
+@keyframes table-more-right {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes table-pinned-edge {
+  from { box-shadow: none; }
+  to { box-shadow: inset -1px 0 0 var(--line), 6px 0 8px -6px rgb(0 0 0 / .08); }
 }
 .mdx-content blockquote {
   margin: 1.5rem 0;
