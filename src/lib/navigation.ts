@@ -55,6 +55,8 @@ export interface ResolvedTab {
   href: string;
   /** Every group in document order, nested ones included: read `depth` for the tree. */
   groups: ResolvedGroup[];
+  /** `NavTab.sidebar`, or, left unset, whether the tab holds more than one page. */
+  sidebar: boolean;
 }
 
 /**
@@ -250,7 +252,9 @@ export async function getNavigation(): Promise<ResolvedTab[]> {
        rendering as a tab that leads nowhere. */
     if (!first) return [];
 
-    return [{ id: tab.id, label: tab.label, icon: tab.icon, href: first.href, groups }];
+    const pageCount = groups.reduce((count, group) => count + group.pages.length, 0);
+    const sidebar = tab.sidebar ?? pageCount > 1;
+    return [{ id: tab.id, label: tab.label, icon: tab.icon, href: first.href, groups, sidebar }];
   });
 
   if (!tabs.length) {

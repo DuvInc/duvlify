@@ -78,3 +78,7 @@ The live version of these pages, always current, is at
 - [The manifest, WebMCP and limits](./agents/mcp.md)
 - [Retrieval](./agents/retrieval.md)
 - [Discoverability](./agents/discovery.md)
+
+### What's New
+
+- [What's New](./whats-new.md)

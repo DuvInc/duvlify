@@ -2,7 +2,7 @@
 title: "Configuration"
 description: "Configure identity, search, theme, navigation, redirects, and agent access from src/docs.config.ts."
 canonical: "https://duvlify.dev/reference/configuration"
-updated: "2026-11-06"
+updated: "2026-11-18"
 ---
 
 # Configuration
@@ -191,6 +191,21 @@ it.
 In `unified-sidebar` mode the tab bar is gone, and with it the tab's label. Set
 `sidebarLabel` on a tab to draw a heading above its groups, or `sidebarLabel: ''`
 for a blank spacer that separates two sections without naming either.
+
+### A tab with a single page
+
+A tab that holds one page has no sidebar in `category-tabs` mode: a sidebar
+listing only the page already open adds nothing, so the page is centred
+instead. [What's New](/whats-new) is such a tab. Set `sidebar` on a tab to
+decide for yourself:
+
+```ts
+{ id: 'changelog', label: 'Changelog', icon: 'megaphone', sidebar: true, groups: [ … ] },
+```
+
+`true` keeps the sidebar on a one-page tab, `false` drops it on a tab of any
+size. On a phone the menu drawer stays, because it also switches tabs. In
+`unified-sidebar` mode the sidebar lists every tab and is always drawn.
 
 ### Which folders start open
 
