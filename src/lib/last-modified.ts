@@ -24,6 +24,34 @@ import path from 'node:path';
 
 export const KEEP_DATES_TRAILER = 'Page-dates: keep';
 
+
+/**
+ * A CI or Cloudflare Workers Builds checkout is usually shallow (`--depth 1`):
+ * `git log` then does not fail, it gives every file the date of the clone's one
+ * commit, and the sitemap claims the whole site changed that day. Seen live on
+ * two sites built from this framework (one date for 114 and for 417 URLs). So
+ * the history is fetched once per build (commits and trees only, no file
+ * contents), and if that cannot be done, no git date is published at all.
+ */
+let history: boolean | undefined;
+export function hasGitHistory(): boolean {
+  if (history !== undefined) return history;
+  const git = (...args: string[]) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 120_000 }).trim();
+  try {
+    if (git('rev-parse', '--is-shallow-repository') === 'true') {
+      try {
+        git('fetch', '--quiet', '--unshallow', '--filter=blob:none');
+      } catch {
+        git('fetch', '--quiet', '--unshallow');
+      }
+    }
+    history = git('rev-parse', '--is-shallow-repository') === 'false';
+  } catch {
+    history = false;
+  }
+  return history;
+}
+
 const cache = new Map<string, Date | null>();
 
 /** Falls back to null — never to "now", which would be a lie. */
@@ -33,7 +61,7 @@ export function gitLastModified(contentPath: string): Date | null {
   let result: Date | null = null;
   const absolute = path.resolve(process.cwd(), contentPath);
 
-  if (existsSync(absolute)) {
+  if (existsSync(absolute) && hasGitHistory()) {
     try {
       const iso = execFileSync('git', [
         'log', '-1', '--format=%cI',
