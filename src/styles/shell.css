@@ -147,6 +147,17 @@ html {
   min-height: 100vh;
   padding-top: var(--shell-top);
 }
+/* A tab of one page (`NavTab.sidebar`): no sidebar column, the article and its
+   table of contents centred. The aside stays in the markup, because below the
+   drawer breakpoint it is the menu that switches tabs. */
+@media(min-width:761px) {
+  .docs-grid.no-sidebar {
+    grid-template-columns: minmax(0,var(--content)) var(--toc);
+  }
+  .docs-grid.no-sidebar > .sidebar {
+    display: none;
+  }
+}
 .nav-group {
   margin: var(--nav-category-before-gap) 0 var(--nav-category-after-gap);
 }
@@ -1675,6 +1686,9 @@ body[data-navigation-mode='unified-sidebar'] {
     grid-template-columns: 248px minmax(0,var(--content)) 200px;
     gap: 40px;
   }
+  .docs-grid.no-sidebar {
+    grid-template-columns: minmax(0,var(--content)) 200px;
+  }
 }
 /* Below this the table of contents is hidden *and* its column is removed, so the
    article gets the width back instead of sitting next to an empty rail. */
@@ -1682,6 +1696,9 @@ body[data-navigation-mode='unified-sidebar'] {
   .docs-grid {
     grid-template-columns: 240px minmax(0,var(--content));
     gap: 38px;
+  }
+  .docs-grid.no-sidebar {
+    grid-template-columns: minmax(0,var(--content));
   }
   .toc,
   .toc-actions {

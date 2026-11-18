@@ -1209,6 +1209,17 @@ test('no stylesheet fades a colour on hover', () => {
   assert.deepEqual(fades, []);
 });
 
+test('a tab holding one page drops the sidebar column, a larger tab keeps it', () => {
+  const grid = id => {
+    const file = path.join(distDir, id, 'index.html');
+    return existsSync(file) ? readFileSync(file, 'utf8').match(/class="docs-grid[^"]*"/)?.[0] : undefined;
+  };
+  const single = grid('whats-new');
+  if (!single) return; // a site without a one-page tab has nothing to check
+  assert.match(single, /\bno-sidebar\b/);
+  assert.doesNotMatch(grid('getting-started') ?? '', /\bno-sidebar\b/);
+});
+
 describe('tables', () => {
   const text = value => ({ type: 'text', value });
   const cell = (tagName, value) => ({ type: 'element', tagName, properties: {}, children: value ? [text(value)] : [] });

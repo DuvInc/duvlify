@@ -72,6 +72,15 @@ export interface NavTab {
    * Ignored in `category-tabs` mode, where the tab bar is the label.
    */
   sidebarLabel?: string;
+  /**
+   * Whether the left sidebar is drawn on this tab's pages, in `category-tabs`
+   * mode. Left undefined, a tab holding a single page has none: one link
+   * listing the page already open is noise, and the page is centred instead,
+   * like a changelog. `true` keeps it anyway, `false` drops it on a tab of any
+   * size. On a phone the menu drawer stays, since it also switches tabs. In
+   * `unified-sidebar` mode the sidebar holds every tab and is always drawn.
+   */
+  sidebar?: boolean;
   groups: NavGroup[];
 }
 
@@ -823,5 +832,15 @@ export const navigation: NavTab[] = [
         pages: ['agents/mcp', 'agents/retrieval', 'agents/discovery'],
       },
     ],
+  },
+  /**
+   * One page, so no sidebar: `sidebar` is left unset and the tab's single
+   * page is centred. The changelog of the framework itself.
+   */
+  {
+    id: 'whats-new',
+    label: "What's New",
+    icon: 'megaphone',
+    groups: [{ label: 'Updates', pages: ['whats-new'] }],
   },
 ];

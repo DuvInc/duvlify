@@ -84,6 +84,10 @@ const customRail = !api && rightRail === 'custom';
 
 const apiSummary = await renderSpecMarkdown(api?.description);
 const { tabs, activeTab, activePage, eyebrow, breadcrumb, previous, next } = context;
+/* A single-page tab drops the sidebar column (see `NavTab.sidebar`). An API
+   page keeps its own grid, and the unified sidebar always shows: it lists
+   every tab, not just this one. */
+const showSidebar = navigationLayout.mode === 'unified-sidebar' || activeTab.sidebar || Boolean(api || customRail);
 const currentPath = Astro.url.pathname;
 ---
 <!doctype html>
@@ -172,7 +176,7 @@ const currentPath = Astro.url.pathname;
       <strong>{activePage?.label || title}</strong>
     </div>
 
-    <div class:list={['docs-grid', (api || customRail) && 'api-reference-grid']}>
+    <div class:list={['docs-grid', (api || customRail) && 'api-reference-grid', !showSidebar && 'no-sidebar']}>
       <aside class="sidebar" data-sidebar>
         <div class="sidebar-viewport" data-sidebar-viewport data-sidebar-tab={activeTab.id}>
           <div class="mobile-drawer-head">
