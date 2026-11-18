@@ -109,7 +109,7 @@
   text-align: center;
   white-space: nowrap;
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+  transition: opacity .15s ease;
 }
 .button svg { flex: none }
 .button-sm { height: 32px; padding: 0 12px; font-size: 12px }
@@ -481,7 +481,6 @@
   border: 1px solid var(--c-border);
   border-radius: var(--r-lg);
   background: var(--surface);
-  transition: border-color .15s ease;
 }
 .card-body { padding: 20px 24px }
 .card-text { min-width: 0 }
@@ -506,7 +505,7 @@
   font-size: 14px;
   font-weight: 500;
   color: var(--c-mute);
-  transition: color .15s ease, gap .15s ease;
+  transition: gap .15s ease;
 }
 a.card:hover .card-cta { color: var(--accent-strong); gap: 9px }
 /* Card and step titles are h3 elements; opt them out of the article heading scale. */
@@ -815,7 +814,6 @@ a.tile { cursor: pointer }
   gap: 8px;
   list-style: none;
   cursor: pointer;
-  transition: background-color .15s ease, color .15s ease;
 }
 .accordion-item summary::-webkit-details-marker, .expandable summary::-webkit-details-marker { display: none }
 .disclosure-caret { flex: none; display: grid; place-items: center; color: var(--c-mute); transition: transform .2s ease }
@@ -934,7 +932,6 @@ details[open] > summary .disclosure-caret { transform: rotate(90deg) }
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: color .15s ease, border-color .15s ease;
 }
 .tab-list button:not(.copy-button) svg { display: inline-block; margin-right: 6px; vertical-align: -2px }
 .tabs-border-bottom { padding-bottom: 20px; border-bottom: 1px solid var(--c-border) }

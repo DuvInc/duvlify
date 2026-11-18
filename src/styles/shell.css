@@ -574,7 +574,7 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
 .nav-folder-caret {
   flex: none;
   color: var(--muted);
-  transition: transform .15s ease, color .15s ease;
+  transition: transform .15s ease;
 }
 .nav-folder:not([open]) .nav-folder-caret {
   transform: rotate(-90deg);
@@ -602,7 +602,6 @@ p, li, blockquote, figcaption, dd { text-wrap: pretty; }
   font-weight: 480;
   color: var(--text);
   background: var(--surface);
-  transition: background .15s ease,border-color .15s ease;
 }
 /* .copy-swap needs its two label states grid-stacked in the same cell (see
    components.css) so confirming a copy never resizes the button — this class
@@ -777,7 +776,7 @@ html[data-theme-pref="dark"] [data-theme-icon="dark"] {
   color: var(--muted);
   opacity: 0;
   cursor: pointer;
-  transition: opacity .14s ease,background .14s ease,border-color .14s ease,color .14s ease;
+  transition: opacity .14s ease;
 }
 .anchored-heading:hover .heading-anchor-button,
 .heading-anchor-button:focus-visible {
@@ -824,31 +823,33 @@ html[data-theme-pref="dark"] [data-theme-icon="dark"] {
   border-radius: var(--r-lg);
   box-shadow: 0 16px 40px rgba(0, 0, 0, .1);
 }
+/* Hover changes colour at once, never through a fade. Chrome runs a
+   background-color transition on the compositor, and sweeping the pointer down
+   the sidebar or a menu showed a frame where the backgrounds jumped back to the
+   row just left (2026-11-18, screen recording). A fade also reads as lag. The
+   test 'no stylesheet fades a colour' keeps it that way; motion and opacity
+   still transition. */
 summary {
-  transition: color .15s ease, background-color .15s ease,
-    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  transition: box-shadow .15s ease, transform .15s ease;
 }
 a {
   -webkit-tap-highlight-color: transparent;
   color: inherit;
   text-decoration: none;
-  transition: color .15s ease, background-color .15s ease,
-    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  transition: box-shadow .15s ease, transform .15s ease;
 }
 button {
   font: inherit;
   color: inherit;
   -webkit-tap-highlight-color: transparent;
   font-family: var(--font-sans);
-  transition: color .15s ease, background-color .15s ease,
-    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  transition: box-shadow .15s ease, transform .15s ease;
 }
 input {
   font: inherit;
   color: inherit;
   font-family: var(--font-sans);
-  transition: color .15s ease, background-color .15s ease,
-    border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  transition: box-shadow .15s ease, transform .15s ease;
 }
 .topbar {
   height: var(--header);
@@ -1353,7 +1354,6 @@ body[data-navigation-mode='unified-sidebar'] {
   border: 1px solid transparent;
   font-size: 14px;
   line-height: 1.4;
-  transition: background .15s ease, color .15s ease;
 }
 .category-switcher summary {
   box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
@@ -1405,7 +1405,7 @@ body[data-navigation-mode='unified-sidebar'] {
   padding: 5px 0 5px 14px;
   border-left: 1px solid var(--line);
   font-variation-settings: 'wght' 400;
-  transition: color .2s ease, font-variation-settings .2s ease;
+  transition: font-variation-settings .2s ease;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -1472,7 +1472,6 @@ body[data-navigation-mode='unified-sidebar'] {
   justify-content: space-between;
   min-height: 30px;
   border-radius: var(--r-sm);
-  transition: background .15s ease,color .15s ease;
   font-size: 14px;
   line-height: 1.35;
 }
@@ -1532,7 +1531,6 @@ body[data-navigation-mode='unified-sidebar'] {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  transition: background .15s ease, color .15s ease;
 }
 .theme-switch button:hover {
   color: var(--text);
@@ -1669,7 +1667,6 @@ body[data-navigation-mode='unified-sidebar'] {
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 15px 16px;
-  transition: background .15s ease,border-color .15s ease;
   border-radius: var(--r-md);
   box-shadow: none;
 }
