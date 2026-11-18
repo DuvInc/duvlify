@@ -1235,6 +1235,17 @@ test('a closed sidebar folder is a row the same height as a page link', () => {
   assert.match(tokens, /--nav-folder-gap:\s*0(px)?;/);
 });
 
+test('sidebar highlights preserve the transparent edges between rows', () => {
+  const css = readFileSync(path.join(SRC, 'styles', 'shell.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  for (const selector of ['.nav-group a:hover', '.nav-group a.active', '.nav-folder summary:hover']) {
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter(match => match[1].trim() === selector);
+    assert.ok(rules.length, selector);
+    for (const [, , declarations] of rules) {
+      assert.doesNotMatch(declarations, /(?:^|;)\s*(?:background|border-color)\s*:/, selector);
+    }
+  }
+});
+
 describe('tables', () => {
   const text = value => ({ type: 'text', value });
   const cell = (tagName, value) => ({ type: 'element', tagName, properties: {}, children: value ? [text(value)] : [] });
