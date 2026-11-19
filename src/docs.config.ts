@@ -553,6 +553,16 @@ export const agents = {
   /** Name of the AI Search instance, when `retrieval` is 'ai-search'. */
   aiSearchInstance: 'duvlify-docs',
 
+  /**
+   * Which locales to index in AI Search, when `retrieval` is 'ai-search'.
+   *
+   *   'default'  only the primary language (`defaultLocale`). Other locales use
+   *              the built-in lexical index, avoiding an N-times multiplier on
+   *              AI Search ingestion tokens across translations.
+   *   'all'      every configured locale.
+   */
+  aiSearchLocales: 'default' as 'default' | 'all',
+
   /** Passages returned when the caller does not ask for a number. */
   defaultLimit: 8,
   /** Ceiling, so an agent cannot burn its context by accident. */
