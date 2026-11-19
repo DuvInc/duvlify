@@ -204,29 +204,35 @@ chunks. So they are reserved for filtering and ranking (`type`, `updated`,
 manifest instead. Adding a field later forces a full reindex, which is why the
 budget was written down before it was spent.
 
-`version` is the digest of everything an upload puts in the index, **the
-Markdown and the metadata**. It is what lets a sync know what changed. The
-index carries its own record of what it holds, a property no local manifest file
-has, because a local file drifts the moment a second machine deploys. With it, a
-run uploads the pages that moved instead of all of them: 22 pages became 0
-requests and under a second on a build where nothing changed. On a 198-page site
-the upload had been 76 % of the entire build.
+`version` is the digest of what an upload puts in the index, **the Markdown and
+the filter metadata**, minus the volatile `updated` date. It is what lets a sync
+know what changed. The index carries its own record of what it holds, a property
+no local manifest file has, because a local file drifts the moment a second
+machine deploys. With it, a run uploads the pages that moved instead of all of
+them: 22 pages became 0 requests and under a second on a build where nothing
+changed. On a 198-page site the upload had been 76 % of the entire build.
 
-The metadata has to be in the digest, and the reason is not obvious. `tab`,
-`type` and `locale` are resolved from the manifest rather than read from the
-file, so moving a page to a different navigation tab changes **not one byte on
-disk**. A digest of the file alone would skip that page forever, and the index
-would keep filtering it under a tab the site no longer puts it in. Verified by
-moving a page between tabs: identical MD5, re-uploaded correctly.
+The filter metadata has to be in the digest, and the reason is not obvious.
+`tab`, `type` and `locale` are resolved from the manifest rather than read from
+the file, so moving a page to a different navigation tab changes **not one byte
+on disk**. A digest of the file alone would skip that page forever, and the
+index would keep filtering it under a tab the site no longer puts it in.
+`updated` is deliberately left out of the digest (both in metadata and in the
+leading frontmatter block) so a date-only shift, such as a shallow CI checkout
+or a history rewrite, never triggers a full-corpus re-ingestion.
 
-Every uncertainty resolves toward uploading. An item still chunking, one the API
-reports an error for, one missing from the listing, a listing that could not be
-read at all: each means "send it". The asymmetry is deliberate: a page wrongly
-skipped is invisible until a reader gets a stale answer, while a page wrongly
-uploaded costs two seconds. In practice this shows up right after a large sync,
-where items sit at `status: "running"` while Cloudflare chunks them (15 of 22
-completed within two minutes and 7 took several more), and those are re-sent
-until they finish. `npm run index:sync -- --force` ignores the digests entirely.
+Errored, outdated, and missing items are always re-uploaded, as is the whole
+corpus when the index listing fails. Items already `queued` or `running` with
+the matching digest and no error are skipped so back-to-back deploys do not
+re-upload and double-bill identical content while Cloudflare is still embedding
+it. `npm run index:sync -- --force` ignores digests, and `--prune` overrides the
+one-third deletion guard after an intentional reduction (such as switching
+`agents.aiSearchLocales` from `'all'` to `'default'`).
+
+On multilingual sites, `agents.aiSearchLocales` defaults to `'default'`, which
+pushes only the primary language (`defaultLocale`) to AI Search while other
+locales use the built-in lexical index. Set it to `'all'` to index every
+translation in AI Search.
 
 <Callout title="Not the API's own checksum field" tone="note">
   The listing endpoint returns a `checksum` per item, which looks like it would
