@@ -2,7 +2,7 @@
 title: "Retrieval"
 description: "Two retrieval backends: a lexical index built at compile time that needs no account, and Cloudflare AI Search for hybrid semantic search when you want it."
 canonical: "https://duvlify.dev/agents/retrieval"
-updated: "2026-11-19"
+updated: "2026-11-20"
 ---
 
 # Retrieval
