@@ -112,7 +112,9 @@ paraphrased questions. To set it up:
    fall back to `lexical`.
 
 4. Set `agents.retrieval` to `'ai-search'` and `agents.aiSearchInstance` to the
-   name in `src/docs.config.ts`.
+   name in `src/docs.config.ts`. Keep `agents.aiSearchLocales` at `'default'`
+   to index only the primary language. Other languages use lexical search.
+   Set it to `'all'` to index every language.
 
 5. Push the corpus after each build: `npm run index:sync`, with
    `CLOUDFLARE_ACCOUNT_ID` and `AI_SEARCH_TOKEN` in the environment.
@@ -132,15 +134,14 @@ after they left the manifest.
 
 To fix this, the script now finishes by listing every indexed item and
 deleting whatever the manifest no longer claims. The join is by key: the API
-stores `<page id>.md` against the manifest's bare id. The manifest is the
-whole published corpus, so anything outside it is stale by definition.
+stores `<page id>.md` against the manifest's bare id. Items outside the
+selected locales or no longer in the manifest are stale.
 
 Two guards protect against failure:
 
-- If more than a third of the index looks stale, the script deletes nothing
-  and the run reports this. Otherwise, a truncated or half-built manifest
-  could empty the index, and removing a third of a corpus is never a routine
-  edit.
+- If more than a third of the index looks stale, the script leaves it alone.
+  For an intentional reduction, review `npm run index:dry -- --prune` first.
+  Apply it with `npm run index:sync -- --prune` only after verifying the list.
 - A failure to _list_ is reported but does not fail the run. The upload half
   already succeeded, and blocking a good deploy over a cleanup problem would
   trade a small amount of staleness for a stopped release.
@@ -150,18 +151,12 @@ uploads. This is a cheap way to check a large content change before it runs.
 
 ### When a page fails to upload
 
-The uploader retries five times with exponential backoff. It also paces
-itself between pages, because several hundred back-to-back connections would
-otherwise draw a steady trickle of resets. A run that still fails is usually
-a `503` stretch on Cloudflare's side rather than a bad payload. The total
-backoff is about eight seconds, which is not enough to ride out a longer
-outage.
+The uploader tries each page up to seven times with capped exponential backoff.
+A failed upload leaves the previous version of that page in the index.
 
-The failed page keeps its previous content in the index, since nothing was
-overwritten. The index is stale for that one page, not broken. Re-running
-the whole script fixes this. The script is idempotent, and the API stores a
-checksum per item, so re-running unchanged pages does not count as a content
-change.
+The script compares the content digest stored in `metadata.version`. Date-only
+changes do not change the digest. A matching item is skipped if it is complete,
+queued, or running without error.
 
 ### Settings that are not obvious from the dashboard
 
