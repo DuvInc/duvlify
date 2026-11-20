@@ -634,6 +634,8 @@ a.tile { cursor: pointer }
    is what puts an iframe inside `.frame-content` in the first place. */
 .frame-content > iframe { aspect-ratio: 16 / 9; border: 0 }
 .frame-content > :not(img):not(video):not(svg):not(iframe) { display: block; width: 100%; margin: 0; padding: 1.5rem }
+.frame-content > :is(p[data-image-only], picture) { padding: 0 }
+.frame-content > :is(p[data-image-only], picture) img { display: block; width: 100%; height: auto }
 /* Transparent, so the caption reads as part of the frame rather than a white
    strip pasted underneath the content. */
 .frame-caption {

@@ -258,12 +258,34 @@ function applyToElement(node: Element) {
   }
 }
 
+interface ImageWrapperNode {
+  type: string;
+  tagName?: string;
+  name?: string | null;
+  value?: string;
+  children?: ImageWrapperNode[];
+}
+
+function isImageOnly(node: ImageWrapperNode): boolean {
+  const tag = node.tagName ?? node.name;
+  if (tag === 'img') return true;
+  if (tag !== 'p' && tag !== 'a' && tag !== 'picture') return false;
+  const content = node.children?.filter(child =>
+    !(child.type === 'text' && !child.value?.trim()) &&
+    !(tag === 'picture' && (child.tagName ?? child.name) === 'source'),
+  );
+  return content?.length === 1 && isImageOnly(content[0]);
+}
+
 export function rehypeImages() {
   return (tree: Root) => {
     const visit = (node: Parent) => {
       if (!Array.isArray(node.children)) return;
       for (const child of node.children as (Element & JsxNode)[]) {
         if (!child) continue;
+        if (child.type === 'element' && child.tagName === 'p' && isImageOnly(child)) {
+          child.properties.dataImageOnly = true;
+        }
         if (child.type === 'element' && child.tagName === 'img') applyToElement(child);
         else if (child.type === 'element' && child.tagName === 'video') applyToVideo(child);
         else if (isJsx(child, 'img')) applyToJsx(child);

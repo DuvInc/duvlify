@@ -2,7 +2,7 @@
 title: "Components"
 description: "The complete component vocabulary, rendered on the page that documents it, including callouts, cards, steps, tabs, and trees."
 canonical: "https://duvlify.dev/reference/components"
-updated: "2026-11-18"
+updated: "2026-11-20"
 ---
 
 # Components
@@ -394,6 +394,25 @@ dark mode. Measured on the block above before its action colours were set:
 1.26:1, a button you could lose against its own block. So a custom `background`
 is a commitment to `actionBackground` and `actionForeground` as well: the same
 bargain as `foreground`, for the same reason.
+
+## Images and frames
+
+Wrap a Markdown image in `<Frame>` to give it a border and an optional caption.
+Click the image to open it at a larger size.
+
+![Layered green mountain ridges under a pale yellow sun](/frame-demo.svg)
+
+_A landscape illustration with a caption._
+
+```mdx
+<Frame caption="A landscape illustration with a caption.">
+  ![Layered green mountain ridges under a pale yellow sun](/frame-demo.svg)
+</Frame>
+```
+
+Leave out `caption` when the image needs no visible label. Keep the alt text.
+
+![A fictional activity dashboard with a rising line and five violet bars](/frame-dashboard.svg)
 
 ## File trees
 

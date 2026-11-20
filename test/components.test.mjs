@@ -47,6 +47,15 @@ const sourceFiles = (dir = SRC) =>
 
 const relative = file => path.relative(ROOT, file);
 
+test('the gallery renders image-only Markdown frames with and without captions', { skip: !existsSync(htmlPath) }, () => {
+  const html = readFileSync(htmlPath, 'utf8');
+  const frames = [...html.matchAll(/<div class="frame-content"><p data-image-only(?:="[^"]*")?><img[^>]*src="[^"]*\/(frame-demo|frame-dashboard)\.svg"[^>]*><\/p><\/div>\s*(<figcaption[^>]*>)?/g)];
+  assert.deepEqual(frames.map(frame => [frame[1], Boolean(frame[2])]), [
+    ['frame-demo', true],
+    ['frame-dashboard', false],
+  ]);
+});
+
 test('every API endpoint renders its response details once without an authored component', () => {
   const manifest = JSON.parse(readFileSync(path.join(distDir, 'agent-manifest.json'), 'utf8'));
   for (const page of manifest.pages.filter(page => page.type === 'api-endpoint')) {
