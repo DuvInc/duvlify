@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { createServer } from 'node:net';
 /* The bridge's own relay, imported so the WebMCP tests exercise the shipped
    code rather than a copy of it. Node strips the types on import. */
 import { callTool, loadTools, readRpcResponse } from '../src/lib/webmcp.ts';
@@ -21,11 +22,20 @@ import { callTool, loadTools, readRpcResponse } from '../src/lib/webmcp.ts';
  */
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-/* Overridable because a fixed port is only free until it is not. Anything else
-   listening on it — another project's `wrangler dev` is the likely one, since
-   they all pick from the same small range — makes every suite below fail with a
-   60 second timeout, and the cause is not visible in the result. */
-const PORT = Number(process.env.AGENT_TEST_PORT ?? 8791);
+/* A port the OS reports free, never a fixed one: another docs site's `wrangler dev`
+   already listening on the fixed port answered the whole suite instead of this one
+   (Lookio, 2026-11-22: 8 failures, its list_pages returned Grid82's 246 pages). */
+function freePort() {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close(() => resolve(port));
+    });
+  });
+}
+const PORT = Number(process.env.AGENT_TEST_PORT) || (await freePort());
 /* The Worker only answers under `site.basePath`, because that is where its
    route is mounted. Reading it here keeps the suite valid for both topologies
    instead of encoding the root deployment as the only one. */
@@ -142,6 +152,7 @@ before(async () => {
      is, and a fixed wait is either flaky or slow. */
   const deadline = Date.now() + 60_000;
   for (;;) {
+    if (server.exitCode !== null) throw new Error(`wrangler dev exited (code ${server.exitCode}) before answering on port ${PORT}`);
     try {
       const probe = await fetch(`${BASE}/mcp`, {
         method: 'POST',
@@ -153,13 +164,7 @@ before(async () => {
       /* not up yet */
     }
     if (Date.now() > deadline) {
-      throw new Error(
-        `wrangler dev did not start within 60s on port ${PORT}.\n` +
-          `  If something else is already listening there, this is what it looks like:\n` +
-          `    lsof -nP -iTCP:${PORT} -sTCP:LISTEN\n` +
-          `  Then either stop it, or run the suite elsewhere:\n` +
-          `    AGENT_TEST_PORT=8892 npm test`,
-      );
+      throw new Error(`wrangler dev did not start within 60s on port ${PORT}`);
     }
     await new Promise(resolve => setTimeout(resolve, 500));
   }

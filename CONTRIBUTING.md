@@ -65,11 +65,9 @@ the file.
 the accent tints as well as the page background, in both modes. The page
 background is the easy case and the one a colour picker shows you.
 
-`test/agents.test.mjs` boots a real Worker on port 8791. If something else is
-already listening there (another project's `wrangler dev` is the usual culprit,
-since they all pick from the same small range), every suite in that file fails
-with a 60 second timeout. The error says so and names the port. Run it elsewhere
-with `AGENT_TEST_PORT=8892 npm test`.
+`test/agents.test.mjs` boots a real Worker on a port the OS reports free, so
+another project's `wrangler dev` can neither block it nor answer in its place.
+`AGENT_TEST_PORT` pins a port when you need one.
 
 ## Engineering rules
 
@@ -137,8 +135,6 @@ says which.
 - **The placeholder origin is invisible.** A build with the wrong `SITE_URL`
   renders perfectly and points every crawler at a host nobody owns, which is why
   there are two checks for it.
-- **Another project's dev server on port 8791** makes the agent suite time out for
-  60 seconds. Use `AGENT_TEST_PORT`.
 
 ## Changes that need a conversation first
 
