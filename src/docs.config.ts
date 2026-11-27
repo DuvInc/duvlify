@@ -530,8 +530,8 @@ export interface FeedbackField {
  * registered, no index is provisioned, and the build skips the upload step.
  */
 export const agents = {
-  /** Master switch. Everything below is inert when this is false. */
-  enabled: true,
+  /** The static Atelier201 export has no Worker endpoints to advertise. */
+  enabled: !process.env.ATELIER201_SITE_URL,
 
   /** Also expose the tools as plain REST under /api/docs/. */
   http: true,

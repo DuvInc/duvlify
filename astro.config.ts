@@ -1,4 +1,6 @@
 import { defineConfig, fontProviders } from 'astro/config';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import mdx from '@astrojs/mdx';
 import { unified } from '@astrojs/markdown-remark';
 import { basePath, theme, redirects } from './src/docs.config';
@@ -24,10 +26,37 @@ import { PLACEHOLDER_ORIGIN, warnOnPlaceholderOrigin } from './scripts/check-ori
  * placeholder.
  */
 loadEnvFile(import.meta.dirname);
+const atelierOrigin = process.env.ATELIER201_SITE_URL;
+const sans = {
+  name: theme.font.sans,
+  cssVariable: theme.font.sansVariable,
+  display: 'swap' as const,
+};
+// Astro self-hosts the default font even when the builder is offline.
+const typography = theme.font.sans === 'Inter'
+  ? defineConfig({ fonts: [{
+      ...sans,
+      provider: fontProviders.local(),
+      options: {
+        variants: [{
+          src: ['@fontsource-variable/inter/files/inter-latin-wght-normal.woff2'],
+          weight: theme.font.sansWeights[0],
+          style: 'normal',
+        }],
+      },
+    }] })
+  : defineConfig({ fonts: [{
+      ...sans,
+      provider: fontProviders.google(),
+      weights: [...theme.font.sansWeights],
+      styles: ['normal'],
+      subsets: ['latin'],
+    }] });
+const vendoredMermaid = fileURLToPath(new URL('./src/vendor/mermaid/mermaid.esm.min.mjs', import.meta.url));
 // Reject invalid moves during the build, before a Worker can publish them.
 createRedirectResolver(redirects, basePath);
 
-export default defineConfig({
+const config = defineConfig({
   /**
    * The canonical origin. Overridden per environment with SITE_URL, because
    * canonical links, the sitemap and llms.txt all have to name the real host.
@@ -40,7 +69,7 @@ export default defineConfig({
    * that is not yours. `npm run deploy` refuses to ship a build that still names
    * it; see scripts/check-origin.mjs.
    */
-  site: process.env.SITE_URL || PLACEHOLDER_ORIGIN,
+  site: atelierOrigin || process.env.SITE_URL || PLACEHOLDER_ORIGIN,
 
   /*
    * Kept in step with `site.basePath`, which is the value everything else
@@ -59,6 +88,7 @@ export default defineConfig({
   base: basePath || undefined,
 
   output: 'static',
+  build: { format: atelierOrigin ? 'file' : 'directory' },
   trailingSlash: 'never',
 
   /**
@@ -71,22 +101,7 @@ export default defineConfig({
    */
   server: { port: process.env.PORT ? Number(process.env.PORT) : 4321 },
 
-  /**
-   * Self-hosted webfonts. Astro downloads the family at build time, emits the
-   * @font-face rules and preloads, and exposes the stack as a CSS variable —
-   * so there is no render-blocking round trip to a third-party font CDN.
-   */
-  fonts: [
-    {
-      name: theme.font.sans,
-      cssVariable: theme.font.sansVariable,
-      provider: fontProviders.google(),
-      weights: [...theme.font.sansWeights],
-      styles: ['normal'],
-      subsets: ['latin'],
-      display: 'swap',
-    },
-  ],
+  vite: existsSync(vendoredMermaid) ? { resolve: { alias: [{ find: /^mermaid$/, replacement: vendoredMermaid }] } } : undefined,
 
   markdown: {
     /**
@@ -149,3 +164,5 @@ export default defineConfig({
     routeHeaders(),
   ],
 });
+
+export default { ...config, ...typography };
