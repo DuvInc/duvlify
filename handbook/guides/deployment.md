@@ -1,6 +1,6 @@
 ---
 title: "Deploying"
-description: "The build is static output. Deploy it to Cloudflare for every feature, or to any static host, with subdomain and subpath options and their costs."
+description: "The build is static output. Deploy it to Cloudflare for every feature, to Atelier201 or any static host, with subdomain and subpath options."
 canonical: "https://duvlify.dev/guides/deployment"
 updated: "2026-11-16"
 ---
@@ -369,6 +369,65 @@ script 404s while page links still point at the root. With `basePath` alone,
 the failure runs the other way. `npm test` asserts that every asset a page
 references exists in the build. This turns the mismatch into a failure you see,
 rather than one your readers do.
+
+## On Atelier201
+
+[Atelier201](https://atelier201.com) builds and hosts Astro sites. It runs the
+build itself, offline, so Duvlify ships it a prepared copy of the project rather
+than `dist/`.
+
+```bash
+npm ci
+atelier201 auth login
+cd "$(npm run --silent atelier:prepare)"
+atelier201 sites create "My docs" --link
+atelier201 site push --wait
+```
+
+`npm run atelier:prepare` copies the project into a temporary folder and prints
+its path. The copy keeps the pages, the components and the build-time
+dependencies. It leaves out the Worker and the packages only the Worker uses, and
+it vendors Mermaid's browser modules into `src/vendor/`, so the offline build
+needs no extra package.
+
+Two settings follow from the offline build:
+
+- **Keep the default font.** With `theme.font.sans` set to `'Inter'`, the font
+  is read from `@fontsource-variable/inter`, which is on Atelier201's build
+  image. Any other family is downloaded from Google at build time, and the build
+  has no network.
+- **Let Atelier201 set the origin.** It passes the site's address to the build,
+  which writes it into the canonical tags, the sitemap and `llms.txt`. `SITE_URL`
+  is not needed.
+
+To update the site, prepare a fresh copy and link it to the same site before
+pushing:
+
+```bash
+cd "$(npm run --silent atelier:prepare)"
+atelier201 site link --site <id-or-slug>
+atelier201 site push --wait
+```
+
+`site push` saves a draft. Visitors see nothing until you publish it on the Site
+plan with `atelier201 publish`. A preview link (`atelier201 previews create`)
+shows it first.
+
+### What works there, and what does not
+
+| Feature                                                         | On Atelier201                                                                                          |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Pages, search, Mermaid diagrams, share cards, feeds, `llms.txt` | Yes                                                                                                    |
+| Markdown twins at their `.md` URLs                              | Yes                                                                                                    |
+| `Accept: text/markdown` on a page URL                           | Yes, served by Atelier201 with `Vary: Accept` and a canonical `Link` header                            |
+| `public/_redirects`                                             | Yes, up to 200 rules                                                                                   |
+| `public/_headers`                                               | No. Atelier201 sets its own security and cache headers                                                 |
+| MCP server, HTTP API, `report_issue`, WebMCP                    | No: they are Worker features. The prepared copy turns `agents.enabled` off, so nothing advertises them |
+| Semantic retrieval (`'ai-search'`)                              | No, for the same reason. Search in the browser still works                                             |
+
+Pick Cloudflare when agents should query the docs through tools. Pick
+Atelier201 when a static site with Markdown for agents is enough and you would
+rather not run a Cloudflare account.
 
 ## On another host
 
