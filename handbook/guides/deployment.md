@@ -2,7 +2,7 @@
 title: "Deploying"
 description: "The build is static output. Deploy it to Cloudflare for every feature, to Atelier201 or any static host, with subdomain and subpath options."
 canonical: "https://duvlify.dev/guides/deployment"
-updated: "2026-11-16"
+updated: "2026-11-27"
 ---
 
 # Deploying
