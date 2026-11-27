@@ -135,6 +135,26 @@ because there is no plan and no plugin API. The same applies to what your reader
 see: nothing in the output credits this project, so there is no badge to pay to
 remove.
 
+## Deploy the static site on Atelier201
+
+Use a fresh Atelier201 draft and leave the default Inter font selected for the
+offline build. From your Duvlify checkout, run:
+
+```sh
+npm ci
+atelier201 auth login
+cd "$(npm run --silent atelier:prepare)"
+atelier201 sites create "My docs" --link
+atelier201 site push --wait
+```
+
+The export includes the docs, browser search, Mermaid diagrams and static
+Markdown files. Atelier supplies the site's canonical address. Put redirects
+in `public/_redirects` for this host. Use the Cloudflare deployment for the MCP
+server, HTTP tools, Markdown content negotiation and custom response headers.
+To update the docs, prepare a fresh export and link it to the same site with
+`atelier201 site link --site <id-or-slug>` before pushing.
+
 ## Commands
 
 | | |
