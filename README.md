@@ -137,8 +137,9 @@ remove.
 
 ## Deploy the static site on Atelier201
 
-Use a fresh Atelier201 draft and leave the default Inter font selected for the
-offline build. From your Duvlify checkout, run:
+Duvlify also runs on [Atelier201](https://atelier201.com), which builds and
+hosts Astro sites. Leave the default Inter font selected, since the build runs
+offline. From your Duvlify checkout:
 
 ```sh
 npm ci
@@ -148,12 +149,11 @@ atelier201 sites create "My docs" --link
 atelier201 site push --wait
 ```
 
-The export includes the docs, browser search, Mermaid diagrams and static
-Markdown files. Atelier supplies the site's canonical address. Put redirects
-in `public/_redirects` for this host. Use the Cloudflare deployment for the MCP
-server, HTTP tools, Markdown content negotiation and custom response headers.
-To update the docs, prepare a fresh export and link it to the same site with
-`atelier201 site link --site <id-or-slug>` before pushing.
+You get the docs, browser search, Mermaid diagrams, the Markdown twins and
+`Accept: text/markdown` on every page URL. Redirects go in `public/_redirects`.
+The MCP server, the HTTP API, semantic retrieval and `public/_headers` need the
+Cloudflare Worker. The [deployment guide](https://duvlify.dev/guides/deployment#on-atelier201)
+covers updates and the full list.
 
 ## Commands
 
