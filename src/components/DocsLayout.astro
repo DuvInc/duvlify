@@ -88,7 +88,7 @@ const { tabs, activeTab, activePage, eyebrow, breadcrumb, previous, next } = con
    page keeps its own grid, and the unified sidebar always shows: it lists
    every tab, not just this one. */
 const showSidebar = navigationLayout.mode === 'unified-sidebar' || activeTab.sidebar || Boolean(api || customRail);
-const currentPath = activePage?.href ?? Astro.url.pathname;
+const currentPath = seo.canonical ? new URL(seo.canonical).pathname : site.home;
 ---
 <!doctype html>
 {/* The banner flag lives on the root element rather than <body> because
